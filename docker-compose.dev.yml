@@ -41,7 +41,7 @@ services:
     env_file:
       - .env.dev
     environment:
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=http://backend:8000/api/v1
     depends_on:
       - backend
     command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0

@@ -1,0 +1,12 @@
+from fastapi import APIRouter
+from api.endpoints import auth, org, timesheet, users, reports, sync, projects
+
+api_router = APIRouter()
+
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(users.router, prefix="/users", tags=["User Management"])
+api_router.include_router(org.router, prefix="/org", tags=["Organization Structure"])
+api_router.include_router(timesheet.router, prefix="/timesheet", tags=["Timesheet Operations"])
+api_router.include_router(reports.router, prefix="/reports", tags=["Analytics & Reports"])
+api_router.include_router(sync.router, prefix="/sync", tags=["Jira Synchronization"])
+api_router.include_router(projects.router, prefix="/projects", tags=["Project Management"])

@@ -3,7 +3,7 @@ from typing import Optional
 
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: str
+    full_name: Optional[str] = "Jira User"
     jira_account_id: Optional[str] = None
     role: str = "Employee"
     weekly_quota: int = 40

@@ -10,6 +10,7 @@ class JiraLog(Base):
     date: Mapped[date] = mapped_column(Date)
     time_spent_hours: Mapped[float] = mapped_column(Float)
     issue_key: Mapped[str] = mapped_column(String(255))
+    project_key: Mapped[str] = mapped_column(String(50), index=True, nullable=True)
     summary: Mapped[str] = mapped_column(String(1024), nullable=True)
     sprint: Mapped[str] = mapped_column(String(255), nullable=True)
     release: Mapped[str] = mapped_column(String(255), nullable=True)

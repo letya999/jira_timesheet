@@ -12,6 +12,7 @@ from models.base import Base
 import models.user
 import models.org
 import models.timesheet
+import models.project
 
 config = context.config
 

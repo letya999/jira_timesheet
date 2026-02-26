@@ -1,15 +1,53 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List
+from typing import List, Annotated
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, func
 
 from core.database import get_db
 from models.project import Project
 from schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate, JiraProject
+from schemas.pagination import PaginatedResponse
 from services.jira import fetch_jira_projects
 from api.deps import require_role
 
 router = APIRouter()
+
+@router.post("/refresh", dependencies=[Depends(require_role(["Admin"]))])
+async def refresh_projects(db: Annotated[AsyncSession, Depends(get_db)]):
+    """Refresh project list from Jira API into DB."""
+    from services.jira import sync_jira_projects_to_db
+    count = await sync_jira_projects_to_db(db)
+    return {"status": "success", "synced_projects": count}
+
+@router.post("/sync-all", dependencies=[Depends(require_role(["Admin"]))])
+async def sync_all_active_projects(db: Annotated[AsyncSession, Depends(get_db)]):
+    """Sync worklogs for all projects marked as is_active."""
+    from services.jira import sync_jira_worklogs_for_projects
+    
+    result = await db.execute(select(Project).where(Project.is_active == True))
+    active_projects = result.scalars().all()
+    project_keys = [p.key for p in active_projects]
+    
+    if not project_keys:
+        return {"status": "success", "detail": "No active projects to sync", "synced": 0}
+        
+    sync_result = await sync_jira_worklogs_for_projects(db, project_keys=project_keys)
+    return sync_result
+
+@router.post("/{project_id}/sync", dependencies=[Depends(require_role(["Admin"]))])
+async def sync_single_project(
+    project_id: int, 
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Sync worklogs for a single project."""
+    from services.jira import sync_jira_worklogs_for_projects
+    
+    db_project = await db.get(Project, project_id)
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    sync_result = await sync_jira_worklogs_for_projects(db, project_keys=[db_project.key])
+    return sync_result
 
 @router.get("/jira", response_model=List[JiraProject], dependencies=[Depends(require_role(["Admin"]))])
 async def get_jira_projects():
@@ -17,14 +55,40 @@ async def get_jira_projects():
     projects = await fetch_jira_projects()
     return projects
 
-@router.get("/", response_model=List[ProjectResponse], dependencies=[Depends(require_role(["Admin"]))])
-async def get_db_projects(db: AsyncSession = Depends(get_db)):
-    """List projects saved in DB."""
-    result = await db.execute(select(Project))
-    return result.scalars().all()
+@router.get("/", response_model=PaginatedResponse[ProjectResponse], dependencies=[Depends(require_role(["Admin"]))])
+async def get_db_projects(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 50
+):
+    """List projects saved in DB with pagination."""
+    skip = (page - 1) * size
+    
+    # Get total count
+    count_stmt = select(func.count()).select_from(Project)
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar()
+    
+    # Get items
+    stmt = select(Project).offset(skip).limit(size)
+    result = await db.execute(stmt)
+    items = result.scalars().all()
+    
+    pages = (total + size - 1) // size
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": pages
+    }
 
 @router.post("/", response_model=ProjectResponse, dependencies=[Depends(require_role(["Admin"]))])
-async def create_or_update_project(project_in: ProjectCreate, db: AsyncSession = Depends(get_db)):
+async def create_or_update_project(
+    project_in: ProjectCreate, 
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
     """Save or update a project's sync settings."""
     result = await db.execute(select(Project).where(Project.jira_id == project_in.jira_id))
     db_project = result.scalar_one_or_none()
@@ -42,7 +106,11 @@ async def create_or_update_project(project_in: ProjectCreate, db: AsyncSession =
     return db_project
 
 @router.patch("/{project_id}", response_model=ProjectResponse, dependencies=[Depends(require_role(["Admin"]))])
-async def update_project(project_id: int, project_in: ProjectUpdate, db: AsyncSession = Depends(get_db)):
+async def update_project(
+    project_id: int, 
+    project_in: ProjectUpdate, 
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
     """Update project status."""
     db_project = await db.get(Project, project_id)
     if not db_project:
