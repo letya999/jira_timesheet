@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import selectinload, joinedload
 from typing import List, Optional
 from datetime import date
 
@@ -17,11 +18,14 @@ async def get_timesheet(
     project_id: Optional[int] = Query(None, description="Local Project ID"),
     sprint_id: Optional[int] = Query(None, description="Local Sprint ID"),
     release_id: Optional[int] = Query(None, description="Local Release ID"),
+    category: Optional[str] = Query(None, description="Worklog category"),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Returns worklogs filtered by various criteria.
+    Returns worklogs filtered by various criteria with pagination.
     """
     filters = []
     
@@ -32,22 +36,26 @@ async def get_timesheet(
         if current_user.jira_user_id:
             filters.append(Worklog.jira_user_id == current_user.jira_user_id)
         else:
-            # If system user has no linked JiraUser and not privileged, they see nothing or only manual?
-            # Usually we link them. If not linked, return empty.
-            return {"worklogs": []}
+            return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
 
     if start_date:
         filters.append(Worklog.date >= start_date)
     if end_date:
         filters.append(Worklog.date <= end_date)
+    if category:
+        filters.append(Worklog.category == category)
         
     query = select(Worklog).where(and_(*filters))
     
-    # Joining for filters and metadata
-    if project_id or sprint_id or release_id or True: # Always join common ones
-        query = query.outerjoin(Issue, Worklog.issue_id == Issue.id)
-        query = query.outerjoin(Project, Issue.project_id == Project.id)
-        query = query.outerjoin(JiraUser, Worklog.jira_user_id == JiraUser.id)
+    # Eager load relationships to avoid local IO error in async
+    query = query.options(
+        selectinload(Worklog.jira_user),
+        selectinload(Worklog.issue).selectinload(Issue.project)
+    )
+    
+    # Joining for filters
+    query = query.outerjoin(Issue, Worklog.issue_id == Issue.id)
+    query = query.outerjoin(Project, Issue.project_id == Project.id)
     
     if project_id:
         filters.append(Project.id == project_id)
@@ -63,11 +71,32 @@ async def get_timesheet(
     # Re-apply filters with joins
     query = query.where(and_(*filters))
     
+    # Get total count for pagination
+    from sqlalchemy import func
+    
+    # We need to use a subquery or join for count if we filter by joined tables
+    count_query = select(func.count(Worklog.id)).select_from(Worklog)
+    count_query = count_query.outerjoin(Issue, Worklog.issue_id == Issue.id)
+    count_query = count_query.outerjoin(Project, Issue.project_id == Project.id)
+    
+    if sprint_id:
+        from models.project import issue_sprints
+        count_query = count_query.outerjoin(issue_sprints, Issue.id == issue_sprints.c.issue_id)
+    if release_id:
+        from models.project import issue_releases
+        count_query = count_query.outerjoin(issue_releases, Issue.id == issue_releases.c.issue_id)
+        
+    count_query = count_query.where(and_(*filters))
+    total = await db.scalar(count_query) or 0
+    
+    # Pagination
+    query = query.order_by(Worklog.date.desc(), Worklog.id.desc())
+    query = query.offset((page - 1) * size).limit(size)
+    
     result = await db.execute(query)
     worklogs = result.scalars().all()
     
     # Process results into a flat format for frontend
-    # In a real app, use Pydantic models with relationships
     output = []
     for wl in worklogs:
         output.append({
@@ -80,10 +109,18 @@ async def get_timesheet(
             "issue_key": wl.issue.key if wl.issue else None,
             "issue_summary": wl.issue.summary if wl.issue else None,
             "project_key": wl.issue.project.key if wl.issue and wl.issue.project else None,
-            "user_name": wl.jira_user.display_name if wl.jira_user else "Unknown"
+            "user_name": wl.jira_user.display_name if wl.jira_user else "Unknown",
+            "jira_account_id": wl.jira_user.jira_account_id if wl.jira_user else None
         })
         
-    return {"worklogs": output}
+    pages = (total + size - 1) // size
+    return {
+        "items": output,
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": pages
+    }
 
 @router.post("/manual")
 async def create_manual_log(

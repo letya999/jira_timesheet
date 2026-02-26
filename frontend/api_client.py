@@ -19,13 +19,16 @@ def get_headers():
         return {"Authorization": f"Bearer {token}"}
     return {}
 
-def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None):
+def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None, category=None, page=1, size=50):
     params = {}
     if start_date: params["start_date"] = start_date
     if end_date: params["end_date"] = end_date
     if project_id: params["project_id"] = project_id
     if sprint_id: params["sprint_id"] = sprint_id
     if release_id: params["release_id"] = release_id
+    if category: params["category"] = category
+    params["page"] = page
+    params["size"] = size
     
     response = requests.get(
         f"{BACKEND_URL}/timesheet/",
@@ -34,7 +37,7 @@ def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=N
     )
     if response.status_code == 200:
         return response.json()
-    return {"worklogs": []}
+    return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
 def add_manual_log(date, hours, category, description):
     data = {

@@ -15,38 +15,51 @@ async def fetch_issue_details(issue_ids: list[str]):
         return {}
         
     auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
-    ids_str = ",".join(issue_ids)
-    jql = f"id in ({ids_str})"
-    url = f"{settings.JIRA_URL}/rest/api/3/search"
+    # The /search/jql endpoint is the new recommended search API replacing deprecated /search
+    url = f"{settings.JIRA_URL}/rest/api/3/search/jql"
+    
+    mapping = {}
+    # Batch IDs to avoid hitting JQL character/length limits
+    batch_size = 100
     
     try:
         async with httpx.AsyncClient(auth=auth) as client:
-            # We fetch key, project, fixVersions (releases), status, issuetype, summary
-            response = await client.get(url, params={"jql": jql, "fields": "key,project,fixVersions,status,issuetype,summary,parent"})
-            response.raise_for_status()
-            data = response.json()
-            
-            mapping = {}
-            for issue in data.get("issues", []):
-                fields = issue.get("fields", {})
-                versions = fields.get("fixVersions", [])
+            for i in range(0, len(issue_ids), batch_size):
+                batch = issue_ids[i:i + batch_size]
+                ids_str = ",".join(batch)
+                jql = f"id in ({ids_str})"
                 
-                mapping[issue["id"]] = {
-                    "jira_id": issue["id"],
-                    "key": issue["key"],
-                    "project_id": fields["project"]["id"],
-                    "project_key": fields["project"]["key"],
-                    "project_name": fields["project"]["name"],
-                    "summary": fields.get("summary"),
-                    "status": fields.get("status", {}).get("name"),
-                    "issue_type": fields.get("issuetype", {}).get("name"),
-                    "parent_id": fields.get("parent", {}).get("id"),
-                    "releases": [v["id"] for v in versions]
+                # Using POST is more robust for search with many arguments
+                payload = {
+                    "jql": jql,
+                    "fields": ["key", "project", "fixVersions", "status", "issuetype", "summary", "parent"],
+                    "maxResults": batch_size
                 }
-            return mapping
+                
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                
+                for issue in data.get("issues", []):
+                    fields = issue.get("fields", {})
+                    versions = fields.get("fixVersions", [])
+                    
+                    mapping[issue["id"]] = {
+                        "jira_id": issue["id"],
+                        "key": issue["key"],
+                        "project_id": fields["project"]["id"],
+                        "project_key": fields["project"]["key"],
+                        "project_name": fields["project"]["name"],
+                        "summary": fields.get("summary"),
+                        "status": fields.get("status", {}).get("name"),
+                        "issue_type": fields.get("issuetype", {}).get("name"),
+                        "parent_id": fields.get("parent", {}).get("id"),
+                        "releases": [v["id"] for v in versions]
+                    }
+        return mapping
     except Exception as e:
         logger.error(f"Failed to fetch issue details: {e}")
-        return {}
+        return mapping
 
 async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
     """
