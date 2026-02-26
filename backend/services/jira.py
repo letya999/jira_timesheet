@@ -2,7 +2,7 @@ import httpx
 from core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
-from models import JiraLog, User, Project
+from models import User, JiraUser, Project, Worklog, Sprint, Release, Issue
 import logging
 from datetime import datetime
 from dateutil import parser
@@ -15,23 +15,33 @@ async def fetch_issue_details(issue_ids: list[str]):
         return {}
         
     auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
-    # Using JQL to fetch multiple issues by ID
-    # Jira IDs can be strings or ints, but JQL likes them as strings or just numbers
     ids_str = ",".join(issue_ids)
     jql = f"id in ({ids_str})"
     url = f"{settings.JIRA_URL}/rest/api/3/search"
     
     try:
         async with httpx.AsyncClient(auth=auth) as client:
-            response = await client.get(url, params={"jql": jql, "fields": "key,project"})
+            # We fetch key, project, fixVersions (releases), status, issuetype, summary
+            response = await client.get(url, params={"jql": jql, "fields": "key,project,fixVersions,status,issuetype,summary,parent"})
             response.raise_for_status()
             data = response.json()
             
             mapping = {}
             for issue in data.get("issues", []):
+                fields = issue.get("fields", {})
+                versions = fields.get("fixVersions", [])
+                
                 mapping[issue["id"]] = {
+                    "jira_id": issue["id"],
                     "key": issue["key"],
-                    "project_key": issue["fields"]["project"]["key"]
+                    "project_id": fields["project"]["id"],
+                    "project_key": fields["project"]["key"],
+                    "project_name": fields["project"]["name"],
+                    "summary": fields.get("summary"),
+                    "status": fields.get("status", {}).get("name"),
+                    "issue_type": fields.get("issuetype", {}).get("name"),
+                    "parent_id": fields.get("parent", {}).get("id"),
+                    "releases": [v["id"] for v in versions]
                 }
             return mapping
     except Exception as e:
@@ -40,8 +50,7 @@ async def fetch_issue_details(issue_ids: list[str]):
 
 async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
     """
-    Sync worklogs from Jira Cloud API.
-    `since` is a Unix timestamp in milliseconds.
+    Sync worklogs from Jira Cloud API to the new Worklog model.
     """
     url_updated = f"{settings.JIRA_URL}/rest/api/3/worklog/updated"
     url_list = f"{settings.JIRA_URL}/rest/api/3/worklog/list"
@@ -56,73 +65,104 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
             worklog_ids = [item["worklogId"] for item in data.get("values", [])]
             
             if not worklog_ids:
-                logger.info("No new worklogs found.")
                 return {"status": "success", "synced": 0}
             
-            # 2. Get details for these IDs (Batched by 1000 max per API limits)
-            # For brevity, we handle only the first batch here
+            # 2. Get details for these IDs
             payload = {"ids": worklog_ids[:1000]}
             response = await client.post(url_list, json=payload)
             response.raise_for_status()
             worklogs_data = response.json()
             
-            # 3. Fetch issue details to get proper keys and project info
+            # 3. Fetch issue details for mapping
             issue_ids = list(set([item.get("issueId") for item in worklogs_data if item.get("issueId")]))
             issue_mapping = await fetch_issue_details(issue_ids)
             
             synced_count = 0
             for item in worklogs_data:
-                author_account_id = item.get("author", {}).get("accountId")
-                if not author_account_id:
+                author_id = item.get("author", {}).get("accountId")
+                issue_id_jira = item.get("issueId")
+                if not author_id or not issue_id_jira:
                     continue
-                    
-                time_spent_seconds = item.get("timeSpentSeconds", 0)
-                started_str = item.get("started")
-                issue_id = item.get("issueId")
                 
-                details = issue_mapping.get(issue_id, {"key": issue_id, "project_key": None})
-                issue_key = details["key"]
-                project_key = details["project_key"]
-                
-                if not started_str:
-                    continue
-                    
-                log_date = parser.isoparse(started_str).date()
-                hours = time_spent_seconds / 3600.0
-                worklog_id = str(item.get("id"))
-                
-                # Check if it exists by Jira Worklog ID (if we had it in model)
-                # For now using composite key as before but adding project_key
-                existing = await db.execute(
-                    select(JiraLog).where(
-                        JiraLog.jira_account_id == author_account_id,
-                        JiraLog.issue_key == issue_key,
-                        JiraLog.date == log_date
+                # Ensure JiraUser exists
+                res = await db.execute(select(JiraUser).where(JiraUser.jira_account_id == author_id))
+                db_jira_user = res.scalar_one_or_none()
+                if not db_jira_user:
+                    # Create a skeleton JiraUser if not synced yet
+                    db_jira_user = JiraUser(
+                        jira_account_id=author_id,
+                        display_name=item.get("author", {}).get("displayName") or "Unknown"
                     )
-                )
-                db_log = existing.scalar_one_or_none()
-                
-                if db_log:
-                    db_log.time_spent_hours = hours
-                    db_log.project_key = project_key
+                    db.add(db_jira_user)
+                    await db.flush()
+
+                # Get issue details
+                iss_data = issue_mapping.get(issue_id_jira)
+                if not iss_data:
+                    continue
+
+                # Ensure Project exists
+                res = await db.execute(select(Project).where(Project.jira_id == str(iss_data["project_id"])))
+                db_project = res.scalar_one_or_none()
+                if not db_project:
+                    db_project = Project(
+                        jira_id=str(iss_data["project_id"]),
+                        key=iss_data["project_key"],
+                        name=iss_data["project_name"]
+                    )
+                    db.add(db_project)
+                    await db.flush()
+
+                # Ensure Issue exists
+                res = await db.execute(select(Issue).where(Issue.jira_id == issue_id_jira))
+                db_issue = res.scalar_one_or_none()
+                if not db_issue:
+                    db_issue = Issue(
+                        jira_id=issue_id_jira,
+                        key=iss_data["key"],
+                        summary=iss_data["summary"] or "No summary",
+                        status=iss_data["status"],
+                        issue_type=iss_data["issue_type"],
+                        project_id=db_project.id
+                    )
+                    db.add(db_issue)
+                    await db.flush()
                 else:
-                    db_log = JiraLog(
-                        jira_account_id=author_account_id,
+                    db_issue.summary = iss_data["summary"] or db_issue.summary
+                    db_issue.status = iss_data["status"] or db_issue.status
+
+                # Sync Worklog
+                jira_worklog_id = str(item.get("id"))
+                time_spent_hours = item.get("timeSpentSeconds", 0) / 3600.0
+                log_date = parser.isoparse(item.get("started")).date()
+                description = item.get("comment", {}).get("content", [{}])[0].get("content", [{}])[0].get("text") if isinstance(item.get("comment"), dict) else str(item.get("comment"))
+
+                res = await db.execute(select(Worklog).where(Worklog.jira_id == jira_worklog_id))
+                db_worklog = res.scalar_one_or_none()
+
+                if db_worklog:
+                    db_worklog.time_spent_hours = time_spent_hours
+                    db_worklog.date = log_date
+                    db_worklog.description = description[:1024] if description else None
+                else:
+                    db_worklog = Worklog(
+                        jira_id=jira_worklog_id,
+                        type="JIRA",
                         date=log_date,
-                        time_spent_hours=hours,
-                        issue_key=issue_key,
-                        project_key=project_key,
-                        summary=item.get("comment", {}).get("content", [{"content": [{"text": "Synced from Jira"}]}])[0].get("content", [{}])[0].get("text", "Synced from Jira")[:1024] if isinstance(item.get("comment"), dict) else "Synced from Jira"
+                        time_spent_hours=time_spent_hours,
+                        description=description[:1024] if description else None,
+                        jira_user_id=db_jira_user.id,
+                        issue_id=db_issue.id
                     )
-                    db.add(db_log)
+                    db.add(db_worklog)
+                
                 synced_count += 1
                 
             await db.commit()
-            logger.info(f"Successfully synced {synced_count} worklogs.")
             return {"status": "success", "synced": synced_count}
             
-    except httpx.HTTPError as e:
-        logger.error(f"Failed to fetch Jira worklogs: {e}")
+    except Exception as e:
+        logger.error(f"Failed to sync worklogs: {e}")
         return {"status": "error", "detail": str(e)}
 
 async def fetch_jira_projects():
@@ -141,9 +181,53 @@ async def fetch_jira_projects():
         logger.error(f"Failed to fetch Jira projects: {e}")
         return []
 
+async def fetch_jira_project_versions(project_key: str):
+    """Fetch versions (releases) for a project."""
+    url = f"{settings.JIRA_URL}/rest/api/3/project/{project_key}/versions"
+    auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
+    try:
+        async with httpx.AsyncClient(auth=auth) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch versions for {project_key}: {e}")
+        return []
+
+async def fetch_jira_project_sprints(project_key: str):
+    """Fetch sprints for a project."""
+    # First find boards for the project
+    url_boards = f"{settings.JIRA_URL}/rest/agile/1.0/board"
+    auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
+    sprints = []
+    try:
+        async with httpx.AsyncClient(auth=auth) as client:
+            response = await client.get(url_boards, params={"projectKeyOrId": project_key})
+            response.raise_for_status()
+            boards = response.json().get("values", [])
+            
+            for board in boards:
+                board_id = board["id"]
+                url_sprints = f"{settings.JIRA_URL}/rest/agile/1.0/board/{board_id}/sprint"
+                res_sprints = await client.get(url_sprints)
+                if res_sprints.status_code == 200:
+                    sprints_data = res_sprints.json().get("values", [])
+                    for s in sprints_data:
+                        # Only active or future sprints might be useful?
+                        # User says release OR sprint, usually means they want to analyze a specific sprint's logs.
+                        # We return all sprints for now.
+                        sprints.append(s)
+    except Exception as e:
+        logger.error(f"Failed to fetch sprints for {project_key}: {e}")
+    
+    # Filter unique sprints by ID (since a sprint can be on multiple boards)
+    unique_sprints_dict = {s["id"]: s for s in sprints}
+    return list(unique_sprints_dict.values())
+
 async def sync_jira_projects_to_db(db: AsyncSession):
     """
     Fetch projects from Jira and sync them to local database.
+    Also syncs releases and sprints for each active project.
     """
     jira_projects = await fetch_jira_projects()
     synced_count = 0
@@ -168,6 +252,70 @@ async def sync_jira_projects_to_db(db: AsyncSession):
                 is_active=False
             )
             db.add(db_project)
+        
+        await db.flush() # Ensure project has an ID if new
+        
+        # Sync Releases for this project
+        jira_versions = await fetch_jira_project_versions(key)
+        for jv in jira_versions:
+            jv_id = str(jv.get("id"))
+            res = await db.execute(select(Release).where(Release.jira_id == jv_id))
+            db_release = res.scalar_one_or_none()
+            
+            release_date = None
+            if jv.get("releaseDate"):
+                try:
+                    release_date = datetime.strptime(jv.get("releaseDate"), "%Y-%m-%d").date()
+                except: pass
+
+            if db_release:
+                db_release.name = jv.get("name")
+                db_release.released = jv.get("released", False)
+                db_release.release_date = release_date
+            else:
+                db_release = Release(
+                    jira_id=jv_id,
+                    name=jv.get("name"),
+                    project_id=db_project.id,
+                    released=jv.get("released", False),
+                    release_date=release_date
+                )
+                db.add(db_release)
+
+        # Sync Sprints for this project
+        jira_sprints = await fetch_jira_project_sprints(key)
+        for js in jira_sprints:
+            js_id = str(js.get("id"))
+            res = await db.execute(select(Sprint).where(Sprint.jira_id == js_id))
+            db_sprint = res.scalar_one_or_none()
+            
+            start_date = None
+            if js.get("startDate"):
+                try:
+                    start_date = parser.isoparse(js.get("startDate")).date()
+                except: pass
+                
+            end_date = None
+            if js.get("endDate"):
+                try:
+                    end_date = parser.isoparse(js.get("endDate")).date()
+                except: pass
+
+            if db_sprint:
+                db_sprint.name = js.get("name")
+                db_sprint.state = js.get("state")
+                db_sprint.start_date = start_date
+                db_sprint.end_date = end_date
+            else:
+                db_sprint = Sprint(
+                    jira_id=js_id,
+                    name=js.get("name"),
+                    state=js.get("state"),
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                db.add(db_sprint)
+
         synced_count += 1
     
     await db.commit()
@@ -222,59 +370,53 @@ async def fetch_jira_users():
 
 async def sync_jira_users_to_db(db: AsyncSession):
     """
-    Fetch users from Jira and sync them to local database.
-    Now fetches all users (including those with hidden emails if possible).
+    Fetch users from Jira and sync them to local database (JiraUser table).
+    Then try to link existing system users to JiraUser.
     """
-    from core.security import get_password_hash
     jira_users = await fetch_jira_users()
     synced_count = 0
     
-    # Use a default password for newly synced users
-    # This is needed because our internal login system requires a hashed password.
-    default_password_hash = get_password_hash("jira123")
-    
     for ju in jira_users:
         account_type = ju.get("accountType")
-        # accountType usually is 'atlassian', 'app', or 'customer'
-        # We usually want 'atlassian' (employees)
         if account_type not in ["atlassian"]:
             continue
             
         account_id = ju.get("accountId")
-        # In some Jira instances, email or name might be hidden for privacy
         email = ju.get("emailAddress")
-        full_name = ju.get("displayName") or "Jira User"
-        active = ju.get("active", False)
+        display_name = ju.get("displayName") or "Jira User"
+        active = ju.get("active", True)
+        avatar_url = ju.get("avatarUrls", {}).get("48x48")
         
-        # If email is hidden, we use accountId@jira.local as a placeholder
-        if not email:
-            email = f"{account_id}@jira.local"
-            
-        # Check if user exists by Jira Account ID (most reliable)
-        result = await db.execute(select(User).where(User.jira_account_id == account_id))
-        db_user = result.scalar_one_or_none()
+        # 1. Update JiraUser table
+        result = await db.execute(select(JiraUser).where(JiraUser.jira_account_id == account_id))
+        db_jira_user = result.scalar_one_or_none()
         
-        # If not found by ID, try by email
-        if not db_user and email != f"{account_id}@jira.local":
-            result = await db.execute(select(User).where(User.email == email))
-            db_user = result.scalar_one_or_none()
-        
-        if db_user:
-            db_user.jira_account_id = account_id
-            db_user.full_name = full_name
-            # Optional: update email if it was previously a placeholder
-            if "@jira.local" in db_user.email and email != f"{account_id}@jira.local":
-                db_user.email = email
+        if db_jira_user:
+            db_jira_user.display_name = display_name
+            db_jira_user.email = email
+            db_jira_user.avatar_url = avatar_url
+            db_jira_user.is_active = active
         else:
-            db_user = User(
-                email=email,
-                full_name=full_name,
+            db_jira_user = JiraUser(
                 jira_account_id=account_id,
-                hashed_password=default_password_hash,
-                role="Employee",
-                weekly_quota=40
+                display_name=display_name,
+                email=email,
+                avatar_url=avatar_url,
+                is_active=active
             )
-            db.add(db_user)
+            db.add(db_jira_user)
+            await db.flush() # Get the ID for linking
+            
+        # 2. Try to link with a system User by email if not already linked
+        # We NO LONGER create system Users here automatically.
+        if email:
+            result = await db.execute(
+                select(User).where(User.email == email, User.jira_user_id == None)
+            )
+            system_user = result.scalar_one_or_none()
+            if system_user:
+                system_user.jira_user_id = db_jira_user.id
+                
         synced_count += 1
     
     await db.commit()

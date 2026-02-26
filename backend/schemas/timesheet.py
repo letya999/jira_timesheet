@@ -2,29 +2,26 @@ from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional
 
-class JiraLogBase(BaseModel):
-    jira_account_id: str
+class WorklogBase(BaseModel):
     date: date
-    time_spent_hours: float
-    issue_key: str
-    summary: Optional[str] = None
-    sprint: Optional[str] = None
-    release: Optional[str] = None
+    hours: float
+    type: str # JIRA, MANUAL
+    category: Optional[str] = None
+    description: Optional[str] = None
+    issue_id: Optional[int] = None
 
-class JiraLogResponse(JiraLogBase):
+class WorklogResponse(WorklogBase):
     id: int
+    issue_key: Optional[str] = None
+    issue_summary: Optional[str] = None
+    project_key: Optional[str] = None
+    user_name: str
+    
     model_config = ConfigDict(from_attributes=True)
 
-class ManualLogBase(BaseModel):
+class ManualLogCreate(BaseModel):
     date: date
-    time_spent_hours: float
+    hours: float
     category: str
     description: Optional[str] = None
-
-class ManualLogCreate(ManualLogBase):
-    pass
-
-class ManualLogResponse(ManualLogBase):
-    id: int
-    user_id: int
-    model_config = ConfigDict(from_attributes=True)
+    issue_id: Optional[int] = None

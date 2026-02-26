@@ -7,7 +7,7 @@ from core.database import get_db
 from models.project import Project
 from schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate, JiraProject
 from schemas.pagination import PaginatedResponse
-from services.jira import fetch_jira_projects
+from services.jira import fetch_jira_projects, fetch_jira_project_versions, fetch_jira_project_sprints
 from api.deps import require_role
 
 router = APIRouter()
@@ -122,3 +122,40 @@ async def update_project(
     await db.commit()
     await db.refresh(db_project)
     return db_project
+
+@router.get("/{project_key}/versions", dependencies=[Depends(require_role(["Admin", "CEO", "PM", "Employee"]))])
+async def get_project_versions(
+    project_key: str,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Fetch versions/releases from local DB for project."""
+    from models import Release, Project
+    result = await db.execute(
+        select(Release)
+        .join(Project, Release.project_id == Project.id)
+        .where(Project.key == project_key)
+    )
+    return result.scalars().all()
+
+@router.get("/{project_key}/sprints", dependencies=[Depends(require_role(["Admin", "CEO", "PM", "Employee"]))])
+async def get_project_sprints(
+    project_key: str,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Fetch sprints from local DB. For simplicity, returns all if project filter not easily available M2M."""
+    from models import Sprint, Issue, Project
+    # Sprints are related to Issues which are related to Project.
+    # To get sprints for a project:
+    result = await db.execute(
+        select(Sprint)
+        .join(Sprint.issues)
+        .join(Project, Issue.project_id == Project.id)
+        .where(Project.key == project_key)
+        .distinct()
+    )
+    sprints = result.scalars().all()
+    if not sprints:
+        # Fallback: maybe just return all sprints for now if none found via issues
+        result = await db.execute(select(Sprint))
+        sprints = result.scalars().all()
+    return sprints

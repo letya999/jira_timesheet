@@ -19,20 +19,27 @@ def get_headers():
         return {"Authorization": f"Bearer {token}"}
     return {}
 
-def fetch_timesheet(start_date, end_date):
+def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None):
+    params = {}
+    if start_date: params["start_date"] = start_date
+    if end_date: params["end_date"] = end_date
+    if project_id: params["project_id"] = project_id
+    if sprint_id: params["sprint_id"] = sprint_id
+    if release_id: params["release_id"] = release_id
+    
     response = requests.get(
         f"{BACKEND_URL}/timesheet/",
-        params={"start_date": start_date, "end_date": end_date},
+        params=params,
         headers=get_headers()
     )
     if response.status_code == 200:
         return response.json()
-    return {"jira_logs": [], "manual_logs": []}
+    return {"worklogs": []}
 
 def add_manual_log(date, hours, category, description):
     data = {
         "date": date.isoformat(),
-        "time_spent_hours": hours,
+        "hours": hours,
         "category": category,
         "description": description
     }
@@ -104,3 +111,22 @@ def sync_users_from_jira():
     if response.status_code == 200:
         return response.json()
     return None
+
+def get_employees(page=1, size=50):
+    """Fetch Jira users (employees) from DB with pagination."""
+    response = requests.get(
+        f"{BACKEND_URL}/org/employees", 
+        params={"page": page, "size": size},
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
+
+def fetch_project_versions(project_key):
+    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/versions", headers=get_headers())
+    return response.json() if response.status_code == 200 else []
+
+def fetch_project_sprints(project_key):
+    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=get_headers())
+    return response.json() if response.status_code == 200 else []

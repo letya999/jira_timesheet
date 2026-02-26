@@ -6,12 +6,16 @@ from typing import List
 
 from core.database import get_db
 from models.org import Department, Division, Team
+from models.user import JiraUser
 from schemas.org import (
     DepartmentCreate, DepartmentResponse, DepartmentSimple,
     DivisionCreate, DivisionResponse, DivisionSimple,
     TeamCreate, TeamResponse
 )
+from schemas.user import JiraUserResponse
+from schemas.pagination import PaginatedResponse
 from api.deps import require_role
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -49,3 +53,33 @@ async def create_team(team_in: TeamCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(db_team)
     return db_team
+
+# --- Employees (Jira Users) ---
+
+@router.get("/employees", response_model=PaginatedResponse[JiraUserResponse])
+async def get_employees(
+    db: AsyncSession = Depends(get_db),
+    page: int = 1,
+    size: int = 50
+):
+    skip = (page - 1) * size
+    
+    # Total count
+    count_stmt = select(func.count()).select_from(JiraUser)
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar()
+    
+    # Iterms
+    stmt = select(JiraUser).offset(skip).limit(size)
+    result = await db.execute(stmt)
+    items = result.scalars().all()
+    
+    pages = (total + size - 1) // size
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": pages
+    }

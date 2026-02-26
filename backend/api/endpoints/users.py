@@ -57,11 +57,21 @@ async def create_user(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
         
+    # user_in.jira_account_id might be provided as account_id string, 
+    # we need to find the local JiraUser.id
+    jira_user_id = None
+    if getattr(user_in, "jira_account_id", None):
+        from models import JiraUser
+        res = await db.execute(select(JiraUser).where(JiraUser.jira_account_id == user_in.jira_account_id))
+        jira_user = res.scalar_one_or_none()
+        if jira_user:
+            jira_user_id = jira_user.id
+
     db_user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
-        jira_account_id=user_in.jira_account_id,
+        jira_user_id=jira_user_id,
         role=user_in.role,
         weekly_quota=user_in.weekly_quota,
         team_id=user_in.team_id
