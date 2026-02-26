@@ -3,10 +3,14 @@ import pandas as pd
 from datetime import datetime, timedelta
 from api_client import fetch_dashboard, get_export_url, get_headers
 import requests
+from auth_utils import ensure_session
+
+# Check for session/cookies
+token = ensure_session()
 
 st.title("PM / CEO Dashboard")
 
-if "token" not in st.session_state or not st.session_state["token"]:
+if not token:
     st.warning("Please login from the main page.")
     st.stop()
 

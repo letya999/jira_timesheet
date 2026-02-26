@@ -2,11 +2,16 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 from api_client import fetch_timesheet, add_manual_log, fetch_db_projects, fetch_project_sprints, fetch_project_versions
+from auth_utils import ensure_session
 
 st.set_page_config(page_title="Timesheet", layout="wide")
+
+# Check for session/cookies
+token = ensure_session()
+
 st.title("Timesheet")
 
-if "token" not in st.session_state or not st.session_state["token"]:
+if not token:
     st.warning("Please login from the main page.")
     st.stop()
 

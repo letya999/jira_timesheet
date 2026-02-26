@@ -1,14 +1,18 @@
-
+import os
 import streamlit as st
 import pandas as pd
 from api_client import get_all_users
+from auth_utils import ensure_session
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
+
+# Check for session/cookies
+token = ensure_session()
 
 st.title("⚙️ System Settings")
 st.markdown("Manage system users and global configuration.")
 
-if "token" not in st.session_state:
+if not token:
     st.warning("Please log in first.")
     st.stop()
 
@@ -75,7 +79,9 @@ with tab1:
 
     st.info("Note: System users are those who can log in. Use 'Employee Management' to sync people from Jira.")
 
+
 with tab2:
     st.subheader("General Configuration")
-    st.write("Jira URL: " + st.secrets.get("JIRA_URL", "https://neuralab.atlassian.net"))
+    jira_url = os.getenv("JIRA_URL", "Not configured")
+    st.write(f"Jira URL: {jira_url}")
     st.write("Other settings coming soon...")

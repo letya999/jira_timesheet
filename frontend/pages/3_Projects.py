@@ -8,13 +8,17 @@ from api_client import (
     sync_all_projects_worklogs,
     sync_project_worklogs
 )
+from auth_utils import ensure_session
 
 st.set_page_config(page_title="Project Management", page_icon="🏗️", layout="wide")
+
+# Check for session/cookies
+token = ensure_session()
 
 st.title("🏗️ Project Management")
 st.markdown("Manage Jira projects available for synchronization.")
 
-if "token" not in st.session_state:
+if not token:
     st.warning("Please log in first.")
     st.stop()
 

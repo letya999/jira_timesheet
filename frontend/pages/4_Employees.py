@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
 from api_client import get_employees, sync_users_from_jira
+from auth_utils import ensure_session
 
 st.set_page_config(page_title="Employee Management", page_icon="👥", layout="wide")
+
+# Check for session/cookies
+token = ensure_session()
 
 st.title("👥 Employee Management")
 st.markdown("Manage employees synced from Jira Cloud. You can later map them to departments and teams.")
 
-if "token" not in st.session_state:
+if not token:
     st.warning("Please log in first.")
     st.stop()
 
