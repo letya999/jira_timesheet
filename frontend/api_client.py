@@ -63,24 +63,37 @@ def fetch_dashboard(start_date, end_date):
         return response.json().get("data", [])
     return []
 
+def fetch_custom_report(payload):
+    response = requests.post(
+        f"{BACKEND_URL}/reports/custom",
+        json=payload,
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json().get("data", [])
+    return []
+
 def get_export_url(start_date, end_date):
     return f"{BACKEND_URL}/reports/export?start_date={start_date}&end_date={end_date}"
 
-def fetch_db_projects(page=1, size=50):
+@st.cache_data(ttl=600)
+def fetch_db_projects(page=1, size=50, _headers=None):
     response = requests.get(
         f"{BACKEND_URL}/projects/", 
         params={"page": page, "size": size},
-        headers=get_headers()
+        headers=_headers
     )
     if response.status_code == 200:
         return response.json()
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
 def refresh_projects_from_jira():
+    st.cache_data.clear() # Clear cache when refreshing
     response = requests.post(f"{BACKEND_URL}/projects/refresh", headers=get_headers())
     return response.status_code == 200
 
 def update_project_status(project_id, is_active):
+    st.cache_data.clear() # Clear cache when updating
     data = {"is_active": is_active}
     response = requests.patch(
         f"{BACKEND_URL}/projects/{project_id}",
@@ -97,12 +110,13 @@ def sync_project_worklogs(project_id):
     response = requests.post(f"{BACKEND_URL}/projects/{project_id}/sync", headers=get_headers())
     return response.json() if response.status_code == 200 else None
 
-def get_all_users(page=1, size=50):
+@st.cache_data(ttl=3600)
+def get_all_users(page=1, size=50, _headers=None):
     """Fetch user list from DB with pagination."""
     response = requests.get(
         f"{BACKEND_URL}/users/", 
         params={"page": page, "size": size},
-        headers=get_headers()
+        headers=_headers
     )
     if response.status_code == 200:
         return response.json()
@@ -110,26 +124,35 @@ def get_all_users(page=1, size=50):
 
 def sync_users_from_jira():
     """Trigger sync with Jira."""
+    st.cache_data.clear()
     response = requests.post(f"{BACKEND_URL}/users/sync", headers=get_headers())
     if response.status_code == 200:
         return response.json()
     return None
 
-def get_employees(page=1, size=50):
+@st.cache_data(ttl=3600)
+def get_employees(page=1, size=50, _headers=None):
     """Fetch Jira users (employees) from DB with pagination."""
     response = requests.get(
         f"{BACKEND_URL}/org/employees", 
         params={"page": page, "size": size},
-        headers=get_headers()
+        headers=_headers
     )
     if response.status_code == 200:
         return response.json()
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
-def fetch_project_versions(project_key):
-    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/versions", headers=get_headers())
+@st.cache_data(ttl=300)
+def fetch_departments(_headers=None):
+    response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers)
     return response.json() if response.status_code == 200 else []
 
-def fetch_project_sprints(project_key):
-    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=get_headers())
+@st.cache_data(ttl=600)
+def fetch_project_versions(project_key, _headers=None):
+    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/versions", headers=_headers)
+    return response.json() if response.status_code == 200 else []
+
+@st.cache_data(ttl=600)
+def fetch_project_sprints(project_key, _headers=None):
+    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=_headers)
     return response.json() if response.status_code == 200 else []

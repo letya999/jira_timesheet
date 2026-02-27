@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from api_client import fetch_timesheet, add_manual_log, fetch_db_projects, fetch_project_sprints, fetch_project_versions
+from api_client import fetch_timesheet, add_manual_log, fetch_db_projects, fetch_project_sprints, fetch_project_versions, get_headers
 from auth_utils import ensure_session
 
 st.set_page_config(page_title="Timesheet", layout="wide")
@@ -20,7 +20,8 @@ with st.sidebar:
     st.header("Filters")
     
     # 1. Project Selection
-    projects_data = fetch_db_projects(size=100)
+    headers = get_headers()
+    projects_data = fetch_db_projects(size=100, _headers=headers)
     project_list = projects_data.get("items", [])
     project_options = {p["id"]: {"name": p["name"], "key": p["key"]} for p in project_list}
     project_options[0] = {"name": "Select a Project...", "key": "None"}
@@ -38,12 +39,12 @@ with st.sidebar:
     if selected_project_id != 0:
         proj_key = project_options[selected_project_id]["key"]
         # 2. Sprint/Release selection
-        sprints = fetch_project_sprints(proj_key)
+        sprints = fetch_project_sprints(proj_key, _headers=headers)
         if sprints:
             sprint_map = {s["id"]: s["name"] for s in sprints}
             selected_sprint_id = st.selectbox("Sprint", options=[0] + list(sprint_map.keys()), format_func=lambda x: sprint_map[x] if x != 0 else "All")
         
-        versions = fetch_project_versions(proj_key)
+        versions = fetch_project_versions(proj_key, _headers=headers)
         if versions:
             ver_map = {v["id"]: v["name"] for v in versions}
             selected_release_id = st.selectbox("Release / Version", options=[0] + list(ver_map.keys()), format_func=lambda x: ver_map[x] if x != 0 else "All")
@@ -109,6 +110,8 @@ if worklogs:
             "Date": log["date"],
             "Employee": employee_name,
             "Jira": employee_link,
+            "Project": log.get("project_name", "N/A"),
+            "Release": ", ".join(log.get("releases", [])),
             "Key": task_url,
             "Task": issue_summary,
             "Hours": log["hours"],
@@ -129,6 +132,7 @@ if worklogs:
             "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
             "Hours": st.column_config.NumberColumn("Hours", format="%.2f h"),
             "Task": st.column_config.TextColumn("Task", width="large"),
+            "Release": st.column_config.TextColumn("Release", width="medium"),
         },
         use_container_width=True,
         hide_index=True

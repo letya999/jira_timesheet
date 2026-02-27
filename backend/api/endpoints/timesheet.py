@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload, joinedload
 from typing import List, Optional
 from datetime import date
@@ -45,48 +45,39 @@ async def get_timesheet(
     if category:
         filters.append(Worklog.category == category)
         
-    query = select(Worklog).where(and_(*filters))
+    # Building the main query
+    query = select(Worklog)
     
-    # Eager load relationships to avoid local IO error in async
+    # Eager load relationships for the output
     query = query.options(
         selectinload(Worklog.jira_user),
         selectinload(Worklog.issue).selectinload(Issue.project)
     )
     
-    # Joining for filters
+    # Joining Issue and Project for filtering
     query = query.outerjoin(Issue, Worklog.issue_id == Issue.id)
     query = query.outerjoin(Project, Issue.project_id == Project.id)
     
     if project_id:
         filters.append(Project.id == project_id)
+    
     if sprint_id:
-        from models.project import issue_sprints
-        query = query.outerjoin(issue_sprints, Issue.id == issue_sprints.c.issue_id)
-        filters.append(issue_sprints.c.sprint_id == sprint_id)
+        filters.append(Worklog.issue.has(Issue.sprints.any(Sprint.id == sprint_id)))
+        
     if release_id:
-        from models.project import issue_releases
-        query = query.outerjoin(issue_releases, Issue.id == issue_releases.c.issue_id)
-        filters.append(issue_releases.c.release_id == release_id)
+        filters.append(Worklog.issue.has(Issue.releases.any(Release.id == release_id)))
 
-    # Re-apply filters with joins
-    query = query.where(and_(*filters))
+    # Apply all filters
+    if filters:
+        query = query.where(and_(*filters))
     
-    # Get total count for pagination
-    from sqlalchemy import func
-    
-    # We need to use a subquery or join for count if we filter by joined tables
+    # Get total count for pagination using the SAME filters
     count_query = select(func.count(Worklog.id)).select_from(Worklog)
     count_query = count_query.outerjoin(Issue, Worklog.issue_id == Issue.id)
     count_query = count_query.outerjoin(Project, Issue.project_id == Project.id)
     
-    if sprint_id:
-        from models.project import issue_sprints
-        count_query = count_query.outerjoin(issue_sprints, Issue.id == issue_sprints.c.issue_id)
-    if release_id:
-        from models.project import issue_releases
-        count_query = count_query.outerjoin(issue_releases, Issue.id == issue_releases.c.issue_id)
-        
-    count_query = count_query.where(and_(*filters))
+    if filters:
+        count_query = count_query.where(and_(*filters))
     total = await db.scalar(count_query) or 0
     
     # Pagination
@@ -108,7 +99,10 @@ async def get_timesheet(
             "description": wl.description,
             "issue_key": wl.issue.key if wl.issue else None,
             "issue_summary": wl.issue.summary if wl.issue else None,
+            "project_name": wl.issue.project.name if wl.issue and wl.issue.project else "Manual/Other",
             "project_key": wl.issue.project.key if wl.issue and wl.issue.project else None,
+            "sprints": [s.name for s in wl.issue.sprints] if wl.issue and wl.issue.sprints else [],
+            "releases": [r.name for r in wl.issue.releases] if wl.issue and wl.issue.releases else [],
             "user_name": wl.jira_user.display_name if wl.jira_user else "Unknown",
             "jira_account_id": wl.jira_user.jira_account_id if wl.jira_user else None
         })

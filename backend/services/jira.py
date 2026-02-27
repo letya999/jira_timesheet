@@ -1,8 +1,10 @@
 import httpx
 from core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, insert
+from sqlalchemy.orm import selectinload
 from models import User, JiraUser, Project, Worklog, Sprint, Release, Issue
+from models.project import issue_releases
 import logging
 from datetime import datetime
 from dateutil import parser
@@ -54,7 +56,7 @@ async def fetch_issue_details(issue_ids: list[str]):
                         "status": fields.get("status", {}).get("name"),
                         "issue_type": fields.get("issuetype", {}).get("name"),
                         "parent_id": fields.get("parent", {}).get("id"),
-                        "releases": [v["id"] for v in versions]
+                        "releases": [{"id": v["id"], "name": v["name"]} for v in versions]
                     }
         return mapping
     except Exception as e:
@@ -127,7 +129,10 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                     await db.flush()
 
                 # Ensure Issue exists
-                res = await db.execute(select(Issue).where(Issue.jira_id == issue_id_jira))
+                res = await db.execute(
+                    select(Issue)
+                    .where(Issue.jira_id == issue_id_jira)
+                )
                 db_issue = res.scalar_one_or_none()
                 if not db_issue:
                     db_issue = Issue(
@@ -143,6 +148,39 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                 else:
                     db_issue.summary = iss_data["summary"] or db_issue.summary
                     db_issue.status = iss_data["status"] or db_issue.status
+
+                # Update releases for the issue
+                if "releases" in iss_data:
+                    release_info_list = iss_data["releases"]
+                    if release_info_list:
+                        # Clear existing mappings to avoid duplicates/stale data
+                        await db.execute(delete(issue_releases).where(issue_releases.c.issue_id == db_issue.id))
+                        
+                        rel_ids = []
+                        for r_info in release_info_list:
+                            r_jira_id = str(r_info["id"])
+                            # Check if release exists
+                            r_res = await db.execute(select(Release).where(Release.jira_id == r_jira_id))
+                            db_rel = r_res.scalar_one_or_none()
+                            
+                            if not db_rel:
+                                # Create stub release
+                                db_rel = Release(
+                                    jira_id=r_jira_id,
+                                    name=r_info["name"],
+                                    project_id=db_project.id
+                                )
+                                db.add(db_rel)
+                                await db.flush()
+                            
+                            rel_ids.append(db_rel.id)
+                        
+                        if rel_ids:
+                            # Direct core insert for async safety
+                            await db.execute(
+                                insert(issue_releases), 
+                                [{"issue_id": db_issue.id, "release_id": rid} for rid in rel_ids]
+                            )
 
                 # Sync Worklog
                 jira_worklog_id = str(item.get("id"))

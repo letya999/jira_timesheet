@@ -36,7 +36,9 @@ if "employees_page" not in st.session_state:
 page_size = 20
 
 # Fetch data for current page
-data = get_employees(page=st.session_state["employees_page"], size=page_size)
+from api_client import get_headers
+headers = get_headers()
+data = get_employees(page=st.session_state["employees_page"], size=page_size, _headers=headers)
 users_list = data.get("items", [])
 total_count = data.get("total", 0)
 total_pages = data.get("pages", 1)
