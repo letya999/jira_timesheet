@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from api_client import (
     fetch_timesheet, add_manual_log, fetch_db_projects, 
     fetch_project_sprints, fetch_project_versions, get_headers,
-    fetch_departments
+    fetch_departments, get_employees, search_issues
 )
 from auth_utils import ensure_session
 
@@ -21,28 +21,56 @@ if not token:
 # --- Dialog for Adding Worklog ---
 @st.dialog("Add Worklog")
 def add_worklog_dialog():
-    with st.form("manual_log_form_dialog", clear_on_submit=True):
-        category = st.selectbox("Category", ["Vacation", "Sick Leave", "Bench", "Admin", "Training"])
-        log_date = st.date_input("Date", value=datetime.now().date())
-        hours = st.number_input("Hours", min_value=0.5, max_value=24.0, step=0.5, value=8.0)
-        description = st.text_area("Description (Optional)")
-        
-        submitted = st.form_submit_button("Submit")
-        if submitted:
-            success = add_manual_log(log_date, hours, category, description)
+    # 1. User Selection
+    emp_data = get_employees(size=1000, _headers=get_headers())
+    employees = emp_data.get("items", [])
+    emp_options = {e["id"]: e["display_name"] for e in employees}
+    
+    selected_user_id = st.selectbox("Employee", options=list(emp_options.keys()), format_func=lambda x: emp_options[x])
+
+    # 2. Category
+    categories = ["Vacation", "Sick Leave", "Bench", "Admin", "Training", "Jira Task"]
+    category = st.selectbox("Category", categories)
+    
+    # 3. Task Selection (only for Jira Task)
+    issue_id = None
+    if category == "Jira Task":
+        st.info("Search for a task by key or name (min 2 chars)")
+        issue_search = st.text_input("Task Search")
+        if len(issue_search) >= 2:
+            found_issues = search_issues(issue_search)
+            if found_issues:
+                issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
+                issue_id = st.selectbox("Select Task", options=list(issue_options.keys()), format_func=lambda x: issue_options[x])
+            else:
+                st.warning("No tasks found")
+    
+    log_date = st.date_input("Date", value=datetime.now().date())
+    hours = st.number_input("Hours", min_value=0.5, max_value=24.0, step=0.5, value=8.0)
+    description = st.text_area("Description / Comment")
+    
+    if st.button("Submit Worklog", type="primary", use_container_width=True):
+        if category == "Jira Task" and not issue_id:
+            st.error("Please select a task for Jira Task category")
+        else:
+            success = add_manual_log(log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id)
             if success:
-                st.success(f"Added {hours}h for {category} on {log_date}")
+                st.success(f"Added {hours}h for {category}")
                 st.session_state.last_journal_filter_hash = "" # Force refresh
                 st.rerun()
             else:
                 st.error("Failed to add log")
 
 # --- Layout ---
-col_title, col_btn = st.columns([0.8, 0.2])
+col_title, col_refresh, col_btn = st.columns([0.7, 0.15, 0.15])
 with col_title:
     st.title("Journal")
+with col_refresh:
+    if st.button("🔄 Refresh", width='stretch'):
+        st.cache_data.clear()
+        st.rerun()
 with col_btn:
-    if st.button("➕ Add Worklog", type="primary", use_container_width=True):
+    if st.button("➕ Add Worklog", type="primary", width='stretch'):
         add_worklog_dialog()
 
 # --- Filters on Page (Expander) ---
@@ -92,8 +120,8 @@ with st.expander("🔍 Filters & Search", expanded=False):
     with f_col3:
         categories = ["All", "Vacation", "Sick Leave", "Bench", "Admin", "Training", "Jira Task"]
         selected_category = st.selectbox("Category", options=categories)
-        sort_order = st.radio("Sort by Date", options=["asc", "desc"], index=1, horizontal=True) # Default to DESC
-        page_size = st.select_slider("Logs per page", options=[25, 50, 100, 500], value=100)
+        sort_order = st.radio("Sort by Created Date", options=["asc", "desc"], index=1, horizontal=True) # Default to DESC
+        page_size = st.select_slider("Logs per page", options=[10, 25, 50, 100], value=25)
 
 # --- Fetch data ---
 proj_param = selected_project_id if selected_project_id != 0 else None
@@ -134,41 +162,49 @@ st.write(f"Showing **{len(worklogs)}** of **{total_logs}** logs")
 if worklogs:
     jira_base_url = "https://neuralab.atlassian.net"
     
-    formatted_logs = []
     for log in worklogs:
-        employee_name = log.get("user_name", "Unknown")
-        issue_key = log.get("issue_key") or ""
-        issue_summary = log.get("issue_summary") or log.get("description") or "No description"
-        task_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else None
-        
-        formatted_logs.append({
-            "Date": log["date"],
-            "Employee": employee_name,
-            "Project": log.get("project_name", "N/A"),
-            "Task": issue_summary,
-            "Hours": log["hours"],
-            "Category": log.get("category") or ("Jira Task" if issue_key else "Manual"),
-            "Key": task_url
-        })
-    
-    df = pd.DataFrame(formatted_logs)
-    
-    st.dataframe(
-        df,
-        column_config={
-            "Key": st.column_config.LinkColumn(
-                "Jira", 
-                help="Click to view Jira issue", 
-                display_text=r"browse/([^/]+)$"
-            ),
-            "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
-            "Hours": st.column_config.NumberColumn("Hours", format="%.2f h"),
-            "Task": st.column_config.TextColumn("Task", width="large"),
-        },
-        use_container_width=True,
-        hide_index=True
-    )
-    
+        with st.container(border=True):
+            col1, col2 = st.columns([0.8, 0.2])
+            
+            with col1:
+                # User and action
+                user_name = log.get("user_name", "Unknown")
+                jira_account_id = log.get("jira_account_id")
+                user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
+                
+                # Content to display based on category
+                issue_key = log.get("issue_key")
+                is_jira_task = log.get("category") == "Jira Task" or issue_key
+                
+                main_title = ""
+                if is_jira_task:
+                    issue_summary = log.get("issue_summary") or "No summary"
+                    task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
+                    task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
+                    main_title = f"##### {task_display} {issue_summary}"
+                else:
+                    description_text = log.get("description") or "No description"
+                    main_title = f"*{description_text}*"
+
+                st.markdown(f"**<a href='{user_link}' target='_blank'>{user_name}</a> logged {log['hours']}h**", unsafe_allow_html=True)
+                st.markdown(main_title)
+                
+                project_name = log.get("project_name", "N/A")
+                st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
+
+            with col2:
+                # Date
+                created_at_str = log.get("source_created_at")
+                if created_at_str:
+                    try:
+                        created_dt = datetime.fromisoformat(created_at_str)
+                        st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
+                    except (ValueError, TypeError):
+                        st.write("Logged: *Error parsing date*")
+                
+                st.caption(f"Work Date: {log['date']}")
+        st.write("") # Spacer
+
     # Simple pagination UI
     if total_pages > 1:
         st.markdown("---")

@@ -186,6 +186,8 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                 jira_worklog_id = str(item.get("id"))
                 time_spent_hours = item.get("timeSpentSeconds", 0) / 3600.0
                 log_date = parser.isoparse(item.get("started")).date()
+                # Jira timestamps are offset-aware, but DB is offset-naive. Strip tzinfo.
+                source_created_at = parser.isoparse(item.get("created")).replace(tzinfo=None)
                 description = item.get("comment", {}).get("content", [{}])[0].get("content", [{}])[0].get("text") if isinstance(item.get("comment"), dict) else str(item.get("comment"))
 
                 res = await db.execute(select(Worklog).where(Worklog.jira_id == jira_worklog_id))
@@ -195,6 +197,7 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                     db_worklog.time_spent_hours = time_spent_hours
                     db_worklog.date = log_date
                     db_worklog.description = description[:1024] if description else None
+                    db_worklog.source_created_at = source_created_at
                 else:
                     db_worklog = Worklog(
                         jira_id=jira_worklog_id,
@@ -203,7 +206,8 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                         time_spent_hours=time_spent_hours,
                         description=description[:1024] if description else None,
                         jira_user_id=db_jira_user.id,
-                        issue_id=db_issue.id
+                        issue_id=db_issue.id,
+                        source_created_at=source_created_at
                     )
                     db.add(db_worklog)
                 

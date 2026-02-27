@@ -43,19 +43,32 @@ def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=N
         return response.json()
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
-def add_manual_log(date, hours, category, description):
+def add_manual_log(date, hours, category, description, user_id=None, issue_id=None):
     data = {
         "date": date.isoformat(),
         "hours": hours,
         "category": category,
         "description": description
     }
+    if user_id: data["user_id"] = user_id
+    if issue_id: data["issue_id"] = issue_id
+    
     response = requests.post(
         f"{BACKEND_URL}/timesheet/manual",
         json=data,
         headers=get_headers()
     )
     return response.status_code == 200
+
+def search_issues(search_query):
+    response = requests.get(
+        f"{BACKEND_URL}/projects/issues",
+        params={"search": search_query},
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return []
 
 def fetch_dashboard(start_date, end_date):
     response = requests.get(

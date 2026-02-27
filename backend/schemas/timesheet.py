@@ -25,3 +25,4 @@ class ManualLogCreate(BaseModel):
     category: str
     description: Optional[str] = None
     issue_id: Optional[int] = None
+    user_id: Optional[int] = None # For privileged users to log for others

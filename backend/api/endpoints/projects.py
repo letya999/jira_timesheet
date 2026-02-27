@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select, func
 
 from core.database import get_db
-from models.project import Project
+from models.project import Project, Issue
 from schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate, JiraProject
 from schemas.pagination import PaginatedResponse
 from services.jira import fetch_jira_projects, fetch_jira_project_versions, fetch_jira_project_sprints
@@ -169,3 +169,16 @@ async def get_project_sprints(
         result = await db.execute(select(Sprint))
         sprints = result.scalars().all()
     return sprints
+
+@router.get("/issues", dependencies=[Depends(require_role(["Admin", "CEO", "PM", "Employee"]))])
+async def search_issues(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    search: str = Query(..., min_length=2),
+    limit: int = 20
+):
+    """Search for issues by key or summary."""
+    stmt = select(Issue).where(
+        (Issue.key.ilike(f"%{search}%")) | (Issue.summary.ilike(f"%{search}%"))
+    ).limit(limit)
+    result = await db.execute(stmt)
+    return result.scalars().all()
