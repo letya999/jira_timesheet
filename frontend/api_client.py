@@ -1,8 +1,9 @@
 
-# Version: 1.1 - Added user sync functions
+# Version: 1.2 - Added Approvals & Periods
 import requests
 import os
 import streamlit as st
+from datetime import date, datetime
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api/v1")
 
@@ -175,6 +176,10 @@ def fetch_departments(_headers=None):
     response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers)
     return response.json() if response.status_code == 200 else []
 
+def fetch_my_teams():
+    response = requests.get(f"{BACKEND_URL}/org/my-teams", headers=get_headers())
+    return response.json() if response.status_code == 200 else []
+
 def create_department(name):
     st.cache_data.clear()
     response = requests.post(f"{BACKEND_URL}/org/departments", json={"name": name}, headers=get_headers())
@@ -213,11 +218,13 @@ def create_team(name, division_id):
     response = requests.post(f"{BACKEND_URL}/org/teams", json={"name": name, "division_id": division_id}, headers=get_headers())
     return response.status_code == 200
 
-def update_team(team_id, name=None, division_id=None):
+def update_team(team_id, name=None, division_id=None, pm_id=None, reporting_period=None):
     st.cache_data.clear()
     payload = {}
     if name: payload["name"] = name
     if division_id: payload["division_id"] = division_id
+    if pm_id: payload["pm_id"] = pm_id
+    if reporting_period: payload["reporting_period"] = reporting_period
     response = requests.patch(f"{BACKEND_URL}/org/teams/{team_id}", json=payload, headers=get_headers())
     return response.status_code == 200
 
@@ -248,3 +255,58 @@ def fetch_project_versions(project_key, _headers=None):
 def fetch_project_sprints(project_key, _headers=None):
     response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=_headers)
     return response.json() if response.status_code == 200 else []
+
+# Approval Workflow Functions
+def get_my_period(target_date=None):
+    params = {}
+    if target_date:
+        if isinstance(target_date, (date, datetime)):
+            params["target_date"] = target_date.isoformat()
+        else:
+            params["target_date"] = target_date
+    response = requests.get(
+        f"{BACKEND_URL}/approvals/my-period",
+        params=params,
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return None
+
+def submit_timesheet(start_date, end_date):
+    data = {
+        "start_date": start_date.isoformat() if isinstance(start_date, (date, datetime)) else start_date,
+        "end_date": end_date.isoformat() if isinstance(end_date, (date, datetime)) else end_date
+    }
+    response = requests.post(
+        f"{BACKEND_URL}/approvals/submit",
+        json=data,
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+def fetch_team_periods(team_id, start_date, end_date):
+    params = {
+        "team_id": team_id,
+        "start_date": start_date.isoformat() if isinstance(start_date, (date, datetime)) else start_date,
+        "end_date": end_date.isoformat() if isinstance(end_date, (date, datetime)) else end_date
+    }
+    response = requests.get(
+        f"{BACKEND_URL}/approvals/team-periods",
+        params=params,
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return []
+
+def approve_timesheet(period_id, status, comment=None):
+    data = {"status": status}
+    if comment:
+        data["comment"] = comment
+    response = requests.post(
+        f"{BACKEND_URL}/approvals/{period_id}/approve",
+        json=data,
+        headers=get_headers()
+    )
+    return response.status_code == 200

@@ -119,15 +119,36 @@ with tab2:
     st.divider()
     # 3. Teams Management
     st.header("Teams")
+    from api_client import get_all_users
+    all_users_data = get_all_users(size=1000, _headers=headers)
+    all_users = all_users_data.get("items", [])
+    user_options = {0: "None"}
+    for u in all_users:
+        user_options[u["id"]] = f"{u['full_name']} ({u['role']})"
+
     with st.expander("➕ Add New Team"):
         if all_divisions:
             team_parent_div = st.selectbox("Parent Division", options=all_divisions, format_func=lambda x: f"{x['dept_name']} -> {x['name']}", key="team_p")
             new_team_name = st.text_input("Team Name", key="new_team")
+            new_team_pm = st.selectbox("Assign PM", options=list(user_options.keys()), format_func=lambda x: user_options[x], key="new_team_pm")
+            new_team_period = st.selectbox("Reporting Period", options=["weekly", "bi-weekly", "monthly"], key="new_team_period")
+            
             if st.button("Create Team"):
                 if new_team_name:
-                    if create_team(new_team_name, team_parent_div["id"]):
+                    # Note: create_team needs to support these new params
+                    from api_client import BACKEND_URL, get_headers
+                    import requests
+                    payload = {
+                        "name": new_team_name, 
+                        "division_id": team_parent_div["id"],
+                        "pm_id": new_team_pm if new_team_pm != 0 else None,
+                        "reporting_period": new_team_period
+                    }
+                    response = requests.post(f"{BACKEND_URL}/org/teams", json=payload, headers=get_headers())
+                    if response.status_code == 200:
                         st.success(f"Created {new_team_name}")
                         st.rerun()
+                    else: st.error("Failed to create team")
         else: st.info("Create a division first.")
 
     all_teams = []
@@ -144,8 +165,31 @@ with tab2:
         with col1:
             new_team_name_val = st.text_input("New Team Name", value=team_to_edit["name"])
             new_team_parent = st.selectbox("Move to Division", options=all_divisions, index=[dv["id"] for dv in all_divisions].index(team_to_edit["division_id"]), format_func=lambda x: f"{x['dept_name']} -> {x['name']}")
+            
+            # Get current PM index
+            current_pm_id = team_to_edit.get("pm_id") or 0
+            pm_list = list(user_options.keys())
+            try:
+                pm_index = pm_list.index(current_pm_id)
+            except ValueError:
+                pm_index = 0
+                
+            new_team_pm_val = st.selectbox("Assign PM", options=pm_list, index=pm_index, format_func=lambda x: user_options[x], key="edit_team_pm")
+            
+            # Period selection
+            periods = ["weekly", "bi-weekly", "monthly"]
+            curr_period = team_to_edit.get("reporting_period", "weekly")
+            period_index = periods.index(curr_period) if curr_period in periods else 0
+            new_team_period_val = st.selectbox("Reporting Period", options=periods, index=period_index, key="edit_team_period")
+
             if st.button("Update Team"):
-                if update_team(team_to_edit["id"], new_team_name_val, new_team_parent["id"]):
+                if update_team(
+                    team_to_edit["id"], 
+                    name=new_team_name_val, 
+                    division_id=new_team_parent["id"],
+                    pm_id=new_team_pm_val if new_team_pm_val != 0 else None,
+                    reporting_period=new_team_period_val
+                ):
                     st.success("Updated")
                     st.rerun()
         with col2:

@@ -12,6 +12,18 @@ class Settings(BaseSettings):
     JIRA_EMAIL: str
     JIRA_API_TOKEN: str
 
+    # Business Logic Settings
+    DEFAULT_HOURS_PER_DAY: float = 8.0
+    MIN_HOURS_PER_DAY: float = 0.0
+    MAX_HOURS_PER_DAY: float = 24.0
+
+    # Rate Limiting Settings
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    RATE_LIMIT_MAX_REQUESTS: int = 100
+
+    # Frontend Settings (passed via /health or dedicated endpoint)
+    POLLING_INTERVAL_MS: int = 5000
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='ignore')
 
 settings = Settings()

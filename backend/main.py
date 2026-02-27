@@ -1,29 +1,20 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from core.middleware import global_exception_handler
+from core.middleware import setup_middlewares, setup_exception_handlers
 from api.router import api_router
 
 app = FastAPI(
     title="Jira Timesheet API",
-    description="Backend API for Resource & Time Management Service with Jira Integration.",
+    description="Enterprise Backend API for Resource & Time Management Service with Jira Integration.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/api/v1/openapi.json"
 )
 
-# Configure CORS for frontend access
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Register global error handler
-app.add_exception_handler(Exception, global_exception_handler)
+# Apply middlewares and exception handlers
+setup_middlewares(app)
+setup_exception_handlers(app)
 
 # Include API routers with /api/v1 prefix
 app.include_router(api_router, prefix="/api/v1")

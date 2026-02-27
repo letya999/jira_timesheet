@@ -4,6 +4,8 @@ from typing import List, Optional
 class TeamBase(BaseModel):
     name: str
     division_id: int
+    pm_id: Optional[int] = None
+    reporting_period: str = "weekly"
 
 class TeamCreate(TeamBase):
     pass
@@ -11,6 +13,8 @@ class TeamCreate(TeamBase):
 class TeamUpdate(BaseModel):
     name: Optional[str] = None
     division_id: Optional[int] = None
+    pm_id: Optional[int] = None
+    reporting_period: Optional[str] = None
 
 class TeamResponse(TeamBase):
     id: int

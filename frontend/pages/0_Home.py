@@ -1,7 +1,12 @@
 import streamlit as st
 from auth_utils import check_access
 
+from ui_components import loading_skeleton, auto_refresh
+
 def show_home():
+    # Polling for live updates
+    auto_refresh(interval_ms=30000, key="home_polling")
+    
     st.markdown("""
         <style>
         .main-header {

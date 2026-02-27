@@ -8,6 +8,8 @@ from api_client import (
 )
 from auth_utils import ensure_session
 
+from ui_components import loading_skeleton, error_state, safe_api_call
+
 st.set_page_config(page_title="Journal", layout="wide")
 
 # Check for session/cookies
@@ -22,7 +24,11 @@ if not token:
 @st.dialog("Add Worklog")
 def add_worklog_dialog():
     # 1. User Selection
-    emp_data = get_employees(size=1000, _headers=get_headers())
+    emp_data, err = safe_api_call(get_employees, size=1000, _headers=get_headers())
+    if err:
+        error_state(f"Failed to load employees: {err}")
+        return
+        
     employees = emp_data.get("items", [])
     emp_options = {e["id"]: e["display_name"] for e in employees}
     
@@ -38,8 +44,10 @@ def add_worklog_dialog():
         st.info("Search for a task by key or name (min 2 chars)")
         issue_search = st.text_input("Task Search")
         if len(issue_search) >= 2:
-            found_issues = search_issues(issue_search)
-            if found_issues:
+            found_issues, i_err = safe_api_call(search_issues, issue_search)
+            if i_err:
+                st.error("Error searching tasks")
+            elif found_issues:
                 issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
                 issue_id = st.selectbox("Select Task", options=list(issue_options.keys()), format_func=lambda x: issue_options[x])
             else:
@@ -53,24 +61,25 @@ def add_worklog_dialog():
         if category == "Jira Task" and not issue_id:
             st.error("Please select a task for Jira Task category")
         else:
-            success = add_manual_log(log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id)
-            if success:
-                st.success(f"Added {hours}h for {category}")
-                st.session_state.last_journal_filter_hash = "" # Force refresh
-                st.rerun()
-            else:
-                st.error("Failed to add log")
+            with st.spinner("Submitting..."):
+                success = add_manual_log(log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id)
+                if success:
+                    st.success(f"Added {hours}h for {category}")
+                    st.session_state.last_journal_filter_hash = "" # Force refresh
+                    st.rerun()
+                else:
+                    st.error("Failed to add log")
 
 # --- Layout ---
 col_title, col_refresh, col_btn = st.columns([0.7, 0.15, 0.15])
 with col_title:
     st.title("Journal")
 with col_refresh:
-    if st.button("🔄 Refresh", width='stretch'):
+    if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 with col_btn:
-    if st.button("➕ Add Worklog", type="primary", width='stretch'):
+    if st.button("➕ Add Worklog", type="primary", use_container_width=True):
         add_worklog_dialog()
 
 # --- Filters on Page (Expander) ---
@@ -82,10 +91,12 @@ with st.expander("🔍 Filters & Search", expanded=False):
         end_date = st.date_input("End Date", datetime.now().date())
         
         headers = get_headers()
-        projects_data = fetch_db_projects(size=100, _headers=headers)
-        project_list = projects_data.get("items", [])
+        projects_data, p_err = safe_api_call(fetch_db_projects, size=100, _headers=headers)
+        
         project_options = {0: {"name": "All Projects", "key": "All"}}
-        for p in project_list: project_options[p["id"]] = {"name": p["name"], "key": p["key"]}
+        if not p_err:
+            project_list = projects_data.get("items", [])
+            for p in project_list: project_options[p["id"]] = {"name": p["name"], "key": p["key"]}
         
         selected_project_id = st.selectbox(
             "Project", 
@@ -95,7 +106,8 @@ with st.expander("🔍 Filters & Search", expanded=False):
         )
 
     with f_col2:
-        depts = fetch_departments(_headers=headers)
+        depts_res, d_err = safe_api_call(fetch_departments, _headers=headers)
+        depts = depts_res or []
         dept_options = {0: "All Departments"}
         for d in depts: dept_options[d["id"]] = d["name"]
         selected_dept = st.selectbox("Department", options=list(dept_options.keys()), format_func=lambda x: dept_options[x])
@@ -140,84 +152,100 @@ if st.session_state.get("last_journal_filter_hash") != filter_hash:
     st.session_state.journal_page = 1
     st.session_state.last_journal_filter_hash = filter_hash
 
-data = fetch_timesheet(
-    start_date=start_date, 
-    end_date=end_date, 
-    project_id=proj_param,
-    category=cat_param,
-    dept_id=dept_param,
-    div_id=div_param,
-    team_id=team_param,
-    sort_order=sort_order,
-    page=st.session_state.journal_page,
-    size=page_size
-)
+# --- MAIN LISTING WITH SKELETON ---
+with st.spinner("Loading logs..."):
+    # Using a container to swap content
+    main_content = st.empty()
+    with main_content.container():
+        loading_skeleton(height=120, count=3)
+        
+    data, t_err = safe_api_call(
+        fetch_timesheet,
+        start_date=start_date, 
+        end_date=end_date, 
+        project_id=proj_param,
+        category=cat_param,
+        dept_id=dept_param,
+        div_id=div_param,
+        team_id=team_param,
+        sort_order=sort_order,
+        page=st.session_state.journal_page,
+        size=page_size
+    )
+
+if t_err:
+    main_content.empty()
+    error_state(f"Failed to fetch timesheet: {t_err}")
+    st.stop()
 
 worklogs = data.get("items", [])
 total_logs = data.get("total", 0)
 total_pages = data.get("pages", 1)
 
-st.write(f"Showing **{len(worklogs)}** of **{total_logs}** logs")
+# Clear skeleton and show data
+main_content.empty()
+with main_content.container():
+    st.write(f"Showing **{len(worklogs)}** of **{total_logs}** logs")
 
-if worklogs:
-    jira_base_url = "https://neuralab.atlassian.net"
-    
-    for log in worklogs:
-        with st.container(border=True):
-            col1, col2 = st.columns([0.8, 0.2])
-            
-            with col1:
-                # User and action
-                user_name = log.get("user_name", "Unknown")
-                jira_account_id = log.get("jira_account_id")
-                user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
+    if worklogs:
+        jira_base_url = "https://neuralab.atlassian.net"
+        
+        for log in worklogs:
+            with st.container(border=True):
+                col1, col2 = st.columns([0.8, 0.2])
                 
-                # Content to display based on category
-                issue_key = log.get("issue_key")
-                is_jira_task = log.get("category") == "Jira Task" or issue_key
-                
-                main_title = ""
-                if is_jira_task:
-                    issue_summary = log.get("issue_summary") or "No summary"
-                    task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
-                    task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
-                    main_title = f"##### {task_display} {issue_summary}"
-                else:
-                    description_text = log.get("description") or "No description"
-                    main_title = f"*{description_text}*"
+                with col1:
+                    # User and action
+                    user_name = log.get("user_name", "Unknown")
+                    jira_account_id = log.get("jira_account_id")
+                    user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
+                    
+                    # Content to display based on category
+                    issue_key = log.get("issue_key")
+                    is_jira_task = log.get("category") == "Jira Task" or issue_key
+                    
+                    main_title = ""
+                    if is_jira_task:
+                        issue_summary = log.get("issue_summary") or "No summary"
+                        task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
+                        task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
+                        main_title = f"##### {task_display} {issue_summary}"
+                    else:
+                        description_text = log.get("description") or "No description"
+                        main_title = f"*{description_text}*"
 
-                st.markdown(f"**<a href='{user_link}' target='_blank'>{user_name}</a> logged {log['hours']}h**", unsafe_allow_html=True)
-                st.markdown(main_title)
-                
-                project_name = log.get("project_name", "N/A")
-                st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
+                    st.markdown(f"**<a href='{user_link}' target='_blank'>{user_name}</a> logged {log['hours']}h**", unsafe_allow_html=True)
+                    st.markdown(main_title)
+                    
+                    project_name = log.get("project_name", "N/A")
+                    st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
 
-            with col2:
-                # Date
-                created_at_str = log.get("source_created_at")
-                if created_at_str:
-                    try:
-                        created_dt = datetime.fromisoformat(created_at_str)
-                        st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
-                    except (ValueError, TypeError):
-                        st.write("Logged: *Error parsing date*")
-                
-                st.caption(f"Work Date: {log['date']}")
-        st.write("") # Spacer
+                with col2:
+                    # Date
+                    created_at_str = log.get("source_created_at")
+                    if created_at_str:
+                        try:
+                            created_dt = datetime.fromisoformat(created_at_str)
+                            st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
+                        except (ValueError, TypeError):
+                            st.write("Logged: *Error parsing date*")
+                    
+                    st.caption(f"Work Date: {log['date']}")
+            st.write("") # Spacer
 
-    # Simple pagination UI
-    if total_pages > 1:
-        st.markdown("---")
-        cols = st.columns([1, 1, 3, 1, 1])
-        with cols[1]:
-            if st.button("Previous", disabled=st.session_state.journal_page <= 1):
-                st.session_state.journal_page -= 1
-                st.rerun()
-        with cols[2]:
-            st.write(f"Page {st.session_state.journal_page} of {total_pages}")
-        with cols[3]:
-            if st.button("Next", disabled=st.session_state.journal_page >= total_pages):
-                st.session_state.journal_page += 1
-                st.rerun()
-else:
-    st.info("No logs found for the selected filters.")
+        # Simple pagination UI
+        if total_pages > 1:
+            st.markdown("---")
+            cols = st.columns([1, 1, 3, 1, 1])
+            with cols[1]:
+                if st.button("Previous", disabled=st.session_state.journal_page <= 1):
+                    st.session_state.journal_page -= 1
+                    st.rerun()
+            with cols[2]:
+                st.write(f"Page {st.session_state.journal_page} of {total_pages}")
+            with cols[3]:
+                if st.button("Next", disabled=st.session_state.journal_page >= total_pages):
+                    st.session_state.journal_page += 1
+                    st.rerun()
+    else:
+        st.info("No logs found for the selected filters.")

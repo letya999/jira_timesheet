@@ -198,10 +198,12 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                     db_worklog.date = log_date
                     db_worklog.description = description[:1024] if description else None
                     db_worklog.source_created_at = source_created_at
+                    db_worklog.category = "Jira Task"
                 else:
                     db_worklog = Worklog(
                         jira_id=jira_worklog_id,
                         type="JIRA",
+                        category="Jira Task",
                         date=log_date,
                         time_spent_hours=time_spent_hours,
                         description=description[:1024] if description else None,

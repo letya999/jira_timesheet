@@ -15,6 +15,8 @@ class Worklog(Base):
     time_spent_hours: Mapped[float] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     
+    status: Mapped[str] = mapped_column(String(50), default="APPROVED") # DRAFT, SUBMITTED, APPROVED, REJECTED
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
     source_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True) # Original creation time in Jira/Manual
@@ -24,3 +26,23 @@ class Worklog(Base):
     
     jira_user = relationship("JiraUser", back_populates="worklogs")
     issue = relationship("Issue", back_populates="worklogs")
+
+class TimesheetPeriod(Base):
+    __tablename__ = "timesheet_periods"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    
+    status: Mapped[str] = mapped_column(String(50), default="OPEN") # OPEN, SUBMITTED, APPROVED, REJECTED
+    
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    approved_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    
+    comment: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    
+    user = relationship("User", foreign_keys=[user_id])
+    approved_by = relationship("User", foreign_keys=[approved_by_id])
