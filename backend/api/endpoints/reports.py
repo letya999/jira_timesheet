@@ -98,7 +98,9 @@ async def get_custom_report(
         
         # Date granularity additions
         d = wl.date
-        if request.date_granularity == "week":
+        if request.date_granularity == "day":
+            row["day"] = d
+        elif request.date_granularity == "week":
             # Monday of the week
             row["week"] = d - timedelta(days=d.weekday())
         elif request.date_granularity == "2weeks":

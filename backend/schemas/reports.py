@@ -14,7 +14,7 @@ class CustomReportRequest(BaseModel):
     
     # Grouping
     group_by_rows: List[str] # e.g. ["user", "project"]
-    group_by_cols: Optional[str] = None # e.g. "date", "sprint", "release"
+    group_by_cols: List[str] = [] # e.g. ["date", "sprint"]
     
     # Granularity (only if group_by_cols is date-related)
     # options: "day", "week", "2weeks", "month", "quarter"
