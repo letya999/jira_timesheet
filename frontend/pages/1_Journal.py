@@ -11,7 +11,7 @@ from auth_utils import ensure_session
 st.set_page_config(page_title="Journal", layout="wide")
 
 # Check for session/cookies
-token = ensure_session()
+token, _ = ensure_session()
 
 if not token:
     st.title("Journal")

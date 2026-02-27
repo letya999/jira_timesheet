@@ -6,7 +6,7 @@ import requests
 from auth_utils import ensure_session
 
 # Check for session/cookies
-token = ensure_session()
+token, _ = ensure_session()
 
 st.title("PM / CEO Dashboard")
 

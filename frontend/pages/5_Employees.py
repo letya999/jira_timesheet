@@ -8,7 +8,7 @@ from auth_utils import ensure_session
 
 st.set_page_config(page_title="Employees", page_icon="👥", layout="wide")
 
-token = ensure_session()
+token, _ = ensure_session()
 if not token:
     st.title("Employees")
     st.warning("Please log in first.")

@@ -1,48 +1,52 @@
 import streamlit as st
-import time
-from api_client import login
-from auth_utils import ensure_session, set_token, delete_token
+from auth_utils import ensure_session, get_cookie_manager, delete_token
+from api_client import get_me
 
 st.set_page_config(page_title="Jira Timesheet System", layout="wide")
 
-# Check for session/cookies
-token = ensure_session()
+# 1. Initialize authentication and get cookie manager
+token, cookie_manager = ensure_session(allow_wait=True)
 
-# If token not in session, it means we haven't checked cookies successfully yet.
-# Note: if it's "logged_out", ensure_session returns None but "token" IS in session_state.
-if "token" not in st.session_state:
-    with st.spinner("Restoring session..."):
-        # Give it a bit more time for the iframe to load and communicate
-        time.sleep(1.0) 
-        token = ensure_session()
-        
-    # If after 1s it's still not there, it might be truly empty.
-    # We don't do anything else, the script will naturally show the login form.
+# 2. Define pages for navigation
+# Using st.Page allows us to control the sidebar labels and icons
+home_page = st.Page("pages/0_Home.py", title="Home", icon="🏠", default=True)
+journal_page = st.Page("pages/1_Journal.py", title="Journal", icon="📝")
+dashboard_page = st.Page("pages/2_Dashboard.py", title="Dashboard", icon="📊")
+reports_page = st.Page("pages/3_Report_Builder.py", title="Report Builder", icon="📈")
+org_page = st.Page("pages/4_Org_Structure.py", title="Org Structure", icon="🌳")
+employees_page = st.Page("pages/5_Employees.py", title="Employees", icon="👥")
+projects_page = st.Page("pages/6_Projects.py", title="Projects", icon="🏗️")
+settings_page = st.Page("pages/7_Settings.py", title="Settings", icon="⚙️")
 
-st.title("Jira Timesheet System")
-st.write("Welcome to the internal Resource & Time Management Service.")
-
-def render_login():
-    st.subheader("Login")
-    email = st.text_input("Email", key="login_email")
-    password = st.text_input("Password", type="password", key="login_password")
-    if st.button("Login"):
-        if email and password:
-            data = login(email, password)
-            if data:
-                set_token(data["access_token"])
-                st.success("Logged in successfully!")
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
-        else:
-            st.warning("Please enter both email and password")
-
+# 3. Create the navigation menu
 if not token:
-    st.info("Please login to access the system.")
-    render_login()
+    # If not logged in, only show the Home (Login) page
+    pg = st.navigation([home_page], position="hidden")
 else:
-    st.success("You are logged in.")
-    if st.button("Logout"):
-        delete_token()
-        st.rerun()
+    # If logged in, show all pages grouped in sections
+    # Note: We can hide 'Home' from the list if desired by not including it or putting it in a hidden section
+    pg = st.navigation({
+        "Main": [home_page, journal_page, dashboard_page],
+        "Analytics": [reports_page],
+        "Administration": [org_page, employees_page, projects_page, settings_page]
+    })
+
+# 4. Sidebar Profile & Logout (at the bottom)
+if token:
+    with st.sidebar:
+        st.markdown("---")
+        # Try to get user profile for the sidebar
+        user_info = get_me()
+        if user_info:
+            user_display = user_info.get("full_name") or user_info.get("email")
+            user_role = user_info.get("role", "User")
+            st.markdown(f"**👤 {user_display}**")
+            st.caption(f"Role: {user_role}")
+        else:
+            st.markdown("**👤 User Profile**")
+            
+        if st.button("🚪 Logout", use_container_width=True):
+            delete_token(cookie_manager)
+
+# 5. Run the selected page
+pg.run()

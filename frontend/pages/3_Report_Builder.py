@@ -13,7 +13,7 @@ from auth_utils import ensure_session
 
 st.set_page_config(page_title="Report Builder Pro", layout="wide")
 
-token = ensure_session()
+token, _ = ensure_session()
 if not token:
     st.warning("Please login from the main page.")
     st.stop()

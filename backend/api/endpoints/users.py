@@ -8,9 +8,14 @@ from models import User
 from schemas.user import UserCreate, UserUpdate, UserResponse
 from schemas.pagination import PaginatedResponse
 from core.security import get_password_hash
-from api.deps import require_role
+from api.deps import require_role, get_current_user
 
 router = APIRouter()
+
+@router.get("/me", response_model=UserResponse)
+async def get_my_user(current_user: Annotated[User, Depends(get_current_user)]):
+    """Get currently logged in user."""
+    return current_user
 
 @router.get("/", response_model=PaginatedResponse[UserResponse], dependencies=[Depends(require_role(["Admin", "CEO", "PM"]))])
 async def get_users(

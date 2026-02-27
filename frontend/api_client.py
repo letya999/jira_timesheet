@@ -150,6 +150,13 @@ def sync_users_from_jira():
         return response.json()
     return {"status": "error", "message": f"Sync failed with status {response.status_code}"}
 
+def get_me():
+    """Fetch current logged in user profile."""
+    response = requests.get(f"{BACKEND_URL}/users/me", headers=get_headers())
+    if response.status_code == 200:
+        return response.json()
+    return None
+
 def get_employees(page=1, size=50, search=None, _headers=None):
     """Fetch Jira users (employees) from DB with pagination."""
     params = {"page": page, "size": size}

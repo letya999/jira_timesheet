@@ -7,7 +7,7 @@ from auth_utils import ensure_session
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
 
 # Check for session/cookies
-token = ensure_session()
+token, _ = ensure_session()
 
 st.title("⚙️ System Settings")
 st.markdown("Manage system users and global configuration.")

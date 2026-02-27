@@ -8,7 +8,7 @@ from auth_utils import ensure_session
 
 st.set_page_config(page_title="Org Structure", layout="wide")
 
-token = ensure_session()
+token, _ = ensure_session()
 if not token:
     st.title("Org Structure")
     st.warning("Please login from the main page.")
