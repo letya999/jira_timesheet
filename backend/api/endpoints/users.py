@@ -5,7 +5,7 @@ from sqlalchemy import select, func
 
 from core.database import get_db
 from models import User
-from schemas.user import UserCreate, UserResponse
+from schemas.user import UserCreate, UserUpdate, UserResponse
 from schemas.pagination import PaginatedResponse
 from core.security import get_password_hash
 from api.deps import require_role
@@ -80,3 +80,33 @@ async def create_user(
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+@router.patch("/{user_id}", response_model=UserResponse, dependencies=[Depends(require_role(["Admin"]))])
+async def update_user(
+    user_id: int,
+    user_in: UserUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    db_user = await db.get(User, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    update_data = user_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_user, field, value)
+        
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(["Admin"]))])
+async def delete_user(
+    user_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    db_user = await db.get(User, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(db_user)
+    await db.commit()
+    return None

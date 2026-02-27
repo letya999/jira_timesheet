@@ -23,3 +23,4 @@ class Team(Base):
     division_id: Mapped[int] = mapped_column(ForeignKey("divisions.id"))
     division = relationship("Division", back_populates="teams")
     users = relationship("User", back_populates="team")
+    jira_users = relationship("JiraUser", back_populates="team")

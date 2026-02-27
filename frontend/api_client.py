@@ -19,7 +19,7 @@ def get_headers():
         return {"Authorization": f"Bearer {token}"}
     return {}
 
-def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None, category=None, page=1, size=50):
+def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None, category=None, dept_id=None, div_id=None, team_id=None, sort_order="desc", page=1, size=50):
     params = {}
     if start_date: params["start_date"] = start_date
     if end_date: params["end_date"] = end_date
@@ -27,6 +27,10 @@ def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=N
     if sprint_id: params["sprint_id"] = sprint_id
     if release_id: params["release_id"] = release_id
     if category: params["category"] = category
+    if dept_id: params["dept_id"] = dept_id
+    if div_id: params["div_id"] = div_id
+    if team_id: params["team_id"] = team_id
+    params["sort_order"] = sort_order
     params["page"] = page
     params["size"] = size
     
@@ -77,10 +81,13 @@ def get_export_url(start_date, end_date):
     return f"{BACKEND_URL}/reports/export?start_date={start_date}&end_date={end_date}"
 
 @st.cache_data(ttl=600)
-def fetch_db_projects(page=1, size=50, _headers=None):
+def fetch_db_projects(page=1, size=50, search=None, _headers=None):
+    params = {"page": page, "size": size}
+    if search:
+        params["search"] = search
     response = requests.get(
         f"{BACKEND_URL}/projects/", 
-        params={"page": page, "size": size},
+        params=params,
         headers=_headers
     )
     if response.status_code == 200:
@@ -128,24 +135,89 @@ def sync_users_from_jira():
     response = requests.post(f"{BACKEND_URL}/users/sync", headers=get_headers())
     if response.status_code == 200:
         return response.json()
-    return None
+    return {"status": "error", "message": f"Sync failed with status {response.status_code}"}
 
-@st.cache_data(ttl=3600)
-def get_employees(page=1, size=50, _headers=None):
+def get_employees(page=1, size=50, search=None, _headers=None):
     """Fetch Jira users (employees) from DB with pagination."""
+    params = {"page": page, "size": size}
+    if search:
+        params["search"] = search
     response = requests.get(
         f"{BACKEND_URL}/org/employees", 
-        params={"page": page, "size": size},
+        params=params,
         headers=_headers
     )
     if response.status_code == 200:
         return response.json()
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
-@st.cache_data(ttl=300)
 def fetch_departments(_headers=None):
     response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers)
     return response.json() if response.status_code == 200 else []
+
+def create_department(name):
+    st.cache_data.clear()
+    response = requests.post(f"{BACKEND_URL}/org/departments", json={"name": name}, headers=get_headers())
+    return response.status_code == 200
+
+def update_department(dept_id, name):
+    st.cache_data.clear()
+    response = requests.patch(f"{BACKEND_URL}/org/departments/{dept_id}", json={"name": name}, headers=get_headers())
+    return response.status_code == 200
+
+def delete_department(dept_id):
+    st.cache_data.clear()
+    response = requests.delete(f"{BACKEND_URL}/org/departments/{dept_id}", headers=get_headers())
+    return response.status_code == 204
+
+def create_division(name, department_id):
+    st.cache_data.clear()
+    response = requests.post(f"{BACKEND_URL}/org/divisions", json={"name": name, "department_id": department_id}, headers=get_headers())
+    return response.status_code == 200
+
+def update_division(div_id, name=None, department_id=None):
+    st.cache_data.clear()
+    payload = {}
+    if name: payload["name"] = name
+    if department_id: payload["department_id"] = department_id
+    response = requests.patch(f"{BACKEND_URL}/org/divisions/{div_id}", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def delete_division(div_id):
+    st.cache_data.clear()
+    response = requests.delete(f"{BACKEND_URL}/org/divisions/{div_id}", headers=get_headers())
+    return response.status_code == 204
+
+def create_team(name, division_id):
+    st.cache_data.clear()
+    response = requests.post(f"{BACKEND_URL}/org/teams", json={"name": name, "division_id": division_id}, headers=get_headers())
+    return response.status_code == 200
+
+def update_team(team_id, name=None, division_id=None):
+    st.cache_data.clear()
+    payload = {}
+    if name: payload["name"] = name
+    if division_id: payload["division_id"] = division_id
+    response = requests.patch(f"{BACKEND_URL}/org/teams/{team_id}", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def delete_team(team_id):
+    st.cache_data.clear()
+    response = requests.delete(f"{BACKEND_URL}/org/teams/{team_id}", headers=get_headers())
+    return response.status_code == 204
+
+def update_user(user_id, **kwargs):
+    st.cache_data.clear()
+    response = requests.patch(f"{BACKEND_URL}/users/{user_id}", json=kwargs, headers=get_headers())
+    return response.status_code == 200
+
+def update_employee(employee_id, team_id=None, is_active=None):
+    st.cache_data.clear()
+    payload = {}
+    if team_id is not None: payload["team_id"] = team_id
+    if is_active is not None: payload["is_active"] = is_active
+    response = requests.patch(f"{BACKEND_URL}/org/employees/{employee_id}", json=payload, headers=get_headers())
+    return response.status_code == 200
 
 @st.cache_data(ttl=600)
 def fetch_project_versions(project_key, _headers=None):

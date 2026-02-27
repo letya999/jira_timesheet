@@ -44,16 +44,29 @@ with col2:
 
 st.divider()
 
-# Pagination State
+# Search and Pagination State
+if "projects_search" not in st.session_state:
+    st.session_state["projects_search"] = ""
 if "projects_page" not in st.session_state:
     st.session_state["projects_page"] = 1
+
+search_query = st.text_input("🔍 Search Projects (Name or Key)", value=st.session_state["projects_search"])
+if search_query != st.session_state["projects_search"]:
+    st.session_state["projects_search"] = search_query
+    st.session_state["projects_page"] = 1
+    st.rerun()
 
 page_size = 10
 
 # Fetch data for current page
 from api_client import get_headers
 headers = get_headers()
-data = fetch_db_projects(page=st.session_state["projects_page"], size=page_size, _headers=headers)
+data = fetch_db_projects(
+    page=st.session_state["projects_page"], 
+    size=page_size, 
+    search=st.session_state["projects_search"],
+    _headers=headers
+)
 projects_list = data.get("items", [])
 total_count = data.get("total", 0)
 total_pages = data.get("pages", 1)

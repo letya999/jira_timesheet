@@ -32,7 +32,7 @@ async def get_custom_report(
     stmt = (
         select(Worklog)
         .options(
-            joinedload(Worklog.jira_user).joinedload(JiraUser.user).joinedload(User.team).joinedload(Team.division).joinedload(Division.department),
+            joinedload(Worklog.jira_user).joinedload(JiraUser.team).joinedload(Team.division).joinedload(Division.department),
             joinedload(Worklog.issue).joinedload(Issue.project),
             joinedload(Worklog.issue).selectinload(Issue.sprints),
             joinedload(Worklog.issue).selectinload(Issue.releases)
@@ -49,11 +49,11 @@ async def get_custom_report(
     
     # Hierarchy filters
     if request.team_id:
-        filters.append(Worklog.jira_user.has(JiraUser.user.has(User.team_id == request.team_id)))
+        filters.append(Worklog.jira_user.has(JiraUser.team_id == request.team_id))
     elif request.division_id:
-        filters.append(Worklog.jira_user.has(JiraUser.user.has(User.team.has(Team.division_id == request.division_id))))
+        filters.append(Worklog.jira_user.has(JiraUser.team.has(Team.division_id == request.division_id)))
     elif request.department_id:
-        filters.append(Worklog.jira_user.has(JiraUser.user.has(User.team.has(Team.division.has(Division.department_id == request.department_id)))))
+        filters.append(Worklog.jira_user.has(JiraUser.team.has(Team.division.has(Division.department_id == request.department_id))))
 
     stmt = stmt.where(and_(*filters))
     
@@ -64,8 +64,7 @@ async def get_custom_report(
     flat_data = []
     for wl in worklogs:
         # User/Hierarchy info
-        user = wl.jira_user.user if wl.jira_user and wl.jira_user.user else None
-        team = user.team if user else None
+        team = wl.jira_user.team if wl.jira_user else None
         division = team.division if team else None
         department = division.department if division else None
         
@@ -83,7 +82,7 @@ async def get_custom_report(
             
         row = {
             "date": wl.date,
-            "user": user.full_name if user else wl.jira_user.display_name,
+            "user": wl.jira_user.display_name if wl.jira_user else "Unknown",
             "project": project.name if project else "Manual/Other",
             "task": issue.summary if issue else (wl.description[:50] if wl.description else "No Description"),
             "issue_key": issue.key if issue else None,
@@ -104,7 +103,6 @@ async def get_custom_report(
             # Monday of the week
             row["week"] = d - timedelta(days=d.weekday())
         elif request.date_granularity == "2weeks":
-            # Bi-weekly grouping (naive: week number / 2)
             row["2weeks"] = d - timedelta(days=d.weekday() + (7 if (d.isocalendar()[1] % 2 == 0) else 0))
         elif request.date_granularity == "month":
             row["month"] = d.replace(day=1)
@@ -123,19 +121,17 @@ async def get_dashboard_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["Admin", "CEO", "PM"]))
 ):
-    # 1. Fetch Worklogs with associated User and Org data
-    # We join Worklog -> JiraUser -> User -> Team -> Division -> Department
+    # 1. Fetch Worklogs with associated JiraUser and Org data
     stmt = (
         select(
             Worklog,
-            User.full_name,
+            JiraUser.display_name,
             Team.name.label("team_name"),
             Department.name.label("department_name"),
             Issue.key.label("issue_key")
         )
         .join(JiraUser, Worklog.jira_user_id == JiraUser.id)
-        .outerjoin(User, JiraUser.id == User.jira_user_id)
-        .outerjoin(Team, User.team_id == Team.id)
+        .outerjoin(Team, JiraUser.team_id == Team.id)
         .outerjoin(Division, Team.division_id == Division.id)
         .outerjoin(Department, Division.department_id == Department.id)
         .outerjoin(Issue, Worklog.issue_id == Issue.id)
@@ -148,7 +144,7 @@ async def get_dashboard_data(
     for row in result:
         log = row.Worklog
         combined_data.append({
-            "User": row.full_name or "Unlinked Jira User",
+            "User": row.display_name or "Unlinked Jira User",
             "Team": row.team_name,
             "Department": row.department_name,
             "Date": log.date,

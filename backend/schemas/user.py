@@ -13,6 +13,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    weekly_quota: Optional[int] = None
+    team_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
 class UserResponse(UserBase):
     id: int
 
@@ -25,5 +32,10 @@ class JiraUserResponse(BaseModel):
     email: Optional[EmailStr] = None
     avatar_url: Optional[str] = None
     is_active: bool
+    team_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class JiraUserUpdate(BaseModel):
+    team_id: Optional[int] = None
+    is_active: Optional[bool] = None

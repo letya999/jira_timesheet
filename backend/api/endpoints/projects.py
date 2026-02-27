@@ -59,18 +59,28 @@ async def get_jira_projects():
 async def get_db_projects(
     db: Annotated[AsyncSession, Depends(get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
-    size: Annotated[int, Query(ge=1, le=100)] = 50
+    size: Annotated[int, Query(ge=1, le=100)] = 50,
+    search: str = Query(None)
 ):
-    """List projects saved in DB with pagination."""
+    """List projects saved in DB with pagination and search."""
     skip = (page - 1) * size
     
-    # Get total count
+    # Base query
+    stmt = select(Project)
     count_stmt = select(func.count()).select_from(Project)
+    
+    # Apply search filter
+    if search:
+        search_filter = (Project.name.ilike(f"%{search}%")) | (Project.key.ilike(f"%{search}%"))
+        stmt = stmt.where(search_filter)
+        count_stmt = count_stmt.where(search_filter)
+    
+    # Get total count
     total_result = await db.execute(count_stmt)
     total = total_result.scalar()
     
     # Get items
-    stmt = select(Project).offset(skip).limit(size)
+    stmt = stmt.offset(skip).limit(size)
     result = await db.execute(stmt)
     items = result.scalars().all()
     

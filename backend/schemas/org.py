@@ -8,6 +8,10 @@ class TeamBase(BaseModel):
 class TeamCreate(TeamBase):
     pass
 
+class TeamUpdate(BaseModel):
+    name: Optional[str] = None
+    division_id: Optional[int] = None
+
 class TeamResponse(TeamBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
@@ -18,6 +22,10 @@ class DivisionBase(BaseModel):
 
 class DivisionCreate(DivisionBase):
     pass
+
+class DivisionUpdate(BaseModel):
+    name: Optional[str] = None
+    department_id: Optional[int] = None
 
 class DivisionSimple(DivisionBase):
     id: int
@@ -33,6 +41,9 @@ class DepartmentBase(BaseModel):
 
 class DepartmentCreate(DepartmentBase):
     pass
+
+class DepartmentUpdate(BaseModel):
+    name: str
 
 class DepartmentSimple(DepartmentBase):
     id: int
