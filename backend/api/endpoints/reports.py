@@ -121,37 +121,63 @@ async def get_dashboard_data(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["Admin", "CEO", "PM"]))
 ):
-    # 1. Fetch Worklogs with associated JiraUser and Org data
+    # 1. Fetch Worklogs with associated JiraUser, Org data, Issue, and Releases
     stmt = (
         select(
             Worklog,
             JiraUser.display_name,
             Team.name.label("team_name"),
             Department.name.label("department_name"),
-            Issue.key.label("issue_key")
+            Issue.key.label("issue_key"),
+            Issue.issue_type.label("issue_type")
         )
         .join(JiraUser, Worklog.jira_user_id == JiraUser.id)
         .outerjoin(Team, JiraUser.team_id == Team.id)
         .outerjoin(Division, Team.division_id == Division.id)
         .outerjoin(Department, Division.department_id == Department.id)
         .outerjoin(Issue, Worklog.issue_id == Issue.id)
+        .options(selectinload(Worklog.issue).selectinload(Issue.releases))
         .where(and_(Worklog.date >= start_date, Worklog.date <= end_date))
     )
     
     result = await db.execute(stmt)
     
     combined_data = []
+    
+    # Capex/Opex logic
+    CAPEX_TYPES = ["Story", "Epic", "New Feature", "Improvement"]
+    
     for row in result:
         log = row.Worklog
+        issue_type = row.issue_type
+        
+        # Determine Category (Capex/Opex)
+        category = "Opex"
+        if log.type == "MANUAL":
+            # For manual logs, we use the category field if it matches Capex
+            if log.category and log.category.lower() in ["capex", "development", "feature"]:
+                category = "Capex"
+        else:
+            if issue_type in CAPEX_TYPES:
+                category = "Capex"
+        
+        # Get Release names
+        releases = []
+        if log.issue and log.issue.releases:
+            releases = [r.name for r in log.issue.releases]
+        
         combined_data.append({
             "User": row.display_name or "Unlinked Jira User",
-            "Team": row.team_name,
-            "Department": row.department_name,
+            "Team": row.team_name or "No Team",
+            "Department": row.department_name or "No Department",
             "Date": log.date,
+            "Month": log.date.strftime("%b %Y"),
             "Hours": log.time_spent_hours,
             "Type": log.type.capitalize(),
-            "Category": log.category or "Jira Work",
-            "Task": row.issue_key or log.description or "N/A"
+            "Category": category,
+            "Issue Type": issue_type or "N/A",
+            "Task": row.issue_key or log.description or "N/A",
+            "Releases": ", ".join(releases) if releases else "No Release"
         })
 
     return {"data": combined_data}

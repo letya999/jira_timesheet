@@ -2,10 +2,29 @@ import streamlit as st
 import extra_streamlit_components as stx
 from datetime import datetime, timedelta
 import time
+import json
+import base64
+
+def get_cookie_manager():
+    if "cookie_manager" not in st.session_state:
+        st.session_state["cookie_manager"] = stx.CookieManager(key="auth_manager")
+    return st.session_state["cookie_manager"]
+
+def decode_jwt(token):
+    try:
+        _, payload_b64, _ = token.split(".")
+        # Add padding if necessary
+        missing_padding = len(payload_b64) % 4
+        if missing_padding:
+            payload_b64 += "=" * (4 - missing_padding)
+        payload_json = base64.b64decode(payload_b64).decode("utf-8")
+        return json.loads(payload_json)
+    except Exception:
+        return {}
 
 def ensure_session(allow_wait=False):
     """
-    STABLE VERSION: Memory -> URL -> Cookies -> JS Storage
+    ULTRA-STABLE VERSION: Memory -> URL -> Cookies -> JS Storage
     Returns (token, cookie_manager)
     """
     cookie_manager = get_cookie_manager()
@@ -49,22 +68,24 @@ def ensure_session(allow_wait=False):
     return None, cookie_manager
 
 def js_beacon():
-    """Syncs localStorage with URL parameters."""
+    """Syncs localStorage with URL parameters and also provides global cross-tab sync."""
     import streamlit.components.v1 as components
     js_code = """
     <script>
-    const urlParams = new URLSearchParams(window.parent.location.search);
-    let urlToken = urlParams.get('token');
-    let localToken = localStorage.getItem('auth_token');
+    (function() {
+        const urlParams = new URLSearchParams(window.parent.location.search);
+        let urlToken = urlParams.get('token');
+        let localToken = localStorage.getItem('auth_token');
 
-    if (urlToken && urlToken !== localToken) {
-        localStorage.setItem('auth_token', urlToken);
-    } else if (!urlToken && localToken) {
-        if (!window.parent.location.search.includes('logout')) {
-            urlParams.set('token', localToken);
-            window.parent.location.search = urlParams.toString();
+        if (urlToken && urlToken !== localToken) {
+            localStorage.setItem('auth_token', urlToken);
+        } else if (!urlToken && localToken && localToken !== 'logged_out') {
+            if (!window.parent.location.search.includes('logout')) {
+                urlParams.set('token', localToken);
+                window.parent.location.search = urlParams.toString();
+            }
         }
-    }
+    })();
     </script>
     """
     components.html(js_code, height=0, width=0)
@@ -86,7 +107,7 @@ def delete_token(cookie_manager):
     if "token" in st.query_params:
         del st.query_params["token"]
     
-    # Delete from cookies with safety catch
+    # Delete from cookies
     try:
         cookie_manager.delete("token", key="delete_token_cookie")
     except Exception:
@@ -94,9 +115,21 @@ def delete_token(cookie_manager):
     
     # Clear LocalStorage
     import streamlit.components.v1 as components
-    components.html("<script>localStorage.removeItem('auth_token');</script>", height=0, width=0)
+    components.html("<script>localStorage.setItem('auth_token', 'logged_out'); localStorage.removeItem('auth_token');</script>", height=0, width=0)
     
     st.rerun()
 
-def get_cookie_manager():
-    return stx.CookieManager(key="auth_manager")
+def get_user_role():
+    token = st.session_state.get("token")
+    if not token or token == "logged_out":
+        return None
+    payload = decode_jwt(token)
+    return payload.get("role")
+
+def check_access(allowed_roles=None):
+    if not allowed_roles:
+        return True
+    role = get_user_role()
+    if role == "Admin": # Superuser
+        return True
+    return role in allowed_roles
