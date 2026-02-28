@@ -21,26 +21,44 @@ if not token:
     st.warning("Please login from the main page.")
     st.stop()
 
+from api_client import get_me
+user_info = get_me()
+user_role = user_info.get("role") if user_info else "Employee"
+
 # --- Dialog for Adding Worklog ---
 @st.dialog("Add Worklog")
 def add_worklog_dialog():
     # 1. User Selection
-    emp_data, err = safe_api_call(get_employees, size=1000, _headers=get_headers())
-    if err:
-        error_state(f"Failed to load employees: {err}")
-        return
-        
-    employees = emp_data.get("items", [])
-    emp_options = {e["id"]: e["display_name"] for e in employees}
-    
-    selected_user_id = st.selectbox("Employee", options=list(emp_options.keys()), format_func=lambda x: emp_options[x])
+    if user_role in ["Admin", "CEO", "PM"]:
+        emp_data, err = safe_api_call(get_employees, size=1000, _headers=get_headers())
+        if err:
+            error_state(f"Failed to load employees: {err}")
+            return
+            
+        employees = emp_data.get("items", [])
+        emp_options = {e["id"]: e["display_name"] for e in employees}
+        selected_user_id = st.selectbox("Employee", options=list(emp_options.keys()), format_func=lambda x: emp_options[x])
+    else:
+        # Regular user can only log for themselves
+        selected_user_id = user_info.get("jira_user_id")
+        st.write(f"Logging for: **{user_info.get('full_name')}**")
+        if not selected_user_id:
+            st.error("Your account is not linked to a Jira user.")
+            return
 
     # 2. Type Selection
     log_type = st.radio("Type", ["JIRA", "MANUAL"], horizontal=True)
     
-    # 3. Task Selection (only for JIRA)
+    # 3. Category Selection
+    if log_type == "JIRA":
+        category = "Development"
+    else:
+        categories = ["Development", "Meeting", "Left", "Documentation", "Design", "Other"]
+        default_cat = "Other"
+        category = st.selectbox("Category", categories, index=categories.index(default_cat))
+
+    # 4. Task Selection (only for JIRA)
     issue_id = None
-    category = "Jira Task" # Default for JIRA
     
     if log_type == "JIRA":
         st.info("Search for a task by key or name (min 2 chars)")
@@ -54,18 +72,14 @@ def add_worklog_dialog():
                 issue_id = st.selectbox("Select Task", options=list(issue_options.keys()), format_func=lambda x: issue_options[x])
             else:
                 st.warning("No tasks found")
-    else:
-        # 4. Category (only for MANUAL)
-        categories = ["Vacation", "Sick Leave", "Bench", "Admin", "Training", "Meeting"]
-        category = st.selectbox("Category", categories)
     
     log_date = st.date_input("Date", value=datetime.now().date())
     hours = st.number_input("Hours", min_value=0.5, max_value=24.0, step=0.5, value=8.0)
     description = st.text_area("Description / Comment")
     
     if st.button("Submit Worklog", type="primary", width="stretch"):
-        if category == "Jira Task" and not issue_id:
-            st.error("Please select a task for Jira Task category")
+        if log_type == "JIRA" and not issue_id:
+            st.error("Please select a task for Jira Task")
         else:
             with st.spinner("Submitting..."):
                 success = add_manual_log(log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id)
@@ -136,7 +150,7 @@ with st.expander("🔍 Filters & Search", expanded=False):
             st.selectbox("Team", options=[0], format_func=lambda x: "All Teams", disabled=True)
 
     with f_col3:
-        categories = ["All", "Vacation", "Sick Leave", "Bench", "Admin", "Training", "Jira Task"]
+        categories = ["All", "Development", "Meeting", "Left", "Documentation", "Design", "Other"]
         selected_category = st.selectbox("Category", options=categories)
         sort_order = st.radio("Sort by Created Date", options=["asc", "desc"], index=1, horizontal=True) # Default to DESC
         page_size = st.select_slider("Logs per page", options=[10, 25, 50, 100], value=25)

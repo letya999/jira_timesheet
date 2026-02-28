@@ -1,5 +1,4 @@
-
-# Version: 1.2 - Added Approvals & Periods
+# Version: 1.3 - Fixed headers for 401 Unauthorized
 import requests
 import os
 import streamlit as st
@@ -71,10 +70,13 @@ def search_issues(search_query):
         return response.json()
     return []
 
-def fetch_dashboard(start_date, end_date):
+def fetch_dashboard(start_date, end_date, team_id=None):
+    params = {"start_date": start_date, "end_date": end_date}
+    if team_id:
+        params["team_id"] = team_id
     response = requests.get(
         f"{BACKEND_URL}/reports/dashboard",
-        params={"start_date": start_date, "end_date": end_date},
+        params=params,
         headers=get_headers()
     )
     if response.status_code == 200:
@@ -93,18 +95,18 @@ def fetch_custom_report(payload):
 
 @st.cache_data(ttl=600)
 def fetch_report_categories(_headers=None):
-    response = requests.get(f"{BACKEND_URL}/reports/categories", headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/reports/categories", headers=_headers or get_headers())
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=600)
 def fetch_report_sprints(_headers=None):
-    response = requests.get(f"{BACKEND_URL}/reports/sprints", headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/reports/sprints", headers=_headers or get_headers())
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=600)
 def get_all_employees(_headers=None):
     """Fetch all Jira users without pagination for filters."""
-    response = requests.get(f"{BACKEND_URL}/org/employees", params={"size": 5000}, headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/org/employees", params={"size": 5000}, headers=_headers or get_headers())
     if response.status_code == 200:
         return response.json().get("items", [])
     return []
@@ -120,7 +122,7 @@ def fetch_db_projects(page=1, size=50, search=None, _headers=None):
     response = requests.get(
         f"{BACKEND_URL}/projects/", 
         params=params,
-        headers=_headers
+        headers=_headers or get_headers()
     )
     if response.status_code == 200:
         return response.json()
@@ -155,7 +157,7 @@ def get_all_users(page=1, size=50, _headers=None):
     response = requests.get(
         f"{BACKEND_URL}/users/", 
         params={"page": page, "size": size},
-        headers=_headers
+        headers=_headers or get_headers()
     )
     if response.status_code == 200:
         return response.json()
@@ -176,22 +178,24 @@ def get_me():
         return response.json()
     return None
 
-def get_employees(page=1, size=50, search=None, _headers=None):
+def get_employees(page=1, size=50, search=None, team_id=None, _headers=None):
     """Fetch Jira users (employees) from DB with pagination."""
     params = {"page": page, "size": size}
     if search:
         params["search"] = search
+    if team_id:
+        params["team_id"] = team_id
     response = requests.get(
         f"{BACKEND_URL}/org/employees", 
         params=params,
-        headers=_headers
+        headers=_headers or get_headers()
     )
     if response.status_code == 200:
         return response.json()
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
 def fetch_departments(_headers=None):
-    response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers or get_headers())
     return response.json() if response.status_code == 200 else []
 
 def fetch_my_teams():
@@ -205,7 +209,7 @@ def create_department(name):
 
 def update_department(dept_id, name):
     st.cache_data.clear()
-    response = requests.patch(f"{BACKEND_URL}/org/departments/{dept_id}", json={"name": name}, headers=get_headers())
+    response = requests.post(f"{BACKEND_URL}/org/departments/{dept_id}", json={"name": name}, headers=get_headers())
     return response.status_code == 200
 
 def delete_department(dept_id):
@@ -266,12 +270,12 @@ def update_employee(employee_id, team_id=None, is_active=None):
 
 @st.cache_data(ttl=600)
 def fetch_project_versions(project_id, _headers=None):
-    response = requests.get(f"{BACKEND_URL}/projects/{project_id}/releases", headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/projects/{project_id}/releases", headers=_headers or get_headers())
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=600)
 def fetch_project_sprints(project_key, _headers=None):
-    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=_headers)
+    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/sprints", headers=_headers or get_headers())
     return response.json() if response.status_code == 200 else []
 
 # Approval Workflow Functions
@@ -303,12 +307,13 @@ def submit_timesheet(start_date, end_date):
     )
     return response.status_code == 200
 
-def fetch_team_periods(team_id, start_date, end_date):
+def fetch_team_periods(start_date, end_date, team_id=None):
     params = {
-        "team_id": team_id,
         "start_date": start_date.isoformat() if isinstance(start_date, (date, datetime)) else start_date,
         "end_date": end_date.isoformat() if isinstance(end_date, (date, datetime)) else end_date
     }
+    if team_id:
+        params["team_id"] = team_id
     response = requests.get(
         f"{BACKEND_URL}/approvals/team-periods",
         params=params,

@@ -20,6 +20,10 @@ class JiraUser(Base):
     team = relationship("Team", back_populates="jira_users")
     worklogs = relationship("Worklog", back_populates="jira_user")
 
+    @property
+    def user_id(self) -> int | None:
+        return self.user.id if self.user else None
+
 class User(Base):
     __tablename__ = "users"
 

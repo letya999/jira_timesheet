@@ -78,11 +78,11 @@ async def sync_user_worklogs(jira_user, db: AsyncSession, days: int = 30):
     return await sync_jira_worklogs(db, since=since_ms)
 
 async def get_default_category_id(db: AsyncSession) -> int:
-    """Gets or creates the default 'Jira Task' category."""
-    res = await db.execute(select(WorklogCategory).where(WorklogCategory.name == "Jira Task"))
+    """Gets or creates the default 'Development' category."""
+    res = await db.execute(select(WorklogCategory).where(WorklogCategory.name == "Development"))
     cat = res.scalar_one_or_none()
     if not cat:
-        cat = WorklogCategory(name="Jira Task", is_active=True)
+        cat = WorklogCategory(name="Development", is_active=True)
         db.add(cat)
         await db.flush()
     return cat.id

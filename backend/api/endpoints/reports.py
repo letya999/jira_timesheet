@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -21,12 +21,24 @@ router = APIRouter()
 async def get_dashboard_data(
     start_date: date,
     end_date: date,
+    team_id: Optional[int] = None,
+    division_id: Optional[int] = None,
+    department_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
 ):
     """Returns aggregated data for PM/CEO dashboards."""
+    # Stealth filter for regular users (Employee role)
+    if current_user.role == "Employee":
+        res = await db.execute(select(JiraUser).where(JiraUser.id == current_user.jira_user_id))
+        jira_user = res.scalar_one_or_none()
+        team_id = jira_user.team_id if jira_user and jira_user.team_id else -1
+        division_id = None
+        department_id = None
+
     query = select(Worklog).options(
         joinedload(Worklog.jira_user).joinedload(JiraUser.team).joinedload(Team.division).joinedload(Division.department),
+        joinedload(Worklog.jira_user).joinedload(JiraUser.user),
         joinedload(Worklog.issue).joinedload(Issue.project),
         joinedload(Worklog.issue).selectinload(Issue.releases),
         joinedload(Worklog.issue).selectinload(Issue.sprints),
@@ -36,6 +48,16 @@ async def get_dashboard_data(
         Worklog.date <= end_date
     )
     
+    if team_id:
+        query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.team_id == team_id)
+    elif current_user.role == "PM":
+        # PM can only see worklogs of users in their teams
+        query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(Team, JiraUser.team_id == Team.id).where(Team.pm_id == current_user.id)
+    elif division_id:
+        query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(Team).where(Team.division_id == division_id)
+    elif department_id:
+        query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(Team).join(Division).where(Division.department_id == department_id)
+    
     result = await db.execute(query)
     worklogs = result.scalars().unique().all()
     
@@ -44,16 +66,20 @@ async def get_dashboard_data(
         month_name = w.date.strftime("%B %Y")
         releases = ", ".join([r.name for r in w.issue.releases]) if w.issue and w.issue.releases else "N/A"
         
+        user_id = w.jira_user.user.id if w.jira_user and w.jira_user.user else None
+        
         item = {
             "Date": str(w.date),
             "Hours": w.hours,
             "Type": w.type,
             "User": w.jira_user.display_name if w.jira_user else "N/A",
+            "User ID": user_id,
             "Project": w.issue.project.name if w.issue and w.issue.project else "N/A",
             "Task": w.issue.summary if w.issue else "N/A",
             "Issue Key": w.issue.key if w.issue else "N/A",
             "Releases": releases,
             "Category": w.category.name if w.category else "Jira Work",
+            "Description": w.description or "",
             "Team": w.jira_user.team.name if w.jira_user and w.jira_user.team else "N/A",
             "Division": w.jira_user.team.division.name if w.jira_user and w.jira_user.team and w.jira_user.team.division else "N/A",
             "Department": w.jira_user.team.division.department.name if w.jira_user and w.jira_user.team and w.jira_user.team.division and w.jira_user.team.division.department else "N/A",
@@ -68,10 +94,10 @@ async def export_report(
     start_date: date,
     end_date: date,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
 ):
     """Generates Excel export for the given period."""
-    data_resp = await get_dashboard_data(start_date, end_date, db, current_user)
+    data_resp = await get_dashboard_data(start_date, end_date, None, None, None, db, current_user)
     data = data_resp["data"]
     
     import pandas as pd
@@ -112,11 +138,23 @@ async def get_report_sprints(
 async def get_custom_report(
     payload: CustomReportRequest,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
 ):
     """
     Returns a flat list of worklogs with joined user/project info for reporting.
     """
+    # Stealth filter for regular users (Employee role)
+    if current_user.role == "Employee":
+        res = await db.execute(select(JiraUser).where(JiraUser.id == current_user.jira_user_id))
+        jira_user = res.scalar_one_or_none()
+        payload.team_id = jira_user.team_id if jira_user and jira_user.team_id else -1
+        payload.division_id = None
+        payload.department_id = None
+        payload.project_id = None # Should we allow filtering by project? The user said "only their team"
+        # but they didn't explicitly forbid project filtering.
+        # However, it's safer to stick to team.
+        payload.user_ids = None # Filter only to team members is already done by team_id
+
     query = select(Worklog).options(
         joinedload(Worklog.jira_user).joinedload(JiraUser.team).joinedload(Team.division).joinedload(Division.department),
         joinedload(Worklog.issue).joinedload(Issue.project),

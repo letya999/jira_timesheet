@@ -74,11 +74,12 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
         
-        # Sort
+        # Sort by logging date (source_created_at for Jira, created_at for manual)
+        logging_date = func.coalesce(Worklog.source_created_at, Worklog.created_at)
         if sort_order == "desc":
-            query = query.order_by(Worklog.date.desc(), Worklog.id.desc())
+            query = query.order_by(logging_date.desc(), Worklog.id.desc())
         else:
-            query = query.order_by(Worklog.date.asc(), Worklog.id.asc())
+            query = query.order_by(logging_date.asc(), Worklog.id.asc())
             
         # Pagination
         query = query.offset(skip).limit(limit)

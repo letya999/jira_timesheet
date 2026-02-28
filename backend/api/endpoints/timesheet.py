@@ -34,6 +34,24 @@ async def get_all_worklogs(
     size: int = 50
 ):
     """Get all worklogs with advanced filtering and pagination."""
+    # Stealth filter for regular users (Employee role)
+    if current_user.role == "Employee":
+        # Re-fetch user with jira_user to get team_id
+        res = await db.execute(
+            select(JiraUser).where(JiraUser.id == current_user.jira_user_id)
+        )
+        jira_user = res.scalar_one_or_none()
+        if jira_user and jira_user.team_id:
+            team_id = jira_user.team_id
+        else:
+            # If no team, they should probably only see their own logs
+            # We can use jira_user_id for that, but let's just stick to team for now
+            # If no team, team_id remains None, which might show too much?
+            # Let's force a filter that returns nothing if no team is found
+            # but the user said "only their team".
+            # Actually, we can use a dummy ID like -1
+            team_id = jira_user.team_id if jira_user and jira_user.team_id else -1
+
     skip = (page - 1) * size
     items, total = await crud_worklog.get_multi_with_filters(
         db,
@@ -70,8 +88,8 @@ async def get_all_worklogs(
             "project_name": item.issue.project.name if item.issue and item.issue.project else "N/A",
             "issue_key": item.issue.key if item.issue else "N/A",
             "issue_summary": item.issue.summary if item.issue else None,
-            "category": item.category.name if item.category else "Jira Task",
-            "category_name": item.category.name if item.category else "Jira Task",
+            "category": item.category.name if item.category else "Other",
+            "category_name": item.category.name if item.category else "Other",
             "team_name": item.jira_user.team.name if item.jira_user and item.jira_user.team else "N/A"
         })
         
@@ -119,7 +137,7 @@ async def create_manual_log(
         select(Worklog)
         .where(Worklog.id == db_log.id)
         .options(
-            joinedload(Worklog.jira_user),
+            joinedload(Worklog.jira_user).joinedload(JiraUser.team),
             joinedload(Worklog.issue).joinedload(Issue.project),
             joinedload(Worklog.category)
         )
@@ -143,8 +161,8 @@ async def create_manual_log(
         "project_name": item.issue.project.name if item.issue and item.issue.project else "N/A",
         "issue_key": item.issue.key if item.issue else "N/A",
         "issue_summary": item.issue.summary if item.issue else None,
-        "category": item.category.name if item.category else "Jira Task",
-        "category_name": item.category.name if item.category else "Jira Task",
+        "category": item.category.name if item.category else "Other",
+        "category_name": item.category.name if item.category else "Other",
         "team_name": item.jira_user.team.name if item.jira_user and item.jira_user.team else "N/A"
     }
 

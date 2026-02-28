@@ -70,9 +70,11 @@ async def test_get_projects_auth():
         login_res = await ac.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
         token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
-        
+
         # Get projects
         response = await ac.get("/api/v1/projects/", headers=headers)
-    
+
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    data = response.json()
+    assert "items" in data
+    assert isinstance(data["items"], list)

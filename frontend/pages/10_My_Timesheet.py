@@ -3,9 +3,11 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from api_client import (
     fetch_timesheet, get_my_period, submit_timesheet, 
-    get_me, get_headers
+    get_me, get_headers, add_manual_log, search_issues,
+    get_employees
 )
 from auth_utils import ensure_session
+from ui_components import safe_api_call, error_state
 
 st.set_page_config(page_title="My Timesheet", layout="wide")
 
@@ -41,12 +43,11 @@ end_date = date.fromisoformat(period_info["end_date"])
 status = period_info["status"]
 
 # --- UI Header ---
-col_prev, col_dates, col_next, col_status, col_submit = st.columns([0.1, 0.4, 0.1, 0.2, 0.2])
+col_prev, col_dates, col_next, col_status, col_submit = st.columns([0.05, 0.45, 0.05, 0.2, 0.25])
 
 with col_prev:
     if st.button("⬅️", width="stretch"):
         # Move back by the size of the period
-        days = (end_date - start_date).days + 1
         st.session_state.ts_target_date = start_date - timedelta(days=1)
         st.rerun()
 
@@ -82,9 +83,25 @@ with col_submit:
 data = fetch_timesheet(
     start_date=start_date,
     end_date=end_date,
+    team_id=None, # Explicitly none for "My Timesheet"
     size=1000 # Fetch all for this period
 )
 worklogs = data.get("items", [])
+
+# Filter out worklogs logged after submission if submitted
+if status in ["SUBMITTED", "APPROVED"]:
+    submitted_at_str = period_info.get("submitted_at")
+    if submitted_at_str:
+        try:
+            submitted_at = datetime.fromisoformat(submitted_at_str.replace("Z", "+00:00")).replace(tzinfo=None)
+            filtered_worklogs = []
+            for wl in worklogs:
+                wl_created_at = datetime.fromisoformat(wl["created_at"].replace("Z", "+00:00")).replace(tzinfo=None)
+                if wl_created_at <= submitted_at:
+                    filtered_worklogs.append(wl)
+            worklogs = filtered_worklogs
+        except Exception:
+            pass
 
 # --- Transform Data for Grid ---
 # We want rows to be tasks and columns to be days
@@ -95,13 +112,17 @@ while curr <= end_date:
     curr += timedelta(days=1)
 
 # Grouping
-grid_data = {} # Key: (Project, IssueKey, IssueSummary), Value: {date: hours}
+grid_data = {} # Key: (Category, Name), Value: {date: hours}
 
 for wl in worklogs:
-    proj = wl.get("project_name") or "Manual"
-    issue_key = wl.get("issue_key") or ""
-    issue_sum = wl.get("issue_summary") or wl.get("category") or "No description"
-    key = (proj, issue_key, issue_sum)
+    cat = wl.get("category") or "Jira Task"
+    
+    if wl.get("type") == "JIRA":
+        name = f"{wl.get('issue_key')} {wl.get('issue_summary')}".strip()
+    else:
+        name = wl.get("description") or "No description"
+        
+    key = (cat, name)
     
     if key not in grid_data:
         grid_data[key] = {d: 0.0 for d in days_in_period}
@@ -112,10 +133,10 @@ for wl in worklogs:
 
 # --- Build DataFrame ---
 rows = []
-for (proj, issue_key, issue_sum), day_values in grid_data.items():
+for (cat, name), day_values in grid_data.items():
     row = {
-        "Project": proj,
-        "Task": f"{issue_key} {issue_sum}".strip()
+        "Category": cat,
+        "Name": name
     }
     for d in days_in_period:
         row[d.strftime("%a %d")] = day_values[d]
@@ -131,13 +152,20 @@ if rows:
             return 'background-color: #e6f3ff'
         return ''
 
-    st.markdown("### Worklogs")
-    
     # Calculate daily totals
     daily_totals = {d.strftime("%a %d"): 0.0 for d in days_in_period}
     for row in rows:
         for d in days_in_period:
             daily_totals[d.strftime("%a %d")] += row[d.strftime("%a %d")]
+
+    # Daily Totals Bar
+    st.markdown("#### Daily Totals")
+    total_cols = st.columns(len(days_in_period))
+    for i, d in enumerate(days_in_period):
+        val = daily_totals[d.strftime("%a %d")]
+        total_cols[i].metric(d.strftime("%a %d"), f"{val}h", delta=None)
+
+    st.markdown("### Worklogs")
     
     # Add totals row to dataframe for display or show it separately
     # Let's show the dataframe
@@ -147,38 +175,15 @@ if rows:
         width="stretch",
         hide_index=True,
         column_config={
-            "Project": st.column_config.TextColumn(width="small"),
-            "Task": st.column_config.TextColumn(width="large"),
+            "Category": st.column_config.TextColumn(width="small"),
+            "Name": st.column_config.TextColumn(width="large"),
             "Total": st.column_config.NumberColumn(format="%.1f", width="small"),
             **{d: st.column_config.NumberColumn(format="%.1f", width="small") for d in day_cols}
         }
     )
-    
-    # Daily Totals Bar
-    st.markdown("#### Daily Totals")
-    total_cols = st.columns(len(days_in_period))
-    for i, d in enumerate(days_in_period):
-        val = daily_totals[d.strftime("%a %d")]
-        color = "green" if val >= 8 else ("orange" if val > 0 else "red")
-        total_cols[i].metric(d.strftime("%a %d"), f"{val}h", delta=None)
         
 else:
-    st.info("No worklogs found for this period. Use the 'Journal' page to add logs or sync from Jira.")
+    st.info("No worklogs found for this period.")
 
-# --- Quick Add Shortcut ---
 st.divider()
-st.subheader("Quick Add Manual Log")
-with st.form("quick_add"):
-    c1, c2, c3 = st.columns([0.2, 0.2, 0.6])
-    q_date = c1.date_input("Date", value=st.session_state.ts_target_date)
-    q_hours = c2.number_input("Hours", min_value=0.0, step=0.5, value=8.0)
-    q_cat = c3.selectbox("Category", ["Admin", "Meeting", "Vacation", "Sick Leave", "Bench", "Training"])
-    q_desc = st.text_input("Description")
-    
-    if st.form_submit_button("Add Log", width="stretch"):
-        from api_client import add_manual_log
-        if add_manual_log(q_date, q_hours, q_cat, q_desc):
-            st.success("Log added")
-            st.rerun()
-        else:
-            st.error("Failed to add log")
+st.info("To add or edit worklogs, please use the **Journal** page.")

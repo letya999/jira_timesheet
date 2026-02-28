@@ -128,15 +128,22 @@ async def submit_period(
 
 @router.get("/team-periods")
 async def get_team_periods(
-    team_id: int,
     start_date: date,
     end_date: date,
+    team_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Fetch all period statuses for a team in a specific date range."""
-    # Find all users in this team
-    user_query = select(User).join(JiraUser).where(JiraUser.team_id == team_id)
+    # Find all users we have access to
+    user_query = select(User).join(JiraUser)
+    
+    if team_id:
+        user_query = user_query.where(JiraUser.team_id == team_id)
+    elif current_user.role == "PM":
+        # PM can only see teams where they are PM
+        user_query = user_query.join(Team, JiraUser.team_id == Team.id).where(Team.pm_id == current_user.id)
+        
     result = await db.execute(user_query)
     team_users = result.scalars().all()
     user_ids = [u.id for u in team_users]

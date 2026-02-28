@@ -26,12 +26,15 @@ async def get_employees(
     current_user = Depends(deps.get_current_user),
     page: int = 1,
     size: int = 50,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    team_id: Optional[int] = None
 ):
     """Fetch Jira users (employees) with pagination."""
-    query = select(JiraUser)
+    query = select(JiraUser).options(selectinload(JiraUser.user))
     if search:
         query = query.where(JiraUser.display_name.ilike(f"%{search}%"))
+    if team_id:
+        query = query.where(JiraUser.team_id == team_id)
     
     # Count total
     count_query = select(func.count()).select_from(query.subquery())

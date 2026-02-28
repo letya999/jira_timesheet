@@ -74,13 +74,13 @@ def worklog_card(log: dict, jira_base_url: str = "https://your-domain.atlassian.
             jira_account_id = log.get("jira_account_id")
             user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
             
-            issue_key = log.get("issue_key")
-            is_jira_task = log.get("category") == "Jira Task" or issue_key
+            is_jira_task = log.get("type") == "JIRA"
             
             if is_jira_task:
+                issue_key = log.get("issue_key")
                 issue_summary = log.get("issue_summary") or "No summary"
-                task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
-                task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
+                task_link_url = f"{jira_base_url}/browse/{issue_key}" if (issue_key and issue_key != "N/A") else "#"
+                task_display = f"[{issue_key}]({task_link_url})" if (issue_key and issue_key != "N/A") else ""
                 main_title = f"##### {task_display} {issue_summary}"
             else:
                 description_text = log.get("description") or "No description"
@@ -93,16 +93,25 @@ def worklog_card(log: dict, jira_base_url: str = "https://your-domain.atlassian.
             st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
 
         with col2:
-            created_at_str = log.get("source_created_at")
-            if created_at_str:
+            # Show Logging Date prominently as requested
+            source_at = log.get("source_created_at")
+            db_at = log.get("created_at")
+            logged_at_str = source_at or db_at
+            
+            if logged_at_str:
                 try:
                     from datetime import datetime
-                    created_dt = datetime.fromisoformat(created_at_str)
-                    st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
+                    # Clean up the string for ISO format if needed
+                    dt_val = logged_at_str.replace("Z", "+00:00")
+                    logged_dt = datetime.fromisoformat(dt_val)
+                    st.write(f"**Logged:**")
+                    st.write(f"{logged_dt.strftime('%Y-%m-%d %H:%M')}")
                 except (ValueError, TypeError):
-                    st.write("Logged: *N/A*")
+                    st.write("**Logged:** *N/A*")
+            else:
+                st.write("**Logged:** *N/A*")
             
-            st.caption(f"Work Date: {log['date']}")
+            st.caption(f"**Work Date:** {log['date']}")
 
 def pagination_ui(current_page: int, total_pages: int, on_change: Callable):
     """

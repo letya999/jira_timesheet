@@ -32,6 +32,7 @@ class JiraUserResponse(BaseModel):
     is_active: bool
     weekly_quota: int
     team_id: Optional[int] = None
+    user_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 
