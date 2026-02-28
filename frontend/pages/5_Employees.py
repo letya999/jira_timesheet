@@ -86,7 +86,7 @@ with tab_list:
                 "Team": st.column_config.SelectboxColumn("Team", options=list(team_map.values()), required=True),
                 "is_active": st.column_config.CheckboxColumn("Active")
             },
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             key="employees_editor"
         )

@@ -12,6 +12,12 @@ class CustomReportRequest(BaseModel):
     division_id: Optional[int] = None
     department_id: Optional[int] = None
     
+    # New Multi-select Filters
+    user_ids: Optional[List[int]] = None
+    sprint_ids: Optional[List[int]] = None
+    worklog_types: Optional[List[str]] = None # ["JIRA", "MANUAL"]
+    category_ids: Optional[List[int]] = None
+    
     # Grouping
     group_by_rows: List[str] # e.g. ["user", "project"]
     group_by_cols: List[str] = [] # e.g. ["date", "sprint"]

@@ -96,7 +96,7 @@ if data:
 
             st.dataframe(
                 final_df.style.pipe(apply_color),
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "is_header": None, # Hides the column from the user
                     "Capex": st.column_config.NumberColumn(format="%.1f"),
@@ -132,7 +132,7 @@ if data:
             final_pivot = pd.DataFrame(rows).drop(columns=["Team"])
             final_pivot = final_pivot.rename(columns={"User": "Сотрудник", "Department": "Подразделение"})
             
-            st.dataframe(final_pivot, use_container_width=True)
+            st.dataframe(final_pivot, width="stretch")
 
     elif view_type == "Team Utilization (Hours by Team)":
         pivot = df.pivot_table(index="Team", columns="Type", values="Hours", aggfunc="sum", fill_value=0)

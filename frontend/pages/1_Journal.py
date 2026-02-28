@@ -7,8 +7,9 @@ from api_client import (
     fetch_departments, get_employees, search_issues
 )
 from auth_utils import ensure_session
+from state_manager import state
 
-from ui_components import loading_skeleton, error_state, safe_api_call
+from ui_components import loading_skeleton, error_state, safe_api_call, worklog_card, pagination_ui
 
 st.set_page_config(page_title="Journal", layout="wide")
 
@@ -34,13 +35,14 @@ def add_worklog_dialog():
     
     selected_user_id = st.selectbox("Employee", options=list(emp_options.keys()), format_func=lambda x: emp_options[x])
 
-    # 2. Category
-    categories = ["Vacation", "Sick Leave", "Bench", "Admin", "Training", "Jira Task"]
-    category = st.selectbox("Category", categories)
+    # 2. Type Selection
+    log_type = st.radio("Type", ["JIRA", "MANUAL"], horizontal=True)
     
-    # 3. Task Selection (only for Jira Task)
+    # 3. Task Selection (only for JIRA)
     issue_id = None
-    if category == "Jira Task":
+    category = "Jira Task" # Default for JIRA
+    
+    if log_type == "JIRA":
         st.info("Search for a task by key or name (min 2 chars)")
         issue_search = st.text_input("Task Search")
         if len(issue_search) >= 2:
@@ -52,12 +54,16 @@ def add_worklog_dialog():
                 issue_id = st.selectbox("Select Task", options=list(issue_options.keys()), format_func=lambda x: issue_options[x])
             else:
                 st.warning("No tasks found")
+    else:
+        # 4. Category (only for MANUAL)
+        categories = ["Vacation", "Sick Leave", "Bench", "Admin", "Training", "Meeting"]
+        category = st.selectbox("Category", categories)
     
     log_date = st.date_input("Date", value=datetime.now().date())
     hours = st.number_input("Hours", min_value=0.5, max_value=24.0, step=0.5, value=8.0)
     description = st.text_area("Description / Comment")
     
-    if st.button("Submit Worklog", type="primary", use_container_width=True):
+    if st.button("Submit Worklog", type="primary", width="stretch"):
         if category == "Jira Task" and not issue_id:
             st.error("Please select a task for Jira Task category")
         else:
@@ -75,11 +81,11 @@ col_title, col_refresh, col_btn = st.columns([0.7, 0.15, 0.15])
 with col_title:
     st.title("Journal")
 with col_refresh:
-    if st.button("🔄 Refresh", use_container_width=True):
+    if st.button("🔄 Refresh", width="stretch"):
         st.cache_data.clear()
         st.rerun()
 with col_btn:
-    if st.button("➕ Add Worklog", type="primary", use_container_width=True):
+    if st.button("➕ Add Worklog", type="primary", width="stretch"):
         add_worklog_dialog()
 
 # --- Filters on Page (Expander) ---
@@ -142,14 +148,10 @@ dept_param = selected_dept if selected_dept != 0 else None
 div_param = selected_div if selected_div != 0 else None
 team_param = selected_team if selected_team != 0 else None
 
-# Handle page in session state
-if "journal_page" not in st.session_state:
-    st.session_state.journal_page = 1
-
 # Reset page if filters change
 filter_hash = f"{proj_param}-{cat_param}-{start_date}-{end_date}-{page_size}-{dept_param}-{div_param}-{team_param}-{sort_order}"
 if st.session_state.get("last_journal_filter_hash") != filter_hash:
-    st.session_state.journal_page = 1
+    state.set_page("journal", 1)
     st.session_state.last_journal_filter_hash = filter_hash
 
 # --- MAIN LISTING WITH SKELETON ---
@@ -169,7 +171,7 @@ with st.spinner("Loading logs..."):
         div_id=div_param,
         team_id=team_param,
         sort_order=sort_order,
-        page=st.session_state.journal_page,
+        page=state.get_page("journal"),
         size=page_size
     )
 
@@ -189,63 +191,15 @@ with main_content.container():
 
     if worklogs:
         jira_base_url = "https://neuralab.atlassian.net"
-        
         for log in worklogs:
-            with st.container(border=True):
-                col1, col2 = st.columns([0.8, 0.2])
-                
-                with col1:
-                    # User and action
-                    user_name = log.get("user_name", "Unknown")
-                    jira_account_id = log.get("jira_account_id")
-                    user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
-                    
-                    # Content to display based on category
-                    issue_key = log.get("issue_key")
-                    is_jira_task = log.get("category") == "Jira Task" or issue_key
-                    
-                    main_title = ""
-                    if is_jira_task:
-                        issue_summary = log.get("issue_summary") or "No summary"
-                        task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
-                        task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
-                        main_title = f"##### {task_display} {issue_summary}"
-                    else:
-                        description_text = log.get("description") or "No description"
-                        main_title = f"*{description_text}*"
-
-                    st.markdown(f"**<a href='{user_link}' target='_blank'>{user_name}</a> logged {log['hours']}h**", unsafe_allow_html=True)
-                    st.markdown(main_title)
-                    
-                    project_name = log.get("project_name", "N/A")
-                    st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
-
-                with col2:
-                    # Date
-                    created_at_str = log.get("source_created_at")
-                    if created_at_str:
-                        try:
-                            created_dt = datetime.fromisoformat(created_at_str)
-                            st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
-                        except (ValueError, TypeError):
-                            st.write("Logged: *Error parsing date*")
-                    
-                    st.caption(f"Work Date: {log['date']}")
+            worklog_card(log, jira_base_url=jira_base_url)
             st.write("") # Spacer
 
-        # Simple pagination UI
-        if total_pages > 1:
-            st.markdown("---")
-            cols = st.columns([1, 1, 3, 1, 1])
-            with cols[1]:
-                if st.button("Previous", disabled=st.session_state.journal_page <= 1):
-                    st.session_state.journal_page -= 1
-                    st.rerun()
-            with cols[2]:
-                st.write(f"Page {st.session_state.journal_page} of {total_pages}")
-            with cols[3]:
-                if st.button("Next", disabled=st.session_state.journal_page >= total_pages):
-                    st.session_state.journal_page += 1
-                    st.rerun()
+        # Standard Pagination UI
+        pagination_ui(
+            current_page=state.get_page("journal"),
+            total_pages=total_pages,
+            on_change=lambda p: state.set_page("journal", p)
+        )
     else:
         st.info("No logs found for the selected filters.")

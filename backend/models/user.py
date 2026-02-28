@@ -10,8 +10,10 @@ class JiraUser(Base):
     display_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
+    # Resource Management Fields moved here
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    weekly_quota: Mapped[int] = mapped_column(default=40)
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
 
     user = relationship("User", back_populates="jira_user", uselist=False)
@@ -25,12 +27,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(50), default="Employee") # Admin, CEO, PM, Employee
-    weekly_quota: Mapped[int] = mapped_column(default=40)
+    role: Mapped[str] = mapped_column(String(50), default="Employee", index=True) # Admin, CEO, PM, Employee
+    
+    # Login access control only
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
-    team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
     jira_user_id: Mapped[int | None] = mapped_column(ForeignKey("jira_users.id"), nullable=True)
-    
-    team = relationship("Team", back_populates="users")
     jira_user = relationship("JiraUser", back_populates="user")

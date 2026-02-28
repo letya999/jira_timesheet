@@ -7,23 +7,23 @@ class Worklog(Base):
     __tablename__ = "worklogs"
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    jira_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True) # ID from Jira
+    jira_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     type: Mapped[str] = mapped_column(String(50), default="JIRA") # JIRA, MANUAL
-    category: Mapped[str | None] = mapped_column(String(255), nullable=True) # For Manual: Vacation, Sick, etc.
     
-    date: Mapped[date] = mapped_column(Date)
-    time_spent_hours: Mapped[float] = mapped_column(Float)
+    date: Mapped[date] = mapped_column(Date, index=True)
+    hours: Mapped[float] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     
-    status: Mapped[str] = mapped_column(String(50), default="APPROVED") # DRAFT, SUBMITTED, APPROVED, REJECTED
+    status: Mapped[str] = mapped_column(String(50), default="APPROVED", index=True) # DRAFT, SUBMITTED, APPROVED, REJECTED
     
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-    source_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True) # Original creation time in Jira/Manual
+    # Linked to standardized categories
+    category_id: Mapped[int | None] = mapped_column(ForeignKey("worklog_categories.id"), nullable=True)
+    source_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     
     jira_user_id: Mapped[int] = mapped_column(ForeignKey("jira_users.id"))
     issue_id: Mapped[int | None] = mapped_column(ForeignKey("issues.id"), nullable=True)
     
+    category = relationship("WorklogCategory")
     jira_user = relationship("JiraUser", back_populates="worklogs")
     issue = relationship("Issue", back_populates="worklogs")
 
@@ -33,10 +33,10 @@ class TimesheetPeriod(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     
-    start_date: Mapped[date] = mapped_column(Date)
-    end_date: Mapped[date] = mapped_column(Date)
+    start_date: Mapped[date] = mapped_column(Date, index=True)
+    end_date: Mapped[date] = mapped_column(Date, index=True)
     
-    status: Mapped[str] = mapped_column(String(50), default="OPEN") # OPEN, SUBMITTED, APPROVED, REJECTED
+    status: Mapped[str] = mapped_column(String(50), default="OPEN", index=True) # OPEN, SUBMITTED, APPROVED, REJECTED
     
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

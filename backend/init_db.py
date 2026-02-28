@@ -10,6 +10,8 @@ import models.user
 import models.org
 import models.timesheet
 import models.project
+import models.settings
+import models.category
 
 from sqlalchemy import text
 

@@ -14,8 +14,12 @@ async def seed_admin():
     async with async_session() as session:
         # Check if admin already exists
         result = await session.execute(select(User).where(User.email == "admin@example.com"))
-        if result.scalar_one_or_none():
-            print("Admin user already exists.")
+        admin = result.scalar_one_or_none()
+        
+        if admin:
+            print("Admin user already exists. Ensuring Admin role...")
+            admin.role = "Admin"
+            await session.commit()
             return
 
         print("Creating admin user...")
@@ -23,8 +27,7 @@ async def seed_admin():
             email="admin@example.com",
             hashed_password=get_password_hash("admin123"),
             full_name="System Admin",
-            role="Admin",
-            weekly_quota=40
+            role="Admin"
         )
         session.add(admin)
         await session.commit()

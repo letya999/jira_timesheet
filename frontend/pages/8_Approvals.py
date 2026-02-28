@@ -162,6 +162,6 @@ for member in team_members:
         member_logs = [wl for wl in worklogs if wl.get("user_name") == m_name]
         if member_logs:
             m_df = pd.DataFrame(member_logs)[["date", "hours", "project_name", "issue_key", "description"]]
-            st.dataframe(m_df, use_container_width=True, hide_index=True)
+            st.dataframe(m_df, width="stretch", hide_index=True)
         else:
             st.write("No logs found.")

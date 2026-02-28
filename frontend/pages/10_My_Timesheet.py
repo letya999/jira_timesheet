@@ -44,7 +44,7 @@ status = period_info["status"]
 col_prev, col_dates, col_next, col_status, col_submit = st.columns([0.1, 0.4, 0.1, 0.2, 0.2])
 
 with col_prev:
-    if st.button("⬅️", use_container_width=True):
+    if st.button("⬅️", width="stretch"):
         # Move back by the size of the period
         days = (end_date - start_date).days + 1
         st.session_state.ts_target_date = start_date - timedelta(days=1)
@@ -54,7 +54,7 @@ with col_dates:
     st.subheader(f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b, %Y')}")
 
 with col_next:
-    if st.button("➡️", use_container_width=True):
+    if st.button("➡️", width="stretch"):
         st.session_state.ts_target_date = end_date + timedelta(days=1)
         st.rerun()
 
@@ -69,14 +69,14 @@ with col_status:
 
 with col_submit:
     if status in ["OPEN", "REJECTED"]:
-        if st.button("🚀 Submit Period", type="primary", use_container_width=True):
+        if st.button("🚀 Submit Period", type="primary", width="stretch"):
             if submit_timesheet(start_date, end_date):
                 st.success("Timesheet submitted!")
                 st.rerun()
             else:
                 st.error("Failed to submit")
     else:
-        st.button("🚀 Submit Period", disabled=True, use_container_width=True)
+        st.button("🚀 Submit Period", disabled=True, width="stretch")
 
 # --- Fetch Data for the Grid ---
 data = fetch_timesheet(
@@ -144,7 +144,7 @@ if rows:
     day_cols = [d.strftime("%a %d") for d in days_in_period]
     st.dataframe(
         df,
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Project": st.column_config.TextColumn(width="small"),
@@ -175,7 +175,7 @@ with st.form("quick_add"):
     q_cat = c3.selectbox("Category", ["Admin", "Meeting", "Vacation", "Sick Leave", "Bench", "Training"])
     q_desc = st.text_input("Description")
     
-    if st.form_submit_button("Add Log", use_container_width=True):
+    if st.form_submit_button("Add Log", width="stretch"):
         from api_client import add_manual_log
         if add_manual_log(q_date, q_hours, q_cat, q_desc):
             st.success("Log added")

@@ -59,8 +59,8 @@ class Issue(Base):
     jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     key: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     summary: Mapped[str] = mapped_column(String(1024))
-    status: Mapped[str | None] = mapped_column(String(100))
-    issue_type: Mapped[str | None] = mapped_column(String(50))
+    status: Mapped[str | None] = mapped_column(String(100), index=True)
+    issue_type: Mapped[str | None] = mapped_column(String(50), index=True)
     
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("issues.id"), nullable=True)

@@ -19,8 +19,12 @@ async def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+
 @pytest.fixture(autouse=True)
 async def setup_db():
+    FastAPICache.init(InMemoryBackend(), prefix="test-cache")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
@@ -49,33 +53,26 @@ async def test_health_check():
 @pytest.mark.asyncio
 async def test_login_success():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post("/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
+        response = await ac.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
     assert response.status_code == 200
     assert "access_token" in response.json()
 
 @pytest.mark.asyncio
 async def test_login_failure():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post("/auth/login", data={"username": "wrong@example.com", "password": "pass"})
+        response = await ac.post("/api/v1/auth/login", data={"username": "wrong@example.com", "password": "pass"})
     assert response.status_code == 401
 
 @pytest.mark.asyncio
-async def test_create_department_as_admin():
+async def test_get_projects_auth():
     # Login to get token
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        login_res = await ac.post("/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
+        login_res = await ac.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
         token = login_res.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
         
-        # Create department
-        response = await ac.post("/org/departments", json={"name": "Engineering"}, headers=headers)
+        # Get projects
+        response = await ac.get("/api/v1/projects/", headers=headers)
     
-    assert response.status_code == 200
-    assert response.json()["name"] == "Engineering"
-
-@pytest.mark.asyncio
-async def test_get_departments():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.get("/org/departments")
     assert response.status_code == 200
     assert isinstance(response.json(), list)

@@ -2,6 +2,10 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from core.middleware import setup_middlewares, setup_exception_handlers
 from api.router import api_router
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from redis import asyncio as aioredis
+from core.config import settings
 
 app = FastAPI(
     title="Jira Timesheet API",
@@ -36,6 +40,11 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+@app.on_event("startup")
+async def startup():
+    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
 @app.get("/health", tags=["System"])
 async def health_check():

@@ -113,7 +113,7 @@ if data:
         st.subheader("Сводка часов за неделю")
         st.dataframe(
             final_df.style.applymap(style_hours, subset=day_cols),
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "Итого (нед)": st.column_config.NumberColumn(format="%.1f")
             }

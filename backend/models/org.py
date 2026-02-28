@@ -27,6 +27,5 @@ class Team(Base):
     reporting_period: Mapped[str] = mapped_column(String(50), default="weekly") # weekly, bi-weekly, monthly
     
     division = relationship("Division", back_populates="teams")
-    users = relationship("User", back_populates="team", foreign_keys="User.team_id")
     pm = relationship("User", foreign_keys=[pm_id])
     jira_users = relationship("JiraUser", back_populates="team")

@@ -133,7 +133,7 @@ def show_home():
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
-                        if st.button(f"Open {tile['title']}", key=f"btn_{tile['title']}", use_container_width=True):
+                        if st.button(f"Open {tile['title']}", key=f"btn_{tile['title']}", width="stretch"):
                             st.switch_page(tile['page'])
 
 if __name__ == "__main__":

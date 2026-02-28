@@ -59,18 +59,67 @@ def safe_api_call(func: Callable, *args, **kwargs):
         return None, str(e)
 
 def auto_refresh(interval_ms: int, key: str):
+    # ... (existing code)
+    pass
+
+def worklog_card(log: dict, jira_base_url: str = "https://your-domain.atlassian.net"):
     """
-    Simple polling mechanism using st.empty and time.sleep (or fragments if available)
-    Note: Standard Streamlit way for polling is st_autorefresh, but we'll use fragments 
-    if the version supports it (available in recent 1.33+ versions).
+    Renders a consistent card for a worklog entry.
     """
-    # Using the new st.fragment if possible for scoped refresh
-    if hasattr(st, "fragment"):
-        @st.fragment(run_every=interval_ms / 1000)
-        def refresh_fragment():
-            st.session_state[f"{key}_last_refresh"] = time.time()
+    with st.container(border=True):
+        col1, col2 = st.columns([0.8, 0.2])
         
-        refresh_fragment()
-    else:
-        # Fallback to older methods or just a message
-        pass
+        with col1:
+            user_name = log.get("user_name", "Unknown")
+            jira_account_id = log.get("jira_account_id")
+            user_link = f"{jira_base_url}/jira/people/{jira_account_id}" if jira_account_id else "#"
+            
+            issue_key = log.get("issue_key")
+            is_jira_task = log.get("category") == "Jira Task" or issue_key
+            
+            if is_jira_task:
+                issue_summary = log.get("issue_summary") or "No summary"
+                task_link_url = f"{jira_base_url}/browse/{issue_key}" if issue_key else "#"
+                task_display = f"[{issue_key}]({task_link_url})" if issue_key else ""
+                main_title = f"##### {task_display} {issue_summary}"
+            else:
+                description_text = log.get("description") or "No description"
+                main_title = f"*{description_text}*"
+
+            st.markdown(f"**<a href='{user_link}' target='_blank'>{user_name}</a> logged {log['hours']}h**", unsafe_allow_html=True)
+            st.markdown(main_title)
+            
+            project_name = log.get("project_name", "N/A")
+            st.caption(f"**Project:** {project_name} | **Category:** {log.get('category', 'N/A')}")
+
+        with col2:
+            created_at_str = log.get("source_created_at")
+            if created_at_str:
+                try:
+                    from datetime import datetime
+                    created_dt = datetime.fromisoformat(created_at_str)
+                    st.write(f"Logged: {created_dt.strftime('%Y-%m-%d %H:%M')}")
+                except (ValueError, TypeError):
+                    st.write("Logged: *N/A*")
+            
+            st.caption(f"Work Date: {log['date']}")
+
+def pagination_ui(current_page: int, total_pages: int, on_change: Callable):
+    """
+    Renders a standard pagination row.
+    """
+    if total_pages <= 1:
+        return
+
+    st.markdown("---")
+    cols = st.columns([1, 1, 3, 1, 1])
+    with cols[1]:
+        if st.button("Previous", disabled=current_page <= 1, key=f"prev_{current_page}"):
+            on_change(current_page - 1)
+            st.rerun()
+    with cols[2]:
+        st.write(f"Page {current_page} of {total_pages}")
+    with cols[3]:
+        if st.button("Next", disabled=current_page >= total_pages, key=f"next_{current_page}"):
+            on_change(current_page + 1)
+            st.rerun()

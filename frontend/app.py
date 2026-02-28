@@ -13,6 +13,7 @@ home_page = st.Page("pages/0_Home.py", title="Home", icon="🏠", default=True)
 journal_page = st.Page("pages/1_Journal.py", title="Journal", icon="📝")
 dashboard_page = st.Page("pages/2_Dashboard.py", title="Dashboard", icon="📊")
 reports_builder_page = st.Page("pages/3_Report_Builder.py", title="Report Builder", icon="📈")
+timesheet_page = st.Page("pages/10_My_Timesheet.py", title="My Timesheet", icon="🗓️")
 org_page = st.Page("pages/4_Org_Structure.py", title="Org Structure", icon="🌳")
 employees_page = st.Page("pages/5_Employees.py", title="Employees", icon="👥")
 projects_page = st.Page("pages/6_Projects.py", title="Projects", icon="🏗️")
@@ -37,14 +38,14 @@ else:
     if is_privileged:
         # Full menu for privileged users
         pages_to_show = {
-            "Main": [home_page, journal_page, dashboard_page],
+            "Main": [home_page, journal_page, timesheet_page, dashboard_page],
             "Analytics": [reports_builder_page],
             "Administration": [org_page, employees_page, projects_page, control_sheet_page, settings_page]
         }
     else:
         # Minimal menu for regular employees
         pages_to_show = {
-            "User Workspace": [home_page, journal_page],
+            "User Workspace": [home_page, journal_page, timesheet_page],
             "Reporting": [reports_builder_page]
         }
     
@@ -67,7 +68,7 @@ else:
             else:
                 st.markdown("**👤 User Profile**")
                 
-            if st.button("🚪 Logout", use_container_width=True):
+            if st.button("🚪 Logout", width="stretch"):
                 delete_token(cookie_manager)
 
     # 5. Run the selected page

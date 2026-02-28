@@ -91,6 +91,24 @@ def fetch_custom_report(payload):
         return response.json().get("data", [])
     return []
 
+@st.cache_data(ttl=600)
+def fetch_report_categories(_headers=None):
+    response = requests.get(f"{BACKEND_URL}/reports/categories", headers=_headers)
+    return response.json() if response.status_code == 200 else []
+
+@st.cache_data(ttl=600)
+def fetch_report_sprints(_headers=None):
+    response = requests.get(f"{BACKEND_URL}/reports/sprints", headers=_headers)
+    return response.json() if response.status_code == 200 else []
+
+@st.cache_data(ttl=600)
+def get_all_employees(_headers=None):
+    """Fetch all Jira users without pagination for filters."""
+    response = requests.get(f"{BACKEND_URL}/org/employees", params={"size": 5000}, headers=_headers)
+    if response.status_code == 200:
+        return response.json().get("items", [])
+    return []
+
 def get_export_url(start_date, end_date):
     return f"{BACKEND_URL}/reports/export?start_date={start_date}&end_date={end_date}"
 
@@ -247,8 +265,8 @@ def update_employee(employee_id, team_id=None, is_active=None):
     return response.status_code == 200
 
 @st.cache_data(ttl=600)
-def fetch_project_versions(project_key, _headers=None):
-    response = requests.get(f"{BACKEND_URL}/projects/{project_key}/versions", headers=_headers)
+def fetch_project_versions(project_id, _headers=None):
+    response = requests.get(f"{BACKEND_URL}/projects/{project_id}/releases", headers=_headers)
     return response.json() if response.status_code == 200 else []
 
 @st.cache_data(ttl=600)

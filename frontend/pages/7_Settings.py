@@ -46,7 +46,7 @@ with tab1:
         
         st.dataframe(
             df_display,
-            use_container_width=True,
+            width="stretch",
             hide_index=True
         )
 

@@ -3,7 +3,7 @@ from core.config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, insert
 from sqlalchemy.orm import selectinload
-from models import User, JiraUser, Project, Worklog, Sprint, Release, Issue
+from models import User, JiraUser, Project, Worklog, Sprint, Release, Issue, WorklogCategory
 from models.project import issue_releases
 import logging
 from datetime import datetime
@@ -63,6 +63,30 @@ async def fetch_issue_details(issue_ids: list[str]):
         logger.error(f"Failed to fetch issue details: {e}")
         return mapping
 
+async def sync_user_worklogs(jira_user, db: AsyncSession, days: int = 30):
+    """
+    Sync worklogs for a specific Jira user over the last N days.
+    Currently reuses the global sync logic with a calculated 'since' timestamp.
+    """
+    import time
+    from datetime import datetime, timedelta
+    
+    # Calculate since timestamp in milliseconds for Jira API
+    since_ms = int((time.time() - (days * 24 * 3600)) * 1000)
+    
+    logger.info(f"Triggering sync for user {jira_user.display_name} since {days} days ago")
+    return await sync_jira_worklogs(db, since=since_ms)
+
+async def get_default_category_id(db: AsyncSession) -> int:
+    """Gets or creates the default 'Jira Task' category."""
+    res = await db.execute(select(WorklogCategory).where(WorklogCategory.name == "Jira Task"))
+    cat = res.scalar_one_or_none()
+    if not cat:
+        cat = WorklogCategory(name="Jira Task", is_active=True)
+        db.add(cat)
+        await db.flush()
+    return cat.id
+
 async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
     """
     Sync worklogs from Jira Cloud API to the new Worklog model.
@@ -91,6 +115,7 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
             # 3. Fetch issue details for mapping
             issue_ids = list(set([item.get("issueId") for item in worklogs_data if item.get("issueId")]))
             issue_mapping = await fetch_issue_details(issue_ids)
+            default_cat_id = await get_default_category_id(db)
             
             synced_count = 0
             for item in worklogs_data:
@@ -184,7 +209,7 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
 
                 # Sync Worklog
                 jira_worklog_id = str(item.get("id"))
-                time_spent_hours = item.get("timeSpentSeconds", 0) / 3600.0
+                hours = item.get("timeSpentSeconds", 0) / 3600.0
                 log_date = parser.isoparse(item.get("started")).date()
                 # Jira timestamps are offset-aware, but DB is offset-naive. Strip tzinfo.
                 source_created_at = parser.isoparse(item.get("created")).replace(tzinfo=None)
@@ -194,18 +219,18 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                 db_worklog = res.scalar_one_or_none()
 
                 if db_worklog:
-                    db_worklog.time_spent_hours = time_spent_hours
+                    db_worklog.hours = hours
                     db_worklog.date = log_date
                     db_worklog.description = description[:1024] if description else None
                     db_worklog.source_created_at = source_created_at
-                    db_worklog.category = "Jira Task"
+                    db_worklog.category_id = default_cat_id
                 else:
                     db_worklog = Worklog(
                         jira_id=jira_worklog_id,
                         type="JIRA",
-                        category="Jira Task",
+                        category_id=default_cat_id,
                         date=log_date,
-                        time_spent_hours=time_spent_hours,
+                        hours=hours,
                         description=description[:1024] if description else None,
                         jira_user_id=db_jira_user.id,
                         issue_id=db_issue.id,

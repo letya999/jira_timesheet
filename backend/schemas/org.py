@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
+from datetime import datetime
 
 class TeamBase(BaseModel):
     name: str
@@ -18,6 +19,8 @@ class TeamUpdate(BaseModel):
 
 class TeamResponse(TeamBase):
     id: int
+    created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class DivisionBase(BaseModel):
@@ -38,6 +41,8 @@ class DivisionSimple(DivisionBase):
 class DivisionResponse(DivisionBase):
     id: int
     teams: List[TeamResponse] = []
+    created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class DepartmentBase(BaseModel):
@@ -56,4 +61,6 @@ class DepartmentSimple(DepartmentBase):
 class DepartmentResponse(DepartmentBase):
     id: int
     divisions: List[DivisionResponse] = []
+    created_at: datetime
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
