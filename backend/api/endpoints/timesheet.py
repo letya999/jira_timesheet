@@ -13,10 +13,30 @@ from crud.timesheet import worklog as crud_worklog
 from models.user import User, JiraUser
 from models.project import Issue
 from models.category import WorklogCategory
-from models.timesheet import Worklog
+from models.timesheet import Worklog, TimesheetPeriod
 import math
 
 router = APIRouter()
+
+async def _to_period_response(db: AsyncSession, period: TimesheetPeriod) -> Dict[str, Any]:
+    """Helper to convert TimesheetPeriod model to response with summary info."""
+    summary = await timesheet_service.get_period_summary(db, period)
+    return {
+        "id": period.id,
+        "user_id": period.user_id,
+        "start_date": period.start_date,
+        "end_date": period.end_date,
+        "status": period.status,
+        "submitted_at": period.submitted_at,
+        "approved_at": period.approved_at,
+        "approved_by_id": period.approved_by_id,
+        "comment": period.comment,
+        "created_at": period.created_at,
+        "updated_at": period.updated_at,
+        "total_hours": summary["total_hours"],
+        "expected_hours": summary["expected_hours"],
+        "working_days": summary["working_days"]
+    }
 
 @router.get("/", response_model=PaginatedResponse[WorklogResponse])
 async def get_all_worklogs(
@@ -24,44 +44,45 @@ async def get_all_worklogs(
     current_user: User = Depends(deps.get_current_user),
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    user_id: Optional[int] = None,
     project_id: Optional[int] = None,
     category: Optional[str] = None,
     dept_id: Optional[int] = None,
     div_id: Optional[int] = None,
-    team_id: Optional[int] = None,
+    org_unit_id: Optional[int] = None,
     sort_order: str = "desc",
     page: int = 1,
     size: int = 50
 ):
     """Get all worklogs with advanced filtering and pagination."""
-    # Stealth filter for regular users (Employee role)
+    # Logic for filtering based on roles and provided parameters
     if current_user.role == "Employee":
-        # Re-fetch user with jira_user to get team_id
-        res = await db.execute(
-            select(JiraUser).where(JiraUser.id == current_user.jira_user_id)
-        )
-        jira_user = res.scalar_one_or_none()
-        if jira_user and jira_user.team_id:
-            team_id = jira_user.team_id
-        else:
-            # If no team, they should probably only see their own logs
-            # We can use jira_user_id for that, but let's just stick to team for now
-            # If no team, team_id remains None, which might show too much?
-            # Let's force a filter that returns nothing if no team is found
-            # but the user said "only their team".
-            # Actually, we can use a dummy ID like -1
-            team_id = jira_user.team_id if jira_user and jira_user.team_id else -1
+        # Regular users can only see their own logs
+        user_id = current_user.jira_user_id
+    elif current_user.role in ["Admin", "CEO"]:
+        # Admins and CEOs see all logs by default if no filters are provided
+        pass
+    else:
+        # For PM (or others):
+        # If no specific filters (user, team, dept, div) are provided, 
+        # default to showing ONLY their own worklogs.
+        if user_id is None and org_unit_id is None and dept_id is None and div_id is None:
+            user_id = current_user.jira_user_id if current_user.jira_user_id is not None else -1
+        
+        # Note: If they provide org_unit_id, the crud will filter by that team.
+        # If they provide user_id, it will filter by that user.
 
     skip = (page - 1) * size
     items, total = await crud_worklog.get_multi_with_filters(
         db,
         start_date=start_date,
         end_date=end_date,
+        user_id=user_id,
         project_id=project_id,
         category=category,
         dept_id=dept_id,
         div_id=div_id,
-        team_id=team_id,
+        org_unit_id=org_unit_id,
         sort_order=sort_order,
         skip=skip,
         limit=size
@@ -90,7 +111,7 @@ async def get_all_worklogs(
             "issue_summary": item.issue.summary if item.issue else None,
             "category": item.category.name if item.category else "Other",
             "category_name": item.category.name if item.category else "Other",
-            "team_name": item.jira_user.team.name if item.jira_user and item.jira_user.team else "N/A"
+            "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A"
         })
         
     return {
@@ -137,7 +158,7 @@ async def create_manual_log(
         select(Worklog)
         .where(Worklog.id == db_log.id)
         .options(
-            joinedload(Worklog.jira_user).joinedload(JiraUser.team),
+            joinedload(Worklog.jira_user).joinedload(JiraUser.org_unit),
             joinedload(Worklog.issue).joinedload(Issue.project),
             joinedload(Worklog.category)
         )
@@ -163,7 +184,7 @@ async def create_manual_log(
         "issue_summary": item.issue.summary if item.issue else None,
         "category": item.category.name if item.category else "Other",
         "category_name": item.category.name if item.category else "Other",
-        "team_name": item.jira_user.team.name if item.jira_user and item.jira_user.team else "N/A"
+        "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A"
     }
 
 @router.get("/worklogs", response_model=List[WorklogResponse])
@@ -188,13 +209,14 @@ async def submit_timesheet(
     current_user: User = Depends(deps.get_current_user)
 ):
     """Submit timesheet for approval."""
-    return await timesheet_service.submit_period(
+    period = await timesheet_service.submit_period(
         db, 
         user_id=current_user.id, 
         start_date=payload.start_date, 
         end_date=payload.end_date,
         request=request
     )
+    return await _to_period_response(db, period)
 
 @router.post("/approve/{period_id}", response_model=TimesheetPeriodResponse)
 async def approve_timesheet(
@@ -205,7 +227,7 @@ async def approve_timesheet(
     current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Approve or reject a timesheet period."""
-    return await timesheet_service.approve_period(
+    period = await timesheet_service.approve_period(
         db,
         period_id=period_id,
         approver_id=current_user.id,
@@ -213,3 +235,4 @@ async def approve_timesheet(
         comment=payload.comment,
         request=request
     )
+    return await _to_period_response(db, period)

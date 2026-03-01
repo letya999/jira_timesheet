@@ -17,3 +17,4 @@ openpyxl
 pytest
 pytest-asyncio
 python-dateutil
+holidays

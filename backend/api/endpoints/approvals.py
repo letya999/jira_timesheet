@@ -1,12 +1,12 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from core.database import get_db
 from api import deps
-from models.timesheet import TimesheetPeriod
+from models.timesheet import TimesheetPeriod, TimesheetApprovalStep
 from models.user import User, JiraUser
-from models.org import Team
+from models.org import OrgUnit, Role, UserOrgRole, ApprovalRoute
 from datetime import date, datetime, timedelta
 from pydantic import BaseModel
 
@@ -49,23 +49,21 @@ async def get_my_period(
     """Fetch period status for the current user and target date."""
     if not target_date:
         target_date = date.today()
-        
-    # Determine period type from user's team
+
     period_type = "weekly"
-    # Need to load jira_user and team
     from sqlalchemy.orm import joinedload
     result = await db.execute(
         select(User)
         .where(User.id == current_user.id)
-        .options(joinedload(User.jira_user).joinedload(JiraUser.team))
+        .options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
     )
     user_with_team = result.scalar_one()
-    
-    if user_with_team.jira_user and user_with_team.jira_user.team:
-        period_type = user_with_team.jira_user.team.reporting_period or "weekly"
-    
+
+    if user_with_team.jira_user and user_with_team.jira_user.org_unit:
+        period_type = user_with_team.jira_user.org_unit.reporting_period or "weekly"
+
     start_date, end_date = get_period_dates(target_date, period_type)
-    
+
     result = await db.execute(
         select(TimesheetPeriod)
         .where(
@@ -77,15 +75,16 @@ async def get_my_period(
         )
     )
     period = result.scalar_one_or_none()
-    
+
     if not period:
         return {
             "status": "OPEN",
             "start_date": start_date,
             "end_date": end_date,
-            "user_id": current_user.id
+            "user_id": current_user.id,
+            "current_step_order": 1
         }
-    
+
     return period
 
 @router.post("/submit")
@@ -106,22 +105,24 @@ async def submit_period(
         )
     )
     period = result.scalar_one_or_none()
-    
+
     if not period:
         period = TimesheetPeriod(
             user_id=current_user.id,
             start_date=payload.start_date,
             end_date=payload.end_date,
             status="SUBMITTED",
-            submitted_at=datetime.now()
+            submitted_at=datetime.utcnow(),
+            current_step_order=1
         )
         db.add(period)
     else:
         if period.status == "APPROVED":
             raise HTTPException(status_code=400, detail="Period already approved")
         period.status = "SUBMITTED"
-        period.submitted_at = datetime.now()
-    
+        period.submitted_at = datetime.utcnow()
+        period.current_step_order = 1
+
     await db.commit()
     await db.refresh(period)
     return period
@@ -130,27 +131,37 @@ async def submit_period(
 async def get_team_periods(
     start_date: date,
     end_date: date,
-    team_id: Optional[int] = None,
+    org_unit_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
 ):
     """Fetch all period statuses for a team in a specific date range."""
-    # Find all users we have access to
     user_query = select(User).join(JiraUser)
-    
-    if team_id:
-        user_query = user_query.where(JiraUser.team_id == team_id)
-    elif current_user.role == "PM":
-        # PM can only see teams where they are PM
-        user_query = user_query.join(Team, JiraUser.team_id == Team.id).where(Team.pm_id == current_user.id)
+
+    if current_user.role in ["Admin", "CEO"]:
+        if org_unit_id:
+            user_query = user_query.where(JiraUser.org_unit_id == org_unit_id)
+    else:
+        # User only sees users in units where they have a role
+        uor_res = await db.execute(select(UserOrgRole.org_unit_id).where(UserOrgRole.user_id == current_user.id))
+        unit_ids = [row for row in uor_res.scalars().all()]
+        if not unit_ids:
+            return []
         
+        if org_unit_id:
+            if org_unit_id not in unit_ids:
+                return []
+            user_query = user_query.where(JiraUser.org_unit_id == org_unit_id)
+        else:
+            user_query = user_query.where(JiraUser.org_unit_id.in_(unit_ids))
+
     result = await db.execute(user_query)
     team_users = result.scalars().all()
     user_ids = [u.id for u in team_users]
-    
+
     if not user_ids:
         return []
-        
+
     period_query = select(TimesheetPeriod).where(
         and_(
             TimesheetPeriod.user_id.in_(user_ids),
@@ -166,20 +177,81 @@ async def approve_period(
     period_id: int,
     action: ApprovalAction,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user: User = Depends(deps.get_current_user)
 ):
-    """Approve or reject a submitted period."""
-    result = await db.execute(select(TimesheetPeriod).where(TimesheetPeriod.id == period_id))
+    """Approve or reject a submitted period with routing."""
+    from sqlalchemy.orm import joinedload
+    result = await db.execute(select(TimesheetPeriod).where(TimesheetPeriod.id == period_id).options(joinedload(TimesheetPeriod.user).joinedload(User.jira_user)))
     period = result.scalar_one_or_none()
-    
+
     if not period:
         raise HTTPException(status_code=404, detail="Period not found")
-        
-    period.status = action.status
-    period.comment = action.comment
-    period.approved_at = datetime.now()
-    period.approved_by_id = current_user.id
+
+    if period.status != "SUBMITTED":
+        raise HTTPException(status_code=400, detail="Only submitted periods can be processed")
+
+    can_approve = False
+    org_unit_id = period.user.jira_user.org_unit_id if period.user and period.user.jira_user else None
     
+    if current_user.role in ["Admin", "CEO"]:
+        can_approve = True
+        
+    routes = []
+    if org_unit_id and not can_approve:
+        routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet').order_by(ApprovalRoute.step_order))
+        routes = routes_res.scalars().all()
+        
+        if routes:
+            current_route = next((r for r in routes if r.step_order == period.current_step_order), None)
+            if current_route:
+                uor_res = await db.execute(select(UserOrgRole).where(UserOrgRole.user_id == current_user.id, UserOrgRole.org_unit_id == org_unit_id, UserOrgRole.role_id == current_route.role_id))
+                if uor_res.scalar_one_or_none():
+                    can_approve = True
+
+    if not can_approve and not routes:
+        if org_unit_id:
+            uor_res = await db.execute(select(UserOrgRole).where(UserOrgRole.user_id == current_user.id, UserOrgRole.org_unit_id == org_unit_id))
+            if uor_res.scalar_one_or_none():
+                can_approve = True
+                
+    if not can_approve:
+        raise HTTPException(status_code=403, detail="Not authorized to approve this step")
+
+    role_id_used = None
+    if org_unit_id:
+        routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet', ApprovalRoute.step_order == period.current_step_order))
+        cr = routes_res.scalar_one_or_none()
+        if cr:
+            role_id_used = cr.role_id
+
+    step = TimesheetApprovalStep(
+        timesheet_period_id=period.id,
+        step_order=period.current_step_order,
+        role_id=role_id_used or 1,
+        status=action.status,
+        approver_id=current_user.id,
+        comment=action.comment,
+        acted_at=datetime.utcnow()
+    )
+    db.add(step)
+
+    if action.status == "REJECTED":
+        period.status = "REJECTED"
+    elif action.status == "APPROVED":
+        if org_unit_id:
+            routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet').order_by(ApprovalRoute.step_order))
+            routes = routes_res.scalars().all()
+            if routes and period.current_step_order < len(routes):
+                period.current_step_order += 1
+            else:
+                period.status = "APPROVED"
+        else:
+            period.status = "APPROVED"
+
+    period.comment = action.comment
+    period.approved_at = datetime.utcnow()
+    period.approved_by_id = current_user.id
+
     await db.commit()
     await db.refresh(period)
     return period

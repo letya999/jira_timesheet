@@ -3,3 +3,4 @@ pandas
 requests
 extra-streamlit-components
 plotly
+openpyxl

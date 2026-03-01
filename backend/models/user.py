@@ -14,10 +14,10 @@ class JiraUser(Base):
     # Resource Management Fields moved here
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     weekly_quota: Mapped[int] = mapped_column(default=40)
-    team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
+    org_unit_id: Mapped[int | None] = mapped_column(ForeignKey("org_units.id"), nullable=True)
 
     user = relationship("User", back_populates="jira_user", uselist=False)
-    team = relationship("Team", back_populates="jira_users")
+    org_unit = relationship("OrgUnit", back_populates="jira_users")
     worklogs = relationship("Worklog", back_populates="jira_user")
 
     @property
@@ -35,6 +35,7 @@ class User(Base):
     
     # Login access control only
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    needs_password_change: Mapped[bool] = mapped_column(Boolean, default=False)
     
     jira_user_id: Mapped[int | None] = mapped_column(ForeignKey("jira_users.id"), nullable=True)
     jira_user = relationship("JiraUser", back_populates="user")

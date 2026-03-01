@@ -17,7 +17,7 @@ def generate_pivot_table_data(data: List[Dict]) -> pd.DataFrame:
     else:
         df['category'] = df['category'].fillna('Jira Work')
         
-    # Grouping for CEO: Department -> Division -> Team -> Employee -> Project/Release
+    # Grouping for CEO: Department -> Division -> OrgUnit -> Employee -> Project/Release
     return df
 
 def generate_excel_report(df: pd.DataFrame) -> BytesIO:

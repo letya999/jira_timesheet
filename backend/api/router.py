@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.endpoints import auth, org, timesheet, users, reports, sync, projects, approvals
+from api.endpoints import auth, org, timesheet, users, reports, sync, projects, approvals, notifications, calendar, leave, slack
 
 api_router = APIRouter()
 
@@ -11,3 +11,7 @@ api_router.include_router(reports.router, prefix="/reports", tags=["Analytics & 
 api_router.include_router(sync.router, prefix="/sync", tags=["Jira Synchronization"])
 api_router.include_router(projects.router, prefix="/projects", tags=["Project Management"])
 api_router.include_router(approvals.router, prefix="/approvals", tags=["Approvals"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["Calendar & Holidays"])
+api_router.include_router(leave.router, prefix="/leaves", tags=["Leave & Vacations"])
+api_router.include_router(slack.router, prefix="/slack", tags=["Slack Integration"])

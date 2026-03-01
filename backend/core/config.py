@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Jira Timesheet API"
@@ -23,6 +24,11 @@ class Settings(BaseSettings):
 
     # Frontend Settings (passed via /health or dedicated endpoint)
     POLLING_INTERVAL_MS: int = 5000
+
+    # Slack Integration
+    SLACK_BOT_TOKEN: Optional[str] = None
+    SLACK_SIGNING_SECRET: Optional[str] = None
+    SLACK_NOTIFICATIONS_CHANNEL: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='ignore')
 

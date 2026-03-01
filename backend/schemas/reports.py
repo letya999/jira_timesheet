@@ -8,7 +8,7 @@ class CustomReportRequest(BaseModel):
     project_id: Optional[int] = None
     release_id: Optional[int] = None
     sprint_id: Optional[int] = None
-    team_id: Optional[int] = None
+    org_unit_id: Optional[int] = None
     division_id: Optional[int] = None
     department_id: Optional[int] = None
     

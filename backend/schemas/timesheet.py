@@ -50,6 +50,11 @@ class TimesheetPeriodResponse(TimesheetPeriodBase):
     comment: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    
+    # Summary info
+    total_hours: Optional[float] = 0.0
+    expected_hours: Optional[float] = 0.0
+    working_days: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 

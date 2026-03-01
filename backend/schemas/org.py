@@ -2,65 +2,71 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
-class TeamBase(BaseModel):
+class RoleBase(BaseModel):
     name: str
-    division_id: int
-    pm_id: Optional[int] = None
+    is_system: bool = False
+
+class RoleCreate(RoleBase):
+    pass
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+
+class RoleResponse(RoleBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+class OrgUnitBase(BaseModel):
+    name: str
+    parent_id: Optional[int] = None
     reporting_period: str = "weekly"
 
-class TeamCreate(TeamBase):
+class OrgUnitCreate(OrgUnitBase):
     pass
 
-class TeamUpdate(BaseModel):
+class OrgUnitUpdate(BaseModel):
     name: Optional[str] = None
-    division_id: Optional[int] = None
-    pm_id: Optional[int] = None
+    parent_id: Optional[int] = None
     reporting_period: Optional[str] = None
 
-class TeamResponse(TeamBase):
+class OrgUnitResponse(OrgUnitBase):
     id: int
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-class DivisionBase(BaseModel):
-    name: str
-    department_id: int
+class OrgUnitTree(OrgUnitResponse):
+    children: List['OrgUnitTree'] = []
+    model_config = ConfigDict(from_attributes=True)
 
-class DivisionCreate(DivisionBase):
+class UserOrgRoleBase(BaseModel):
+    user_id: int
+    org_unit_id: int
+    role_id: int
+
+class UserOrgRoleCreate(UserOrgRoleBase):
     pass
 
-class DivisionUpdate(BaseModel):
-    name: Optional[str] = None
-    department_id: Optional[int] = None
-
-class DivisionSimple(DivisionBase):
+class UserOrgRoleResponse(UserOrgRoleBase):
     id: int
+    role: RoleResponse
     model_config = ConfigDict(from_attributes=True)
 
-class DivisionResponse(DivisionBase):
-    id: int
-    teams: List[TeamResponse] = []
-    created_at: datetime
-    updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+class ApprovalRouteBase(BaseModel):
+    org_unit_id: int
+    target_type: str
+    step_order: int
+    role_id: int
 
-class DepartmentBase(BaseModel):
-    name: str
-
-class DepartmentCreate(DepartmentBase):
+class ApprovalRouteCreate(ApprovalRouteBase):
     pass
 
-class DepartmentUpdate(BaseModel):
-    name: str
+class ApprovalRouteUpdate(BaseModel):
+    target_type: Optional[str] = None
+    step_order: Optional[int] = None
+    role_id: Optional[int] = None
 
-class DepartmentSimple(DepartmentBase):
+class ApprovalRouteResponse(ApprovalRouteBase):
     id: int
-    model_config = ConfigDict(from_attributes=True)
-
-class DepartmentResponse(DepartmentBase):
-    id: int
-    divisions: List[DivisionResponse] = []
-    created_at: datetime
-    updated_at: datetime
+    role: RoleResponse
     model_config = ConfigDict(from_attributes=True)

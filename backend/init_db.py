@@ -12,6 +12,7 @@ import models.timesheet
 import models.project
 import models.settings
 import models.category
+import models.notification
 
 from sqlalchemy import text
 

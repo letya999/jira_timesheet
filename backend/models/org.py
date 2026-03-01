@@ -1,31 +1,44 @@
-from sqlalchemy import String, Integer, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from models.base import Base
 
-class Department(Base):
-    __tablename__ = "departments"
+class Role(Base):
+    __tablename__ = "roles"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True)
-    divisions = relationship("Division", back_populates="department")
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)
 
-class Division(Base):
-    __tablename__ = "divisions"
+class OrgUnit(Base):
+    __tablename__ = "org_units"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
-    department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"))
-    department = relationship("Department", back_populates="divisions")
-    teams = relationship("Team", back_populates="division")
-
-class Team(Base):
-    __tablename__ = "teams"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(255))
-    division_id: Mapped[int] = mapped_column(ForeignKey("divisions.id"))
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("org_units.id"), nullable=True)
     
-    # HRIS / Timesheet settings
-    pm_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     reporting_period: Mapped[str] = mapped_column(String(50), default="weekly") # weekly, bi-weekly, monthly
     
-    division = relationship("Division", back_populates="teams")
-    pm = relationship("User", foreign_keys=[pm_id])
-    jira_users = relationship("JiraUser", back_populates="team")
+    parent = relationship("OrgUnit", remote_side=[id], backref="children")
+    jira_users = relationship("JiraUser", back_populates="org_unit")
+    approval_routes = relationship("ApprovalRoute", back_populates="org_unit", cascade="all, delete-orphan")
+    user_roles = relationship("UserOrgRole", back_populates="org_unit", cascade="all, delete-orphan")
+
+class UserOrgRole(Base):
+    __tablename__ = "user_org_roles"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    org_unit_id: Mapped[int] = mapped_column(ForeignKey("org_units.id"))
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
+
+    user = relationship("User", backref="org_roles")
+    org_unit = relationship("OrgUnit", back_populates="user_roles")
+    role = relationship("Role")
+
+class ApprovalRoute(Base):
+    __tablename__ = "approval_routes"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    org_unit_id: Mapped[int] = mapped_column(ForeignKey("org_units.id"))
+    target_type: Mapped[str] = mapped_column(String(50)) # 'leave', 'timesheet'
+    step_order: Mapped[int] = mapped_column(Integer) # 1, 2, 3...
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
+    
+    org_unit = relationship("OrgUnit", back_populates="approval_routes")
+    role = relationship("Role")

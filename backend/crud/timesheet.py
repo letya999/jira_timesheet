@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from crud.base import CRUDBase
 from models.timesheet import Worklog, TimesheetPeriod
 from models.user import JiraUser
-from models.org import Team, Division, Department
+from models.org import OrgUnit, Role, UserOrgRole, ApprovalRoute
 from models.project import Issue
 from schemas.timesheet import ManualLogCreate, TimesheetPeriodBase
 
@@ -37,16 +37,17 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         project_id: Optional[int] = None,
+        user_id: Optional[int] = None,
         category: Optional[str] = None,
         dept_id: Optional[int] = None,
         div_id: Optional[int] = None,
-        team_id: Optional[int] = None,
+        org_unit_id: Optional[int] = None,
         sort_order: str = "desc",
         skip: int = 0,
         limit: int = 50
     ) -> (List[Worklog], int):
         query = select(Worklog).options(
-            joinedload(Worklog.jira_user).joinedload(JiraUser.team),
+            joinedload(Worklog.jira_user).joinedload(JiraUser.org_unit),
             joinedload(Worklog.issue).joinedload(Issue.project),
             joinedload(Worklog.category)
         )
@@ -56,18 +57,20 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
             query = query.where(Worklog.date >= start_date)
         if end_date:
             query = query.where(Worklog.date <= end_date)
+        if user_id is not None:
+            query = query.where(Worklog.jira_user_id == user_id)
         if project_id:
             query = query.join(Issue, Worklog.issue_id == Issue.id).where(Issue.project_id == project_id)
         if category:
             from models.category import WorklogCategory
             query = query.join(WorklogCategory, Worklog.category_id == WorklogCategory.id).where(WorklogCategory.name == category)
             
-        if team_id:
-            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.team_id == team_id)
+        if org_unit_id:
+            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id == org_unit_id)
         elif div_id:
-            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(Team).where(Team.division_id == div_id)
+            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(OrgUnit).where(OrgUnit.division_id == div_id)
         elif dept_id:
-            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(Team).join(Division).where(Division.department_id == dept_id)
+            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).join(OrgUnit).join(Division).where(Division.department_id == dept_id)
             
         # Count total
         count_query = select(func.count()).select_from(query.subquery())

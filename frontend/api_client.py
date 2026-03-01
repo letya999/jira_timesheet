@@ -19,17 +19,18 @@ def get_headers():
         return {"Authorization": f"Bearer {token}"}
     return {}
 
-def fetch_timesheet(start_date=None, end_date=None, project_id=None, sprint_id=None, release_id=None, category=None, dept_id=None, div_id=None, team_id=None, sort_order="desc", page=1, size=50):
+def fetch_timesheet(start_date=None, end_date=None, user_id=None, project_id=None, sprint_id=None, release_id=None, category=None, dept_id=None, div_id=None, org_unit_id=None, sort_order="desc", page=1, size=50):
     params = {}
     if start_date: params["start_date"] = start_date
     if end_date: params["end_date"] = end_date
+    if user_id is not None: params["user_id"] = user_id
     if project_id: params["project_id"] = project_id
     if sprint_id: params["sprint_id"] = sprint_id
     if release_id: params["release_id"] = release_id
     if category: params["category"] = category
     if dept_id: params["dept_id"] = dept_id
     if div_id: params["div_id"] = div_id
-    if team_id: params["team_id"] = team_id
+    if org_unit_id: params["org_unit_id"] = org_unit_id
     params["sort_order"] = sort_order
     params["page"] = page
     params["size"] = size
@@ -70,10 +71,10 @@ def search_issues(search_query):
         return response.json()
     return []
 
-def fetch_dashboard(start_date, end_date, team_id=None):
+def fetch_dashboard(start_date, end_date, org_unit_id=None):
     params = {"start_date": start_date, "end_date": end_date}
-    if team_id:
-        params["team_id"] = team_id
+    if org_unit_id:
+        params["org_unit_id"] = org_unit_id
     response = requests.get(
         f"{BACKEND_URL}/reports/dashboard",
         params=params,
@@ -171,6 +172,20 @@ def sync_users_from_jira():
         return response.json()
     return {"status": "error", "message": f"Sync failed with status {response.status_code}"}
 
+def promote_user(jira_user_id):
+    """Promote a Jira user to a system user."""
+    st.cache_data.clear()
+    response = requests.post(f"{BACKEND_URL}/users/promote/{jira_user_id}", headers=get_headers())
+    if response.status_code == 200:
+        return response.json()
+    return None
+
+def change_password(new_password):
+    """Change current user's password."""
+    payload = {"new_password": new_password}
+    response = requests.post(f"{BACKEND_URL}/users/change-password", json=payload, headers=get_headers())
+    return response.status_code == 200
+
 def get_me():
     """Fetch current logged in user profile."""
     response = requests.get(f"{BACKEND_URL}/users/me", headers=get_headers())
@@ -178,13 +193,13 @@ def get_me():
         return response.json()
     return None
 
-def get_employees(page=1, size=50, search=None, team_id=None, _headers=None):
+def get_employees(page=1, size=50, search=None, org_unit_id=None, _headers=None):
     """Fetch Jira users (employees) from DB with pagination."""
     params = {"page": page, "size": size}
     if search:
         params["search"] = search
-    if team_id:
-        params["team_id"] = team_id
+    if org_unit_id:
+        params["org_unit_id"] = org_unit_id
     response = requests.get(
         f"{BACKEND_URL}/org/employees", 
         params=params,
@@ -195,75 +210,22 @@ def get_employees(page=1, size=50, search=None, team_id=None, _headers=None):
     return {"items": [], "total": 0, "page": 1, "size": 50, "pages": 0}
 
 def fetch_departments(_headers=None):
-    response = requests.get(f"{BACKEND_URL}/org/departments", headers=_headers or get_headers())
-    return response.json() if response.status_code == 200 else []
+    """DEPRECATED: Use fetch_org_units instead. Currently returns flat list of all units."""
+    return fetch_org_units(_headers)
 
 def fetch_my_teams():
     response = requests.get(f"{BACKEND_URL}/org/my-teams", headers=get_headers())
     return response.json() if response.status_code == 200 else []
-
-def create_department(name):
-    st.cache_data.clear()
-    response = requests.post(f"{BACKEND_URL}/org/departments", json={"name": name}, headers=get_headers())
-    return response.status_code == 200
-
-def update_department(dept_id, name):
-    st.cache_data.clear()
-    response = requests.post(f"{BACKEND_URL}/org/departments/{dept_id}", json={"name": name}, headers=get_headers())
-    return response.status_code == 200
-
-def delete_department(dept_id):
-    st.cache_data.clear()
-    response = requests.delete(f"{BACKEND_URL}/org/departments/{dept_id}", headers=get_headers())
-    return response.status_code == 204
-
-def create_division(name, department_id):
-    st.cache_data.clear()
-    response = requests.post(f"{BACKEND_URL}/org/divisions", json={"name": name, "department_id": department_id}, headers=get_headers())
-    return response.status_code == 200
-
-def update_division(div_id, name=None, department_id=None):
-    st.cache_data.clear()
-    payload = {}
-    if name: payload["name"] = name
-    if department_id: payload["department_id"] = department_id
-    response = requests.patch(f"{BACKEND_URL}/org/divisions/{div_id}", json=payload, headers=get_headers())
-    return response.status_code == 200
-
-def delete_division(div_id):
-    st.cache_data.clear()
-    response = requests.delete(f"{BACKEND_URL}/org/divisions/{div_id}", headers=get_headers())
-    return response.status_code == 204
-
-def create_team(name, division_id):
-    st.cache_data.clear()
-    response = requests.post(f"{BACKEND_URL}/org/teams", json={"name": name, "division_id": division_id}, headers=get_headers())
-    return response.status_code == 200
-
-def update_team(team_id, name=None, division_id=None, pm_id=None, reporting_period=None):
-    st.cache_data.clear()
-    payload = {}
-    if name: payload["name"] = name
-    if division_id: payload["division_id"] = division_id
-    if pm_id: payload["pm_id"] = pm_id
-    if reporting_period: payload["reporting_period"] = reporting_period
-    response = requests.patch(f"{BACKEND_URL}/org/teams/{team_id}", json=payload, headers=get_headers())
-    return response.status_code == 200
-
-def delete_team(team_id):
-    st.cache_data.clear()
-    response = requests.delete(f"{BACKEND_URL}/org/teams/{team_id}", headers=get_headers())
-    return response.status_code == 204
 
 def update_user(user_id, **kwargs):
     st.cache_data.clear()
     response = requests.patch(f"{BACKEND_URL}/users/{user_id}", json=kwargs, headers=get_headers())
     return response.status_code == 200
 
-def update_employee(employee_id, team_id=None, is_active=None):
+def update_employee(employee_id, org_unit_id=None, is_active=None):
     st.cache_data.clear()
     payload = {}
-    if team_id is not None: payload["team_id"] = team_id
+    if org_unit_id is not None: payload["team_id"] = org_unit_id
     if is_active is not None: payload["is_active"] = is_active
     response = requests.patch(f"{BACKEND_URL}/org/employees/{employee_id}", json=payload, headers=get_headers())
     return response.status_code == 200
@@ -307,13 +269,13 @@ def submit_timesheet(start_date, end_date):
     )
     return response.status_code == 200
 
-def fetch_team_periods(start_date, end_date, team_id=None):
+def fetch_team_periods(start_date, end_date, org_unit_id=None):
     params = {
         "start_date": start_date.isoformat() if isinstance(start_date, (date, datetime)) else start_date,
         "end_date": end_date.isoformat() if isinstance(end_date, (date, datetime)) else end_date
     }
-    if team_id:
-        params["team_id"] = team_id
+    if org_unit_id:
+        params["org_unit_id"] = org_unit_id
     response = requests.get(
         f"{BACKEND_URL}/approvals/team-periods",
         params=params,
@@ -333,3 +295,202 @@ def approve_timesheet(period_id, status, comment=None):
         headers=get_headers()
     )
     return response.status_code == 200
+
+# Notifications
+def fetch_notifications(page=1, size=20):
+    params = {"page": page, "size": size}
+    response = requests.get(
+        f"{BACKEND_URL}/notifications/",
+        params=params,
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return {"items": [], "total": 0, "page": 1, "size": 20, "pages": 0}
+
+def fetch_notification_stats():
+    response = requests.get(
+        f"{BACKEND_URL}/notifications/stats",
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return {"unread_count": 0}
+
+def mark_notification_read(notification_id, is_read=True):
+    response = requests.patch(
+        f"{BACKEND_URL}/notifications/{notification_id}",
+        json={"is_read": is_read},
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+def mark_all_notifications_read():
+    response = requests.post(
+        f"{BACKEND_URL}/notifications/mark-all-read",
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+# Calendar & Holidays
+def fetch_holidays(start_date, end_date):
+    params = {
+        "start_date": start_date.isoformat() if isinstance(start_date, (date, datetime)) else start_date,
+        "end_date": end_date.isoformat() if isinstance(end_date, (date, datetime)) else end_date
+    }
+    response = requests.get(
+        f"{BACKEND_URL}/calendar/holidays",
+        params=params,
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json()
+    return []
+
+def sync_holidays(year=None):
+    params = {}
+    if year: params["year"] = year
+    response = requests.post(
+        f"{BACKEND_URL}/calendar/holidays/sync",
+        params=params,
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+def add_holiday(holiday_date, name, is_holiday=True):
+    data = {
+        "date": holiday_date.isoformat() if isinstance(holiday_date, (date, datetime)) else holiday_date,
+        "name": name,
+        "is_holiday": is_holiday
+    }
+    response = requests.post(
+        f"{BACKEND_URL}/calendar/holidays",
+        json=data,
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+def delete_holiday(holiday_date):
+    date_str = holiday_date.isoformat() if isinstance(holiday_date, (date, datetime)) else holiday_date
+    response = requests.delete(
+        f"{BACKEND_URL}/calendar/holidays/{date_str}",
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+def get_calendar_country():
+    response = requests.get(
+        f"{BACKEND_URL}/calendar/country",
+        headers=get_headers()
+    )
+    if response.status_code == 200:
+        return response.json().get("country_code", "RU")
+    return "RU"
+
+def set_calendar_country(country_code):
+    response = requests.post(
+        f"{BACKEND_URL}/calendar/country",
+        json={"country_code": country_code},
+        headers=get_headers()
+    )
+    return response.status_code == 200
+
+# --- Leave Management ---
+
+def fetch_my_leaves():
+    response = requests.get(f"{BACKEND_URL}/leaves/my", headers=get_headers())
+    if response.status_code == 200:
+        return response.json()
+    return []
+
+def submit_leave_request(leave_data):
+    response = requests.post(f"{BACKEND_URL}/leaves/", json=leave_data, headers=get_headers())
+    return response.status_code == 200
+
+def fetch_team_leaves():
+    response = requests.get(f"{BACKEND_URL}/leaves/team", headers=get_headers())
+    if response.status_code == 200:
+        return response.json()
+    return []
+
+def fetch_all_leaves(start_date=None, end_date=None):
+    params = {}
+    if start_date: params["start_date"] = start_date
+    if end_date: params["end_date"] = end_date
+    response = requests.get(f"{BACKEND_URL}/leaves/all", params=params, headers=get_headers())
+    if response.status_code == 200:
+        return response.json()
+    return []
+
+def update_leave_status(leave_id, status=None, comment=None, **kwargs):
+    payload = {}
+    if status is not None:
+        payload["status"] = status
+    if comment is not None:
+        payload["comment"] = comment
+    payload.update(kwargs)
+    response = requests.patch(f"{BACKEND_URL}/leaves/{leave_id}", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+# --- Flexible Org & Roles ---
+def fetch_org_units(_headers=None):
+    response = requests.get(f"{BACKEND_URL}/org/units", headers=_headers or get_headers())
+    return response.json() if response.status_code == 200 else []
+
+def create_org_unit(name, parent_id=None, reporting_period="weekly"):
+    payload = {"name": name, "reporting_period": reporting_period}
+    if parent_id: payload["parent_id"] = parent_id
+    response = requests.post(f"{BACKEND_URL}/org/units", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def update_org_unit(unit_id, name=None, parent_id=None, reporting_period=None):
+    payload = {}
+    if name: payload["name"] = name
+    if parent_id is not None: payload["parent_id"] = parent_id
+    if reporting_period: payload["reporting_period"] = reporting_period
+    response = requests.patch(f"{BACKEND_URL}/org/units/{unit_id}", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def delete_org_unit(unit_id):
+    response = requests.delete(f"{BACKEND_URL}/org/units/{unit_id}", headers=get_headers())
+    return response.status_code == 204
+
+def fetch_roles(_headers=None):
+    response = requests.get(f"{BACKEND_URL}/org/roles", headers=_headers or get_headers())
+    return response.json() if response.status_code == 200 else []
+
+def create_role(name, is_system=False):
+    response = requests.post(f"{BACKEND_URL}/org/roles", json={"name": name, "is_system": is_system}, headers=get_headers())
+    return response.status_code == 200
+
+def delete_role(role_id):
+    response = requests.delete(f"{BACKEND_URL}/org/roles/{role_id}", headers=get_headers())
+    return response.status_code == 204
+
+def fetch_approval_routes(unit_id, target_type=None):
+    params = {}
+    if target_type: params["target_type"] = target_type
+    response = requests.get(f"{BACKEND_URL}/org/units/{unit_id}/approval-routes", params=params, headers=get_headers())
+    return response.json() if response.status_code == 200 else []
+
+def create_approval_route(unit_id, target_type, step_order, role_id):
+    payload = {"org_unit_id": unit_id, "target_type": target_type, "step_order": step_order, "role_id": role_id}
+    response = requests.post(f"{BACKEND_URL}/org/units/approval-routes", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def delete_approval_route(route_id):
+    response = requests.delete(f"{BACKEND_URL}/org/units/approval-routes/{route_id}", headers=get_headers())
+    return response.status_code == 204
+
+def fetch_unit_roles(unit_id):
+    response = requests.get(f"{BACKEND_URL}/org/units/{unit_id}/roles", headers=get_headers())
+    return response.json() if response.status_code == 200 else []
+
+def assign_unit_role(unit_id, user_id, role_id):
+    payload = {"org_unit_id": unit_id, "user_id": user_id, "role_id": role_id}
+    response = requests.post(f"{BACKEND_URL}/org/units/roles", json=payload, headers=get_headers())
+    return response.status_code == 200
+
+def remove_unit_role(assignment_id):
+    response = requests.delete(f"{BACKEND_URL}/org/units/roles/{assignment_id}", headers=get_headers())
+    return response.status_code == 204

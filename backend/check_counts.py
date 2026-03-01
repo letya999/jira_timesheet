@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.database import async_session
-from models import User, JiraUser, Worklog, Project, Department, Division, Team
+from models import User, JiraUser, Worklog, Project, OrgUnit
 
 async def check_db():
     async with async_session() as db:

@@ -18,10 +18,17 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     is_active: bool
-    team_id: Optional[int] = None
+    needs_password_change: bool = False
+    org_unit_id: Optional[int] = None
     display_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserPromoteResponse(UserResponse):
+    temporary_password: str
+
+class PasswordChangeRequest(BaseModel):
+    new_password: str
 
 class JiraUserResponse(BaseModel):
     id: int
@@ -31,12 +38,12 @@ class JiraUserResponse(BaseModel):
     avatar_url: Optional[str] = None
     is_active: bool
     weekly_quota: int
-    team_id: Optional[int] = None
+    org_unit_id: Optional[int] = None
     user_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 class JiraUserUpdate(BaseModel):
-    team_id: Optional[int] = None
+    org_unit_id: Optional[int] = None
     is_active: Optional[bool] = None
     weekly_quota: Optional[int] = None

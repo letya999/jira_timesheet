@@ -1,0 +1,18 @@
+[run]
+omit =
+    setup_test_org.py
+    seed_hierarchy.py
+    cleanup_test_org.py
+    cleanup_db.py
+    check_counts.py
+    debug_jira_sync.py
+    force_sync_projects.py
+    force_sync_users.py
+    full_reinit.py
+    full_sync.py
+    init_db.py
+    seed.py
+    sync_projects.py
+    add_docstrings.py
+    update_routers.py
+    tests/*

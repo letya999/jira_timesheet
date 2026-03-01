@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import time
 import json
 import base64
+from i18n import t
 
 def get_cookie_manager():
     if "cookie_manager" not in st.session_state:
@@ -61,7 +62,7 @@ def ensure_session(allow_wait=False):
     # 5. Initialization wait (only once)
     if allow_wait and "init_checked" not in st.session_state:
         st.session_state["init_checked"] = True
-        with st.spinner("Restoring session..."):
+        with st.spinner(t("auth.restoring_session")):
             time.sleep(1.2)
             st.rerun()
             
