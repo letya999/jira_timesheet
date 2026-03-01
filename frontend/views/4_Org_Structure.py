@@ -9,7 +9,7 @@ from api_client import (
 from auth_utils import ensure_session, get_user_role
 from i18n import t
 
-st.set_page_config(page_title=t("org.org_roles_management"), layout="wide")
+st.set_page_config(page_title=t("org.org_roles_management", page_icon="logo.png"), layout="wide")
 
 token, _ = ensure_session()
 if not token:

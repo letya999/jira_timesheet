@@ -5,7 +5,7 @@ from api_client import get_me, fetch_notification_stats, change_password
 from i18n import t, language_selector
 from ui_components import notification_sidebar_summary
 
-st.set_page_config(page_title=t("common.system_title"), layout="wide")
+st.set_page_config(page_title=t("common.system_title"), page_icon="logo.png", layout="wide")
 
 # 1. Initialize authentication and get cookie manager
 # ensure_session with allow_wait=True should handle the cookie load and rerun properly

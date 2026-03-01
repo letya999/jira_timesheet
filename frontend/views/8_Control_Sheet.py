@@ -11,7 +11,7 @@ from i18n import t
 # Check for session
 token, _ = ensure_session()
 
-st.set_page_config(page_title=t("common.control_sheet"), layout="wide")
+st.set_page_config(page_title=t("common.control_sheet", page_icon="logo.png"), layout="wide")
 
 st.title(f"👥 {t('approvals.control_sheet_title')}")
 

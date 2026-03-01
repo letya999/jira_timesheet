@@ -10,7 +10,7 @@ from i18n import t
 from auth_utils import ensure_session
 from ui_components import safe_api_call, error_state
 
-st.set_page_config(page_title=t("timesheet.title"), layout="wide")
+st.set_page_config(page_title=t("timesheet.title", page_icon="logo.png"), layout="wide")
 
 # Check for session
 token, _ = ensure_session()

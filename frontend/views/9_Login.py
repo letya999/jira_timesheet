@@ -70,7 +70,7 @@ def show_login():
 if __name__ == "__main__":
     # If the script is run directly, it needs set_page_config
     try:
-        st.set_page_config(page_title=t("auth.page_title"), layout="centered", page_icon="🔐")
+        st.set_page_config(page_title=t("auth.page_title"), layout="centered", page_icon="logo.png")
     except Exception:
         pass # Already set in app.py if run as a page
 

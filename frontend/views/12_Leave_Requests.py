@@ -12,7 +12,7 @@ from auth_utils import ensure_session
 from ui_components import safe_api_call, error_state
 from gantt_widget import render_gantt_with_controls
 
-st.set_page_config(page_title=t("leaves.title"), layout="wide")
+st.set_page_config(page_title=t("leaves.title", page_icon="logo.png"), layout="wide")
 
 # Check for session
 token, _ = ensure_session()

@@ -1,0 +1,26 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Clean Circle Background (Optional, but helps with visibility) -->
+  <circle cx="128" cy="128" r="100" fill="#F4F5F7" opacity="0.1"/>
+  
+  <!-- Sloth Main Head Shape (High Contrast) -->
+  <path d="M40 128C40 70 80 40 128 40C176 40 216 70 216 128C216 186 176 216 128 216C80 216 40 186 40 128Z" fill="#8B5E3C" />
+  
+  <!-- Face Inset (Lighter) -->
+  <path d="M60 128C60 90 90 70 128 70C166 70 196 90 196 128C196 166 166 186 128 186C90 186 60 166 60 128Z" fill="#D2B48C" />
+  
+  <!-- Eye Patches (Signature Sloth Look) -->
+  <circle cx="95" cy="120" r="28" fill="#5D4037" />
+  <circle cx="161" cy="120" r="28" fill="#5D4037" />
+  
+  <!-- Eyes (Simple, Bold) -->
+  <circle cx="95" cy="120" r="10" fill="#1A1108" />
+  <circle cx="161" cy="120" r="10" fill="#1A1108" />
+  <circle cx="98" cy="117" r="3" fill="white" />
+  <circle cx="164" cy="117" r="3" fill="white" />
+  
+  <!-- Nose (Bold) -->
+  <path d="M128 140C135 140 140 145 140 150C140 155 133 158 128 158C123 158 116 155 116 150C116 145 121 140 128 140Z" fill="#1A1108" />
+  
+  <!-- Jira Blue Accent (Minimalist Smile/Chin) -->
+  <path d="M100 175Q128 188 156 175" stroke="#0052CC" stroke-width="8" stroke-linecap="round" fill="none" />
+</svg>

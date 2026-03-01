@@ -12,7 +12,7 @@ from state_manager import state
 
 from ui_components import loading_skeleton, error_state, safe_api_call, worklog_card, pagination_ui
 
-st.set_page_config(page_title=t("journal.title"), layout="wide")
+st.set_page_config(page_title=t("journal.title", page_icon="logo.png"), layout="wide")
 
 # Check for session/cookies
 token, _ = ensure_session()

@@ -6,7 +6,7 @@ from api_client import get_me, fetch_all_leaves, get_employees
 from i18n import t
 from auth_utils import ensure_session
 
-st.set_page_config(page_title=t("leaves.hr_module"), layout="wide")
+st.set_page_config(page_title=t("leaves.hr_module", page_icon="logo.png"), layout="wide")
 
 # Check for session
 token, _ = ensure_session()

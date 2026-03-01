@@ -16,7 +16,7 @@ from auth_utils import ensure_session
 from i18n import t
 from state_manager import state
 
-st.set_page_config(page_title=t("reports.report_builder_pro"), layout="wide")
+st.set_page_config(page_title=t("reports.report_builder_pro", page_icon="logo.png"), layout="wide")
 
 token, _ = ensure_session()
 if not token:

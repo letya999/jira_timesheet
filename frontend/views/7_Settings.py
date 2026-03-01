@@ -6,7 +6,7 @@ from api_client import get_all_users, get_calendar_country, set_calendar_country
 from i18n import t
 from auth_utils import ensure_session
 
-st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
+st.set_page_config(page_title="Settings", page_icon="logo.png", layout="wide")
 
 # Check for session/cookies
 token, _ = ensure_session()

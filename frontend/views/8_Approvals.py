@@ -8,7 +8,7 @@ from api_client import (
 from auth_utils import ensure_session
 from i18n import t
 
-st.set_page_config(page_title=t("approvals.title"), layout="wide")
+st.set_page_config(page_title=t("approvals.title", page_icon="logo.png"), layout="wide")
 
 # Check for session
 token, _ = ensure_session()

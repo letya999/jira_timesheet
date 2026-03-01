@@ -7,7 +7,7 @@ from api_client import (
 from auth_utils import ensure_session
 from i18n import t
 
-st.set_page_config(page_title=t("common.employees"), page_icon="👥", layout="wide")
+st.set_page_config(page_title=t("common.employees"), page_icon="logo.png", layout="wide")
 
 token, _ = ensure_session()
 if not token:

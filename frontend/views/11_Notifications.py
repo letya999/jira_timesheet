@@ -4,7 +4,7 @@ from ui_components import notification_card, pagination_ui, loading_skeleton, er
 from auth_utils import ensure_session
 from i18n import t
 
-st.set_page_config(page_title=t("notifications.page_title"), page_icon="🔔", layout="wide")
+st.set_page_config(page_title=t("notifications.page_title"), page_icon="logo.png", layout="wide")
 
 # Check for session
 token, _ = ensure_session()
