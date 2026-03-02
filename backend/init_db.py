@@ -6,15 +6,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.database import engine
 from models.base import Base
-import models.user
-import models.org
-import models.timesheet
-import models.project
-import models.settings
-import models.category
-import models.notification
-
 from sqlalchemy import text
+
 
 async def init_db():
     print("Creating tables...")
@@ -29,7 +22,7 @@ async def init_db():
             await conn.execute(text(f'GRANT ALL ON SCHEMA public TO "{engine.url.username}";'))
         else:
             await conn.run_sync(Base.metadata.drop_all)
-            
+
         await conn.run_sync(Base.metadata.create_all)
     print("Tables created.")
 

@@ -1,11 +1,13 @@
+from api.router import api_router
+from core.config import settings
+from core.middleware import setup_exception_handlers, setup_middlewares
+from core.worker import queue
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
-from core.middleware import setup_middlewares, setup_exception_handlers
-from api.router import api_router
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-from core.config import settings
+from saq.web.starlette import saq_web
 
 app = FastAPI(
     title="Jira Timesheet API",
@@ -22,6 +24,9 @@ setup_exception_handlers(app)
 
 # Include API routers with /api/v1 prefix
 app.include_router(api_router, prefix="/api/v1")
+
+# Mount SAQ Web UI
+app.mount("/saq", saq_web("/saq", [queue]))
 
 def custom_openapi():
     if app.openapi_schema:

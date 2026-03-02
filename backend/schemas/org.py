@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
 
 class RoleBase(BaseModel):
     name: str
@@ -10,7 +11,7 @@ class RoleCreate(RoleBase):
     pass
 
 class RoleUpdate(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
 
 class RoleResponse(RoleBase):
     id: int
@@ -18,16 +19,16 @@ class RoleResponse(RoleBase):
 
 class OrgUnitBase(BaseModel):
     name: str
-    parent_id: Optional[int] = None
+    parent_id: int | None = None
     reporting_period: str = "weekly"
 
 class OrgUnitCreate(OrgUnitBase):
     pass
 
 class OrgUnitUpdate(BaseModel):
-    name: Optional[str] = None
-    parent_id: Optional[int] = None
-    reporting_period: Optional[str] = None
+    name: str | None = None
+    parent_id: int | None = None
+    reporting_period: str | None = None
 
 class OrgUnitResponse(OrgUnitBase):
     id: int
@@ -36,7 +37,7 @@ class OrgUnitResponse(OrgUnitBase):
     model_config = ConfigDict(from_attributes=True)
 
 class OrgUnitTree(OrgUnitResponse):
-    children: List['OrgUnitTree'] = []
+    children: list['OrgUnitTree'] = []
     model_config = ConfigDict(from_attributes=True)
 
 class UserOrgRoleBase(BaseModel):
@@ -62,9 +63,9 @@ class ApprovalRouteCreate(ApprovalRouteBase):
     pass
 
 class ApprovalRouteUpdate(BaseModel):
-    target_type: Optional[str] = None
-    step_order: Optional[int] = None
-    role_id: Optional[int] = None
+    target_type: str | None = None
+    step_order: int | None = None
+    role_id: int | None = None
 
 class ApprovalRouteResponse(ApprovalRouteBase):
     id: int

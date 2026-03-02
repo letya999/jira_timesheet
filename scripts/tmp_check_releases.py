@@ -1,9 +1,12 @@
 
 import asyncio
-from sqlalchemy import select, func
+
+from sqlalchemy import func, select
+
 from backend.core.database import async_session
-from backend.models.project import Project, Release, Issue, issue_releases
+from backend.models.project import Issue, Project, Release, issue_releases
 from backend.models.timesheet import Worklog
+
 
 async def check_db():
     async with async_session() as session:

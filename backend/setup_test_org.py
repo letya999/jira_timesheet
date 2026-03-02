@@ -1,19 +1,21 @@
 import asyncio
-import sys
 import os
+import sys
 
 # Ensure the parent directory is in the path so we can import models/core
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from datetime import date
+
 from core.database import async_session
 from core.security import get_password_hash
-from models import User, JiraUser, Department, Division, Team, Worklog, WorklogCategory
-from datetime import date
+from models import Department, Division, JiraUser, Team, User, Worklog, WorklogCategory
+
 
 async def setup():
     async with async_session() as session:
         print("--- Starting Test Org Setup ---")
-        
+
         # 1. Departments
         dept1 = Department(name="Test Dept 1 (Engineering)")
         dept2 = Department(name="Test Dept 2 (Product)")
@@ -63,7 +65,7 @@ async def setup():
             )
             session.add(juser)
             await session.flush()
-            
+
             login = User(
                 email=email,
                 hashed_password=get_password_hash("testpass"),
@@ -77,11 +79,11 @@ async def setup():
         # Team 1 Employees
         emp1_1, ju1_1 = await create_employee("test_emp1_1@example.com", "Employee 1-1", team1.id, "jira_test_1_1")
         emp1_2, ju1_2 = await create_employee("test_emp1_2@example.com", "Employee 1-2", team1.id, "jira_test_1_2")
-        
+
         # Team 2 Employees
         emp2_1, ju2_1 = await create_employee("test_emp2_1@example.com", "Employee 2-1", team2.id, "jira_test_2_1")
         emp2_2, ju2_2 = await create_employee("test_emp2_2@example.com", "Employee 2-2", team2.id, "jira_test_2_2")
-        
+
         await session.flush()
         print("Created 4 Employees and their Jira links.")
 
@@ -95,8 +97,14 @@ async def setup():
             session.add(cat)
             await session.flush()
 
-        w1 = Worklog(date=date.today(), hours=4.5, jira_user_id=ju1_1.id, category_id=cat.id, description="Test worklog")
-        w2 = Worklog(date=date.today(), hours=8.0, jira_user_id=ju2_1.id, category_id=cat.id, description="Test worklog 2")
+        w1 = Worklog(
+            date=date.today(), hours=4.5, jira_user_id=ju1_1.id,
+            category_id=cat.id, description="Test worklog"
+        )
+        w2 = Worklog(
+            date=date.today(), hours=8.0, jira_user_id=ju2_1.id,
+            category_id=cat.id, description="Test worklog 2"
+        )
         session.add_all([w1, w2])
 
         await session.commit()

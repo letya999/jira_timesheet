@@ -1,21 +1,26 @@
+from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from datetime import date, datetime
+from models.calendar import CalendarEvent
+from models.timesheet import TimesheetPeriod
+from models.user import JiraUser, User
 from services.calendar import calendar_service
-from services.timesheet import timesheet_service
+from services.jira import (
+    fetch_issue_details,
+    sync_jira_users_to_db,
+    sync_user_worklogs,
+)
 from services.notification import notification_service
 from services.slack import slack_service
-from services.jira import fetch_issue_details, sync_jira_users_to_db, sync_jira_projects_to_db, sync_user_worklogs, sync_jira_worklogs_for_projects
-from models.calendar import CalendarEvent
-from models.timesheet import TimesheetPeriod, Worklog
-from models.user import User, JiraUser
-from models.project import Project, Issue
+from services.timesheet import timesheet_service
+
 
 @pytest.mark.asyncio
 async def test_calendar_service_get_holidays():
     db = AsyncMock()
     mock_events = [CalendarEvent(date=date(2026, 1, 1), name="New Year", is_holiday=True)]
-    with patch("services.calendar.select") as mock_select:
+    with patch("services.calendar.select"):
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = mock_events
         db.execute.return_value = mock_result

@@ -1,13 +1,13 @@
 import streamlit as st
 from auth_utils import check_access
 from i18n import t
+from ui_components import auto_refresh
 
-from ui_components import loading_skeleton, auto_refresh
 
 def show_home():
     # Polling for live updates
     auto_refresh(interval_ms=30000, key="home_polling")
-    
+
     st.markdown("""
         <style>
         .main-header {
@@ -51,7 +51,11 @@ def show_home():
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"<div class='main-header'><h1>🚀 {t('home.title')}</h1><p>{t('home.welcome_text')}</p></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='main-header'><h1>🚀 {t('home.title')}</h1><p>{t('home.welcome_text')}</p></div>",
+        unsafe_allow_html=True
+    )
+
 
     # Define tiles configuration
     all_tiles = [
@@ -148,7 +152,11 @@ def show_home():
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
-                        if st.button(t("home.open_btn", title=tile['title']), key=f"btn_{tile['title']}", width="stretch"):
+                        if st.button(
+                            t("home.open_btn", title=tile['title']),
+                            key=f"btn_{tile['title']}",
+                            width="stretch"
+                        ):
                             st.switch_page(tile['page'])
 
 if __name__ == "__main__":

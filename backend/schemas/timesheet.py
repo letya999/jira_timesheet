@@ -1,38 +1,39 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 class WorklogBase(BaseModel):
     date: date
     hours: float
     type: str = "JIRA" # JIRA, MANUAL
-    category_id: Optional[int] = None
-    description: Optional[str] = None
+    category_id: int | None = None
+    description: str | None = None
 
 class ManualLogCreate(BaseModel):
     date: date
     hours: float
     category: str # "Vacation", "Jira Task", etc.
-    description: Optional[str] = None
-    user_id: Optional[int] = None # jira_user_id
-    issue_id: Optional[int] = None
+    description: str | None = None
+    user_id: int | None = None # jira_user_id
+    issue_id: int | None = None
 
 class WorklogResponse(WorklogBase):
     id: int
     status: str
-    source_created_at: Optional[datetime] = None
+    source_created_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
-    
+
     # Nested info for frontend
-    user_name: Optional[str] = None
-    jira_account_id: Optional[str] = None
-    issue_key: Optional[str] = None
-    issue_summary: Optional[str] = None
-    project_name: Optional[str] = None
-    category: Optional[str] = None # Added for compatibility
-    category_name: Optional[str] = None
-    team_name: Optional[str] = None
+    user_name: str | None = None
+    jira_account_id: str | None = None
+    issue_key: str | None = None
+    issue_summary: str | None = None
+    project_name: str | None = None
+    category: str | None = None # Added for compatibility
+    category_name: str | None = None
+    team_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,17 +45,17 @@ class TimesheetPeriodBase(BaseModel):
 
 class TimesheetPeriodResponse(TimesheetPeriodBase):
     id: int
-    submitted_at: Optional[datetime] = None
-    approved_at: Optional[datetime] = None
-    approved_by_id: Optional[int] = None
-    comment: Optional[str] = None
+    submitted_at: datetime | None = None
+    approved_at: datetime | None = None
+    approved_by_id: int | None = None
+    comment: str | None = None
     created_at: datetime
     updated_at: datetime
-    
+
     # Summary info
-    total_hours: Optional[float] = 0.0
-    expected_hours: Optional[float] = 0.0
-    working_days: Optional[int] = 0
+    total_hours: float | None = 0.0
+    expected_hours: float | None = 0.0
+    working_days: int | None = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,4 +65,4 @@ class TimesheetSubmitRequest(BaseModel):
 
 class TimesheetApprovalRequest(BaseModel):
     status: str # APPROVED or REJECTED
-    comment: Optional[str] = None
+    comment: str | None = None

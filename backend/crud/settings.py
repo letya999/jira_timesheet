@@ -1,10 +1,10 @@
-from typing import Optional, Any
+from models.settings import SystemSettings
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from models.settings import SystemSettings
+
 
 class CRUDSystemSettings:
-    async def get(self, db: AsyncSession, key: str) -> Optional[SystemSettings]:
+    async def get(self, db: AsyncSession, key: str) -> SystemSettings | None:
         result = await db.execute(select(SystemSettings).where(SystemSettings.key == key))
         return result.scalar_one_or_none()
 

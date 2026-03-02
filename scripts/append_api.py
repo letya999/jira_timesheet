@@ -1,4 +1,3 @@
-import os
 
 code = """
 # --- Flexible Org & Roles ---

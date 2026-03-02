@@ -1,5 +1,19 @@
 from fastapi import APIRouter
-from api.endpoints import auth, org, timesheet, users, reports, sync, projects, approvals, notifications, calendar, leave, slack
+
+from api.endpoints import (
+    approvals,
+    auth,
+    calendar,
+    leave,
+    notifications,
+    org,
+    projects,
+    reports,
+    slack,
+    sync,
+    timesheet,
+    users,
+)
 
 api_router = APIRouter()
 

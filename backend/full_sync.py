@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from core.database import async_session
 from services.jira import sync_jira_users_to_db, sync_jira_worklogs
 
+
 async def main():
     async with async_session() as db:
         print("Синхронизация пользователей из Jira...")

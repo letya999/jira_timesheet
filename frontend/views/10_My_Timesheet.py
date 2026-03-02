@@ -1,14 +1,21 @@
-import streamlit as st
+from datetime import date, datetime, timedelta
+
 import pandas as pd
-from datetime import datetime, timedelta, date
+import streamlit as st
 from api_client import (
-    fetch_timesheet, get_my_period, submit_timesheet, 
-    get_me, get_headers, add_manual_log, search_issues,
-    get_employees, fetch_holidays
+    add_manual_log,
+    fetch_holidays,
+    fetch_timesheet,
+    get_employees,
+    get_headers,
+    get_me,
+    get_my_period,
+    search_issues,
+    submit_timesheet,
 )
-from i18n import t
 from auth_utils import ensure_session
-from ui_components import safe_api_call, error_state
+from i18n import t
+from ui_components import error_state, safe_api_call
 
 st.set_page_config(page_title=t("timesheet.title", page_icon="logo.png"), layout="wide")
 
@@ -27,71 +34,101 @@ if not user_info:
 
 user_role = user_info.get("role") if user_info else "Employee"
 
-# --- Dialog for Adding Worklog ---
-@st.dialog(t("journal.add_worklog"))
-def add_worklog_dialog():
-    # 1. User Selection
+def _select_user(user_role, user_info):
     if user_role in ["Admin", "CEO", "PM"]:
         emp_data, err = safe_api_call(get_employees, size=1000, _headers=get_headers())
         if err:
             error_state(f"{t('common.error')}: {err}")
-            return
-            
+            return None
+
         employees = emp_data.get("items", [])
         emp_options = {e["id"]: e["display_name"] for e in employees}
-        selected_user_id = st.selectbox(t("common.employee"), options=list(emp_options.keys()), format_func=lambda x: emp_options[x])
+        return st.selectbox(
+            t("common.employee"),
+            options=list(emp_options.keys()),
+            format_func=lambda x: emp_options[x]
+        )
     else:
         # Regular user can only log for themselves
         selected_user_id = user_info.get("jira_user_id")
         st.write(t("journal.logging_for", name=user_info.get('full_name')))
         if not selected_user_id:
             st.error(t("auth.no_jira_linked"))
-            return
+        return selected_user_id
+
+def _select_category(log_type):
+    if log_type == t("journal.type_jira"):
+        return "Development"
+
+    categories_map = {
+        "Development": t("common.category_dev"),
+        "Meeting": t("common.category_meet"),
+        "Left": t("common.category_leave"),
+        "Documentation": t("common.category_doc"),
+        "Design": t("common.category_design"),
+        "Other": t("common.category_other")
+    }
+    return st.selectbox(
+        t("common.category"),
+        options=list(categories_map.keys()),
+        format_func=lambda x: categories_map[x],
+        index=list(categories_map.keys()).index("Other")
+    )
+
+def _select_task():
+    st.info(t("journal.task_search_hint"))
+    issue_search = st.text_input(t("journal.task_search"))
+    if len(issue_search) >= 2:
+        found_issues, i_err = safe_api_call(search_issues, issue_search)
+        if i_err:
+            st.error(t("common.error"))
+        elif found_issues:
+            issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
+            return st.selectbox(
+                t("journal.select_task"),
+                options=list(issue_options.keys()),
+                format_func=lambda x: issue_options[x]
+            )
+        else:
+            st.warning(t("journal.no_tasks"))
+    return None
+
+# --- Dialog for Adding Worklog ---
+@st.dialog(t("journal.add_worklog"))
+def add_worklog_dialog():
+    # 1. User Selection
+    selected_user_id = _select_user(user_role, user_info)
+    if not selected_user_id:
+        return
 
     # 2. Type Selection
     log_type = st.radio(t("common.type"), [t("journal.type_jira"), t("journal.type_manual")], horizontal=True)
-    
+
     # 3. Category Selection
-    if log_type == t("journal.type_jira"):
-        category = "Development"
-    else:
-        categories_map = {
-            "Development": t("common.category_dev"),
-            "Meeting": t("common.category_meet"),
-            "Left": t("common.category_leave"),
-            "Documentation": t("common.category_doc"),
-            "Design": t("common.category_design"),
-            "Other": t("common.category_other")
-        }
-        category_key = st.selectbox(t("common.category"), options=list(categories_map.keys()), format_func=lambda x: categories_map[x], index=list(categories_map.keys()).index("Other"))
-        category = category_key
+    category = _select_category(log_type)
 
     # 4. Task Selection (only for JIRA)
     issue_id = None
-    
     if log_type == t("journal.type_jira"):
-        st.info(t("journal.task_search_hint"))
-        issue_search = st.text_input(t("journal.task_search"))
-        if len(issue_search) >= 2:
-            found_issues, i_err = safe_api_call(search_issues, issue_search)
-            if i_err:
-                st.error(t("common.error"))
-            elif found_issues:
-                issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
-                issue_id = st.selectbox(t("journal.select_task"), options=list(issue_options.keys()), format_func=lambda x: issue_options[x])
-            else:
-                st.warning(t("journal.no_tasks"))
-    
+        issue_id = _select_task()
+
     log_date = st.date_input(t("common.date"), value=st.session_state.ts_target_date)
     hours = st.number_input(t("common.hours"), min_value=0.5, max_value=24.0, step=0.5, value=8.0)
     description = st.text_area(t("common.description"))
-    
+
     if st.button(t("journal.submit_worklog"), type="primary", width="stretch"):
         if log_type == t("journal.type_jira") and not issue_id:
             st.error(t("journal.select_task_error"))
         else:
             with st.spinner(t("journal.submitting")):
-                success = add_manual_log(log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id)
+                success = add_manual_log(
+                    log_date,
+                    hours,
+                    category,
+                    description,
+                    user_id=selected_user_id,
+                    issue_id=issue_id
+                )
                 if success:
                     st.success(t("journal.added_success", hours=hours, category=category))
                     if "last_journal_filter_hash" in st.session_state:
@@ -207,17 +244,17 @@ grid_data = {} # Key: (Category, Name), Value: {date: hours}
 
 for wl in worklogs:
     cat = wl.get("category") or t("ui.jira_task")
-    
+
     if wl.get("type") == "JIRA":
         name = f"{wl.get('issue_key')} {wl.get('issue_summary')}".strip()
     else:
         name = wl.get("description") or t("common.description")
-        
+
     key = (cat, name)
-    
+
     if key not in grid_data:
         grid_data[key] = {d: 0.0 for d in days_in_period}
-    
+
     wl_date = date.fromisoformat(wl["date"]) if isinstance(wl["date"], str) else wl["date"]
     if wl_date in grid_data[key]:
         grid_data[key][wl_date] += wl["hours"]
@@ -236,7 +273,7 @@ for (cat, name), day_values in grid_data.items():
 
 if rows:
     df = pd.DataFrame(rows)
-    
+
     # Styling
     def highlight_positive(v):
         if isinstance(v, (int, float)) and v > 0:
@@ -254,11 +291,11 @@ if rows:
     total_cols = st.columns(len(days_in_period))
     for i, d in enumerate(days_in_period):
         val = daily_totals[d.strftime("%a %d")]
-        
+
         # Holiday indicator
         h_name = holiday_dates.get(d)
         is_weekend = d.weekday() >= 5
-        
+
         label = d.strftime("%a %d")
         if h_name:
             label = f"🎁 {label}"
@@ -268,11 +305,11 @@ if rows:
             tooltip = "Weekend"
         else:
             tooltip = None
-            
+
         total_cols[i].metric(label, f"{val}h", delta=None, help=tooltip)
 
     st.markdown(f"### {t('timesheet.worklogs')}")
-    
+
     # Add totals row to dataframe for display or show it separately
     # Let's show the dataframe
     day_cols = [d.strftime("%a %d") for d in days_in_period]

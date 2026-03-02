@@ -7,9 +7,9 @@ logo_name = "logo.png"
 for filename in os.listdir(views_dir):
     if filename.endswith(".py"):
         filepath = os.path.join(views_dir, filename)
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
-        
+
         # Pattern to find st.set_page_config
         # We want to add page_icon="logo.png" if it's not there
         if "st.set_page_config" in content:

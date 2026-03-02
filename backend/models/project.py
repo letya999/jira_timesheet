@@ -1,7 +1,9 @@
-from sqlalchemy import String, Integer, Boolean, ForeignKey, Table, Date, Column
-from sqlalchemy.orm import mapped_column, Mapped, relationship
-from models.base import Base
 from datetime import date
+
+from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from models.base import Base
 
 # Association tables for M2M relationships
 issue_sprints = Table(
@@ -61,7 +63,7 @@ class Issue(Base):
     summary: Mapped[str] = mapped_column(String(1024))
     status: Mapped[str | None] = mapped_column(String(100), index=True)
     issue_type: Mapped[str | None] = mapped_column(String(50), index=True)
-    
+
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("issues.id"), nullable=True)
 
@@ -69,6 +71,6 @@ class Issue(Base):
     parent = relationship("Issue", remote_side=[id], back_populates="subtasks")
     subtasks = relationship("Issue", back_populates="parent")
     worklogs = relationship("Worklog", back_populates="issue")
-    
+
     sprints = relationship("Sprint", secondary=issue_sprints, back_populates="issues")
     releases = relationship("Release", secondary=issue_releases, back_populates="issues")

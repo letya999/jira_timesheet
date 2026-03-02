@@ -1,22 +1,24 @@
-from datetime import date, timedelta
-from typing import List, Optional, Dict, Any
-from sqlalchemy import select, and_, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from crud.timesheet import worklog as crud_worklog
-from crud.timesheet import timesheet_period as crud_timesheet_period
-from services.calendar import calendar_service
-from core.config import settings
-from models.timesheet import Worklog, TimesheetPeriod
-from models.project import Issue
-from models.user import JiraUser, User
+from datetime import date
+from typing import Any
+
 from core.audit import log_audit
+from core.config import settings
+from crud.timesheet import timesheet_period as crud_timesheet_period
+from fastapi import HTTPException, Request, status
+from models.project import Issue
+from models.timesheet import TimesheetPeriod, Worklog
+from models.user import JiraUser, User
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from services.calendar import calendar_service
 from services.notification import notification_service
-from fastapi import HTTPException, status, Request
+
 
 class TimesheetService:
     async def get_user_worklogs(
         self, db: AsyncSession, *, user_id: int, start_date: date, end_date: date
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         from sqlalchemy.orm import joinedload
         result = await db.execute(
             select(Worklog)
@@ -34,7 +36,7 @@ class TimesheetService:
             )
         )
         items = result.scalars().all()
-        
+
         resp_items = []
         for item in items:
             resp_items.append({
@@ -61,30 +63,30 @@ class TimesheetService:
         return resp_items
 
     async def submit_period(
-        self, 
-        db: AsyncSession, 
-        *, 
-        user_id: int, 
-        start_date: date, 
+        self,
+        db: AsyncSession,
+        *,
+        user_id: int,
+        start_date: date,
         end_date: date,
-        request: Optional[Request] = None
+        request: Request | None = None
     ) -> TimesheetPeriod:
         # Check if period already exists
         db_period = await crud_timesheet_period.get_by_user_and_date(
             db, user_id=user_id, start_date=start_date, end_date=end_date
         )
-        
+
         if db_period:
             if db_period.status in ["SUBMITTED", "APPROVED"]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Period already {db_period.status.lower()}"
                 )
-            
+
             # Update existing period to SUBMITTED
             db_period = await crud_timesheet_period.update(
-                db, 
-                db_obj=db_period, 
+                db,
+                db_obj=db_period,
                 obj_in={"status": "SUBMITTED", "submitted_at": date.today()}
             )
         else:
@@ -97,11 +99,11 @@ class TimesheetService:
                 status="SUBMITTED"
             )
             db_period = await crud_timesheet_period.create(db, obj_in=period_in)
-        
+
         # Load user info for notification
         user_result = await db.execute(select(User).where(User.id == user_id))
         user = user_result.scalar_one()
-        
+
         # Send Notification
         await notification_service.notify_timesheet_submitted(
             db,
@@ -110,16 +112,16 @@ class TimesheetService:
             user_name=user.full_name,
             period_label=f"{start_date} - {end_date}"
         )
-        
+
         await log_audit(
-            db, 
-            action="SUBMIT_TIMESHEET", 
-            target_type="TimesheetPeriod", 
+            db,
+            action="SUBMIT_TIMESHEET",
+            target_type="TimesheetPeriod",
             target_id=str(db_period.id),
             user_id=user_id,
             request=request
         )
-        
+
         await db.commit()
         return db_period
 
@@ -130,25 +132,25 @@ class TimesheetService:
         period_id: int,
         approver_id: int,
         status: str, # APPROVED or REJECTED
-        comment: Optional[str] = None,
-        request: Optional[Request] = None
+        comment: str | None = None,
+        request: Request | None = None
     ) -> TimesheetPeriod:
         db_period = await crud_timesheet_period.get(db, id=period_id)
         if not db_period:
             raise HTTPException(status_code=404, detail="Timesheet period not found")
-        
+
         update_data = {
             "status": status,
             "approved_by_id": approver_id,
             "comment": comment
         }
-        
+
         if status == "APPROVED":
             from datetime import datetime
             update_data["approved_at"] = datetime.now()
-            
+
         db_period = await crud_timesheet_period.update(db, db_obj=db_period, obj_in=update_data)
-        
+
         # Send Notification to the timesheet owner
         await notification_service.notify_timesheet_status_change(
             db,
@@ -159,27 +161,27 @@ class TimesheetService:
             period_label=f"{db_period.start_date} - {db_period.end_date}",
             comment=comment
         )
-        
+
         await log_audit(
-            db, 
-            action=f"{status}_TIMESHEET", 
-            target_type="TimesheetPeriod", 
+            db,
+            action=f"{status}_TIMESHEET",
+            target_type="TimesheetPeriod",
             target_id=str(db_period.id),
             user_id=approver_id,
             payload={"comment": comment},
             request=request
         )
-        
+
         await db.commit()
         return db_period
 
-    async def get_period_summary(self, db: AsyncSession, period: TimesheetPeriod) -> Dict[str, Any]:
+    async def get_period_summary(self, db: AsyncSession, period: TimesheetPeriod) -> dict[str, Any]:
         """Calculate summary info for a period including expected working hours."""
         working_days = await calendar_service.get_working_days_count(
             db, period.start_date, period.end_date
         )
         expected_hours = working_days * settings.DEFAULT_HOURS_PER_DAY
-        
+
         # Get actual hours
         result = await db.execute(
             select(func.sum(Worklog.hours))
@@ -190,7 +192,7 @@ class TimesheetService:
             )
         )
         total_hours = result.scalar() or 0.0
-        
+
         return {
             "working_days": working_days,
             "expected_hours": expected_hours,

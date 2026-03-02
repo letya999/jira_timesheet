@@ -7,8 +7,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.database import async_session
 from core.security import get_password_hash
-from models import User, Role, OrgUnit
+from models import OrgUnit, Role, User
 from sqlalchemy import select
+
 
 async def seed():
     async with async_session() as session:
@@ -18,11 +19,11 @@ async def seed():
             res = await session.execute(select(Role).where(Role.name == role_name))
             if not res.scalar_one_or_none():
                 session.add(Role(name=role_name, is_system=True))
-        
+
         await session.flush()
 
         # 2. Seed Root OrgUnit
-        res = await session.execute(select(OrgUnit).where(OrgUnit.parent_id == None))
+        res = await session.execute(select(OrgUnit).where(OrgUnit.parent_id is None))
         root_unit = res.scalar_one_or_none()
         if not root_unit:
             root_unit = OrgUnit(name="Main Organization", reporting_period="weekly")

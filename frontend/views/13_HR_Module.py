@@ -1,10 +1,11 @@
-import streamlit as st
-import pandas as pd
 import io
-from datetime import datetime, date, timedelta
-from api_client import get_me, fetch_all_leaves, get_employees
-from i18n import t
+from datetime import date, timedelta
+
+import pandas as pd
+import streamlit as st
+from api_client import fetch_all_leaves, get_me
 from auth_utils import ensure_session
+from i18n import t
 
 st.set_page_config(page_title=t("leaves.hr_module", page_icon="logo.png"), layout="wide")
 
@@ -33,8 +34,8 @@ with st.expander(t("leaves.hr_filters"), expanded=True):
     with col3:
         status_options = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"]
         status_filter = st.multiselect(
-            t("common.status"), 
-            options=status_options, 
+            t("common.status"),
+            options=status_options,
             default=["APPROVED", "PENDING"],
             format_func=lambda x: t(f"common.status_{x.lower()}")
         )
@@ -44,31 +45,38 @@ leaves = fetch_all_leaves(start_date=start_date.isoformat(), end_date=end_date.i
 
 if leaves:
     df = pd.DataFrame(leaves)
-    
+
     # Filter by status
     if status_filter:
         df = df[df["status"].isin(status_filter)]
-    
+
     # Clean up for display
     display_df = df[["user_full_name", "type", "start_date", "end_date", "status", "reason"]].copy()
     display_df["status"] = display_df["status"].apply(lambda x: t(f"common.status_{x.lower()}"))
     display_df["type"] = display_df["type"].apply(lambda x: t(f"leaves.{x.lower()}"))
-    display_df.columns = [t("common.employee"), t("common.type"), t("common.from"), t("common.to"), t("common.status"), t("common.comment")]
-    
+    display_df.columns = [
+        t("common.employee"),
+        t("common.type"),
+        t("common.from"),
+        t("common.to"),
+        t("common.status"),
+        t("common.comment")
+    ]
+
     st.subheader(t("leaves.found_records", count=len(display_df)))
     st.dataframe(display_df, width="stretch", hide_index=True)
-    
+
     # --- EXPORT ---
     st.divider()
     col_ex1, col_ex2 = st.columns(2)
-    
+
     with col_ex1:
         # Excel Export
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             display_df.to_excel(writer, index=False, sheet_name='Leaves')
         processed_data = output.getvalue()
-        
+
         st.download_button(
             label=f"📥 {t('leaves.export_excel')}",
             data=processed_data,
@@ -76,7 +84,7 @@ if leaves:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             width="stretch"
         )
-        
+
     with col_ex2:
         # Google Sheets Placeholder/Instructions
         st.info(t("leaves.google_sheets_info"))

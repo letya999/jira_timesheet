@@ -1,5 +1,6 @@
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Jira Timesheet API"
@@ -8,7 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
-    
+
     JIRA_URL: str
     JIRA_EMAIL: str
     JIRA_API_TOKEN: str
@@ -26,9 +27,9 @@ class Settings(BaseSettings):
     POLLING_INTERVAL_MS: int = 5000
 
     # Slack Integration
-    SLACK_BOT_TOKEN: Optional[str] = None
-    SLACK_SIGNING_SECRET: Optional[str] = None
-    SLACK_NOTIFICATIONS_CHANNEL: Optional[str] = None
+    SLACK_BOT_TOKEN: str | None = None
+    SLACK_SIGNING_SECRET: str | None = None
+    SLACK_NOTIFICATIONS_CHANNEL: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='ignore')
 

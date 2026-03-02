@@ -6,8 +6,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.database import async_session
-from models import User, JiraUser, Department, Division, Team, Worklog
-from sqlalchemy import select, func
+from models import Department, Division, JiraUser, Team, User, Worklog
+from sqlalchemy import select
+
 
 async def seed_hierarchy():
     async with async_session() as db:
@@ -40,16 +41,16 @@ async def seed_hierarchy():
         jira_users = res.scalars().all()
         for ju in jira_users:
             ju.team_id = team.id
-        
+
         # 5. Link Admin to a Jira User who has worklogs
         res = await db.execute(select(Worklog.jira_user_id).distinct().limit(1))
         ju_id_with_log = res.scalar()
-        
+
         if ju_id_with_log:
             # Find the JiraUser
             res = await db.execute(select(JiraUser).where(JiraUser.id == ju_id_with_log))
             ju_to_link = res.scalar_one_or_none()
-            
+
             if ju_to_link:
                 res = await db.execute(select(User).where(User.email == "admin@example.com"))
                 admin = res.scalar_one_or_none()

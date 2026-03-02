@@ -1,6 +1,8 @@
-from sqlalchemy import String, Integer, ForeignKey, Boolean
-from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy import Boolean, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from models.base import Base
+
 
 class Role(Base):
     __tablename__ = "roles"
@@ -13,9 +15,9 @@ class OrgUnit(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("org_units.id"), nullable=True)
-    
+
     reporting_period: Mapped[str] = mapped_column(String(50), default="weekly") # weekly, bi-weekly, monthly
-    
+
     parent = relationship("OrgUnit", remote_side=[id], backref="children")
     jira_users = relationship("JiraUser", back_populates="org_unit")
     approval_routes = relationship("ApprovalRoute", back_populates="org_unit", cascade="all, delete-orphan")
@@ -39,6 +41,6 @@ class ApprovalRoute(Base):
     target_type: Mapped[str] = mapped_column(String(50)) # 'leave', 'timesheet'
     step_order: Mapped[int] = mapped_column(Integer) # 1, 2, 3...
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
-    
+
     org_unit = relationship("OrgUnit", back_populates="approval_routes")
     role = relationship("Role")

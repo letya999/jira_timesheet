@@ -1,9 +1,9 @@
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel
-from sqlalchemy import select, update, delete
-from sqlalchemy.ext.asyncio import AsyncSession
 from models.base import Base
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -11,7 +11,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         """
         CRUD object with default methods to Create, Read, Update, Delete (CRUD).
 
@@ -22,13 +22,13 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         self.model = model
 
-    async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
 
     async def get_multi(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> List[ModelType]:
+    ) -> list[ModelType]:
         result = await db.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()
 
@@ -45,17 +45,17 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: UpdateSchemaType | dict[str, Any]
     ) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
-            
+
         for field in update_data:
             if hasattr(db_obj, field):
                 setattr(db_obj, field, update_data[field])
-        
+
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)

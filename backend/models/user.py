@@ -1,6 +1,8 @@
-from sqlalchemy import String, Integer, Column, ForeignKey, Boolean
-from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from models.base import Base
+
 
 class JiraUser(Base):
     __tablename__ = "jira_users"
@@ -10,7 +12,7 @@ class JiraUser(Base):
     display_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    
+
     # Resource Management Fields moved here
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     weekly_quota: Mapped[int] = mapped_column(default=40)
@@ -32,10 +34,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50), default="Employee", index=True) # Admin, CEO, PM, Employee
-    
+
     # Login access control only
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     needs_password_change: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     jira_user_id: Mapped[int | None] = mapped_column(ForeignKey("jira_users.id"), nullable=True)
     jira_user = relationship("JiraUser", back_populates="user")

@@ -1,9 +1,14 @@
-import streamlit as st
+from datetime import date, timedelta
+
 import pandas as pd
-from datetime import datetime, timedelta, date
+import streamlit as st
 from api_client import (
-    fetch_my_teams, fetch_team_periods, approve_timesheet, 
-    get_me, fetch_timesheet, get_employees
+    approve_timesheet,
+    fetch_my_teams,
+    fetch_team_periods,
+    fetch_timesheet,
+    get_all_users,
+    get_me,
 )
 from auth_utils import ensure_session
 from i18n import t
@@ -33,10 +38,14 @@ with col1:
     if not my_teams and user_info.get("role") != "Admin":
         st.warning(t("approvals.not_pm_warning"))
         st.stop()
-    
+
     # Admins see all teams from fetch_my_teams(), PMs only theirs.
     team_options = {t_item["id"]: t_item["name"] for t_item in my_teams}
-    selected_org_unit_id = st.selectbox(t("common.team"), options=list(team_options.keys()), format_func=lambda x: team_options[x])
+    selected_org_unit_id = st.selectbox(
+        t("common.team"),
+        options=list(team_options.keys()),
+        format_func=lambda x: team_options[x]
+    )
 
 with col2:
     # Determine period based on team setting
@@ -44,12 +53,12 @@ with col2:
     if not selected_team and user_info.get("role") == "Admin":
         # Fallback for admin
         selected_team = {"reporting_period": "weekly"}
-    
+
     period_type = selected_team.get("reporting_period", "weekly")
-    
+
     # Date selection to find the period
     ref_date = st.date_input(t("approvals.ref_date"), date.today())
-    
+
     # Calculate period dates (same logic as backend for consistency)
     if period_type == "weekly":
         start_date = ref_date - timedelta(days=ref_date.weekday())
@@ -77,10 +86,10 @@ team_periods = fetch_team_periods(start_date, end_date, org_unit_id=selected_org
 period_map = {p["user_id"]: p for p in team_periods}
 
 # 2. OrgUnit members
-# This is a bit tricky, we need users in this team. 
-# For now, let's fetch all users and filter. 
+# This is a bit tricky, we need users in this team.
+# For now, let's fetch all users and filter.
 # Ideally we have a /org/teams/{id}/members endpoint.
-from api_client import get_all_users
+
 users_data = get_all_users(size=1000)
 team_members = [u for u in users_data.get("items", []) if u.get("team_id") == selected_org_unit_id]
 
@@ -97,7 +106,7 @@ worklogs = worklogs_data.get("items", [])
 user_hours = {}
 for wl in worklogs:
     uid = wl.get("user_id") # Note: this is jira_user_id in worklog but we need User.id
-    # Wait, the worklog has user_id which is jira_user_id. 
+    # Wait, the worklog has user_id which is jira_user_id.
     # The TimesheetPeriod is linked to User.id.
     # We need to map JiraUser to User.
     pass
@@ -117,16 +126,16 @@ for member in team_members:
     m_period = period_map.get(m_id)
     m_status = m_period["status"] if m_period else "OPEN"
     m_hours = user_totals.get(member.get("full_name"), 0.0) # This matching is loose but okay for MVP
-    
+
     with st.container(border=True):
         c1, c2, c3, c4 = st.columns([0.3, 0.2, 0.2, 0.3])
         c1.markdown(f"**{m_name}**")
         c2.metric(t("common.hours"), f"{m_hours}h")
-        
+
         status_colors = {"OPEN": "blue", "SUBMITTED": "orange", "APPROVED": "green", "REJECTED": "red"}
         status_label = t(f"common.status_{m_status.lower()}")
         c3.markdown(f"{t('common.status')}: **:{status_colors.get(m_status, 'grey')}[{status_label}]**")
-        
+
         if m_status == "SUBMITTED":
             with c4:
                 btn_col1, btn_col2 = st.columns(2)
@@ -135,7 +144,7 @@ for member in team_members:
                         st.success(f"{t('common.approve')} {m_name}")
                         st.rerun()
                 if btn_col2.button(f"❌ {t('common.reject')}", key=f"rej_{m_id}"):
-                    # Open a small popover or dialog for comment? 
+                    # Open a small popover or dialog for comment?
                     # For MVP just reject
                     if approve_timesheet(m_period["id"], "REJECTED", comment=t("approvals.rejected_by_pm")):
                         st.warning(f"{t('common.reject')} {m_name}")
@@ -146,13 +155,21 @@ for member in team_members:
                     st.rerun()
         else:
             c4.write(t("approvals.waiting_submission"))
-            
+
     # Optional: Detailed view
     with st.expander(t("common.details") + f" {m_name}"):
         member_logs = [wl for wl in worklogs if wl.get("user_name") == m_name]
         if member_logs:
-            m_df = pd.DataFrame(member_logs)[["date", "hours", "project_name", "issue_key", "description"]]
-            m_df.columns = [t("common.date"), t("common.hours"), t("common.project"), t("journal.task_search"), t("common.description")]
+            m_df = pd.DataFrame(member_logs)[[
+                "date", "hours", "project_name", "issue_key", "description"
+            ]]
+            m_df.columns = [
+                t("common.date"),
+                t("common.hours"),
+                t("common.project"),
+                t("journal.task_search"),
+                t("common.description")
+            ]
             st.dataframe(m_df, width="stretch", hide_index=True)
         else:
             st.write(t("journal.no_logs_found"))

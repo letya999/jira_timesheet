@@ -1,27 +1,28 @@
-import streamlit as st
 from datetime import date
-from typing import Optional, Any
+
 import pandas as pd
+import streamlit as st
+
 
 class StateManager:
     """
     Typed manager for Streamlit session state to avoid string-key errors.
     """
-    
+
     @property
-    def token(self) -> Optional[str]:
+    def token(self) -> str | None:
         return st.session_state.get("token")
-    
+
     @token.setter
-    def token(self, value: Optional[str]):
+    def token(self, value: str | None):
         st.session_state["token"] = value
 
     @property
-    def current_user(self) -> Optional[dict]:
+    def current_user(self) -> dict | None:
         return st.session_state.get("current_user")
-    
+
     @current_user.setter
-    def current_user(self, value: Optional[dict]):
+    def current_user(self, value: dict | None):
         st.session_state["current_user"] = value
 
     # Pagination
@@ -50,18 +51,18 @@ class StateManager:
         if "ts_target_date" not in st.session_state:
             st.session_state["ts_target_date"] = date.today()
         return st.session_state["ts_target_date"]
-    
+
     @ts_target_date.setter
     def ts_target_date(self, value: date):
         st.session_state["ts_target_date"] = value
 
     # Reports
     @property
-    def report_raw_data(self) -> Optional[pd.DataFrame]:
+    def report_raw_data(self) -> pd.DataFrame | None:
         return st.session_state.get("report_raw_data")
-    
+
     @report_raw_data.setter
-    def report_raw_data(self, value: Optional[pd.DataFrame]):
+    def report_raw_data(self, value: pd.DataFrame | None):
         st.session_state["report_raw_data"] = value
 
 state = StateManager()

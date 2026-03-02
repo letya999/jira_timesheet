@@ -1,8 +1,10 @@
 
 import asyncio
-from sqlalchemy import delete
+
 from core.database import async_session
 from models.user import User
+from sqlalchemy import delete
+
 
 async def cleanup():
     async with async_session() as session:

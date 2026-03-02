@@ -1,8 +1,9 @@
 # Version: 1.3 - Fixed headers for 401 Unauthorized
-import requests
 import os
-import streamlit as st
 from datetime import date, datetime
+
+import requests
+import streamlit as st
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000/api/v1")
 
@@ -19,22 +20,36 @@ def get_headers():
         return {"Authorization": f"Bearer {token}"}
     return {}
 
-def fetch_timesheet(start_date=None, end_date=None, user_id=None, project_id=None, sprint_id=None, release_id=None, category=None, dept_id=None, div_id=None, org_unit_id=None, sort_order="desc", page=1, size=50):
+def fetch_timesheet(
+    start_date=None, end_date=None, user_id=None, project_id=None,
+    sprint_id=None, release_id=None, category=None, dept_id=None,
+    div_id=None, org_unit_id=None, sort_order="desc", page=1, size=50
+):
     params = {}
-    if start_date: params["start_date"] = start_date
-    if end_date: params["end_date"] = end_date
-    if user_id is not None: params["user_id"] = user_id
-    if project_id: params["project_id"] = project_id
-    if sprint_id: params["sprint_id"] = sprint_id
-    if release_id: params["release_id"] = release_id
-    if category: params["category"] = category
-    if dept_id: params["dept_id"] = dept_id
-    if div_id: params["div_id"] = div_id
-    if org_unit_id: params["org_unit_id"] = org_unit_id
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+    if user_id is not None:
+        params["user_id"] = user_id
+    if project_id:
+        params["project_id"] = project_id
+    if sprint_id:
+        params["sprint_id"] = sprint_id
+    if release_id:
+        params["release_id"] = release_id
+    if category:
+        params["category"] = category
+    if dept_id:
+        params["dept_id"] = dept_id
+    if div_id:
+        params["div_id"] = div_id
+    if org_unit_id:
+        params["org_unit_id"] = org_unit_id
     params["sort_order"] = sort_order
     params["page"] = page
     params["size"] = size
-    
+
     response = requests.get(
         f"{BACKEND_URL}/timesheet/",
         params=params,
@@ -51,9 +66,11 @@ def add_manual_log(date, hours, category, description, user_id=None, issue_id=No
         "category": category,
         "description": description
     }
-    if user_id: data["user_id"] = user_id
-    if issue_id: data["issue_id"] = issue_id
-    
+    if user_id:
+        data["user_id"] = user_id
+    if issue_id:
+        data["issue_id"] = issue_id
+
     response = requests.post(
         f"{BACKEND_URL}/timesheet/manual",
         json=data,
@@ -121,7 +138,7 @@ def fetch_db_projects(page=1, size=50, search=None, _headers=None):
     if search:
         params["search"] = search
     response = requests.get(
-        f"{BACKEND_URL}/projects/", 
+        f"{BACKEND_URL}/projects/",
         params=params,
         headers=_headers or get_headers()
     )
@@ -156,7 +173,7 @@ def sync_project_worklogs(project_id):
 def get_all_users(page=1, size=50, _headers=None):
     """Fetch user list from DB with pagination."""
     response = requests.get(
-        f"{BACKEND_URL}/users/", 
+        f"{BACKEND_URL}/users/",
         params={"page": page, "size": size},
         headers=_headers or get_headers()
     )
@@ -201,7 +218,7 @@ def get_employees(page=1, size=50, search=None, org_unit_id=None, _headers=None)
     if org_unit_id:
         params["org_unit_id"] = org_unit_id
     response = requests.get(
-        f"{BACKEND_URL}/org/employees", 
+        f"{BACKEND_URL}/org/employees",
         params=params,
         headers=_headers or get_headers()
     )
@@ -225,8 +242,10 @@ def update_user(user_id, **kwargs):
 def update_employee(employee_id, org_unit_id=None, is_active=None):
     st.cache_data.clear()
     payload = {}
-    if org_unit_id is not None: payload["team_id"] = org_unit_id
-    if is_active is not None: payload["is_active"] = is_active
+    if org_unit_id is not None:
+        payload["team_id"] = org_unit_id
+    if is_active is not None:
+        payload["is_active"] = is_active
     response = requests.patch(f"{BACKEND_URL}/org/employees/{employee_id}", json=payload, headers=get_headers())
     return response.status_code == 200
 
@@ -349,7 +368,8 @@ def fetch_holidays(start_date, end_date):
 
 def sync_holidays(year=None):
     params = {}
-    if year: params["year"] = year
+    if year:
+        params["year"] = year
     response = requests.post(
         f"{BACKEND_URL}/calendar/holidays/sync",
         params=params,
@@ -415,8 +435,10 @@ def fetch_team_leaves():
 
 def fetch_all_leaves(start_date=None, end_date=None):
     params = {}
-    if start_date: params["start_date"] = start_date
-    if end_date: params["end_date"] = end_date
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
     response = requests.get(f"{BACKEND_URL}/leaves/all", params=params, headers=get_headers())
     if response.status_code == 200:
         return response.json()
@@ -439,15 +461,19 @@ def fetch_org_units(_headers=None):
 
 def create_org_unit(name, parent_id=None, reporting_period="weekly"):
     payload = {"name": name, "reporting_period": reporting_period}
-    if parent_id: payload["parent_id"] = parent_id
+    if parent_id:
+        payload["parent_id"] = parent_id
     response = requests.post(f"{BACKEND_URL}/org/units", json=payload, headers=get_headers())
     return response.status_code == 200
 
 def update_org_unit(unit_id, name=None, parent_id=None, reporting_period=None):
     payload = {}
-    if name: payload["name"] = name
-    if parent_id is not None: payload["parent_id"] = parent_id
-    if reporting_period: payload["reporting_period"] = reporting_period
+    if name:
+        payload["name"] = name
+    if parent_id is not None:
+        payload["parent_id"] = parent_id
+    if reporting_period:
+        payload["reporting_period"] = reporting_period
     response = requests.patch(f"{BACKEND_URL}/org/units/{unit_id}", json=payload, headers=get_headers())
     return response.status_code == 200
 
@@ -469,7 +495,8 @@ def delete_role(role_id):
 
 def fetch_approval_routes(unit_id, target_type=None):
     params = {}
-    if target_type: params["target_type"] = target_type
+    if target_type:
+        params["target_type"] = target_type
     response = requests.get(f"{BACKEND_URL}/org/units/{unit_id}/approval-routes", params=params, headers=get_headers())
     return response.json() if response.status_code == 200 else []
 

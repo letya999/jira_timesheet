@@ -1,18 +1,19 @@
-import time
-import uuid
 import logging
+import time
 import traceback
+import uuid
 from collections import defaultdict
-from fastapi import Request, status, FastAPI
-from fastapi.responses import JSONResponse
+
+from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from core.exceptions import APIException, ErrorCode
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from core.config import settings
+from core.exceptions import APIException, ErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +28,16 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
         # 1. Trace ID generation
         trace_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request.state.trace_id = trace_id
-        
+
         # 2. Rate Limiting check
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
-        
+
         limiter = request_counts[client_ip]
         if current_time > limiter["reset_time"]:
             limiter["count"] = 0
             limiter["reset_time"] = current_time + RATE_LIMIT_WINDOW
-            
+
         limiter["count"] += 1
         if limiter["count"] > RATE_LIMIT_MAX_REQUESTS:
             return JSONResponse(
@@ -60,12 +61,16 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-XSS-Protection"] = "1; mode=block"
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-            
+
             # Logging execution time
             process_time = time.time() - start_time
-            logger.info(f"[{trace_id}] {request.method} {request.url.path} completed in {process_time:.4f}s with status {response.status_code}")
+            logger.info(
+                f"Request {request.method} {request.url.path} completed in "
+                f"{process_time:.4f}s with status {response.status_code}"
+            )
+
             return response
-            
+
         except Exception as exc:
             # Re-raise for the exception handlers
             logger.error(f"[{trace_id}] Unhandled Exception: {exc}")

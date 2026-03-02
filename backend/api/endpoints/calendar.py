@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from core.database import get_db
-from api import deps
-from services.calendar import calendar_service
 from datetime import date
+
+from core.database import get_db
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from typing import List, Optional
+from services.calendar import calendar_service
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps import get_current_user, require_role
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ class HolidayResponse(BaseModel):
     name: str
     is_holiday: bool
     is_custom: bool
-    country_code: Optional[str]
+    country_code: str | None
 
     class Config:
         from_attributes = True
@@ -27,12 +28,12 @@ class HolidayResponse(BaseModel):
 class CountrySetting(BaseModel):
     country_code: str
 
-@router.get("/holidays", response_model=List[HolidayResponse])
+@router.get("/holidays", response_model=list[HolidayResponse])
 async def get_holidays(
     start_date: date,
     end_date: date,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """Retrieve holidays within a specific date range."""
     return await calendar_service.get_holidays(db, start_date, end_date)
@@ -42,7 +43,7 @@ async def get_all_calendar_events(
     start_date: date,
     end_date: date,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """Fetch holidays and approved leave requests for the calendar."""
     # 1. Fetch Holidays
@@ -55,12 +56,12 @@ async def get_all_calendar_events(
             "is_holiday": True
         } for h in holidays
     ]
-    
+
     # 2. Fetch Approved Leaves
     from models.leave import LeaveRequest, LeaveStatus
-    from sqlalchemy import select, and_, or_
+    from sqlalchemy import and_, or_, select
     from sqlalchemy.orm import joinedload
-    
+
     leave_query = select(LeaveRequest).where(
         and_(
             LeaveRequest.status == LeaveStatus.APPROVED,
@@ -71,12 +72,12 @@ async def get_all_calendar_events(
             )
         )
     ).options(joinedload(LeaveRequest.user))
-    
+
     result = await db.execute(leave_query)
     leaves = result.scalars().all()
-    
+
     for leaf in leaves:
-        # For multi-day leaves, we might want to return them differently for the frontend, 
+        # For multi-day leaves, we might want to return them differently for the frontend,
         # but for simplicity, we return the range
         events.append({
             "start_date": leaf.start_date,
@@ -86,14 +87,14 @@ async def get_all_calendar_events(
             "user_id": leaf.user_id,
             "leave_type": leaf.type
         })
-        
+
     return events
 
 @router.post("/holidays/sync")
 async def sync_holidays(
-    year: Optional[int] = None,
+    year: int | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO"]))
+    current_user = Depends(require_role(["Admin", "CEO"]))  # noqa: B008
 ):
     """Sync holidays from the internet for the specified year."""
     await calendar_service.sync_holidays(db, year)
@@ -103,7 +104,7 @@ async def sync_holidays(
 async def add_custom_holiday(
     holiday: HolidayCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO"]))
+    current_user = Depends(require_role(["Admin", "CEO"]))  # noqa: B008
 ):
     """Manually add or override a holiday."""
     await calendar_service.add_custom_holiday(db, holiday.date, holiday.name, holiday.is_holiday)
@@ -119,7 +120,7 @@ async def add_custom_holiday(
 async def delete_holiday(
     holiday_date: date,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO"]))
+    current_user = Depends(require_role(["Admin", "CEO"]))  # noqa: B008
 ):
     """Delete a custom holiday override."""
     await calendar_service.delete_holiday(db, holiday_date)
@@ -128,7 +129,7 @@ async def delete_holiday(
 @router.get("/country", response_model=CountrySetting)
 async def get_country(
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """Get the current instance country code."""
     country = await calendar_service.get_instance_country(db)
@@ -138,7 +139,7 @@ async def get_country(
 async def set_country(
     setting: CountrySetting,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(deps.require_role(["Admin", "CEO"]))
+    current_user = Depends(require_role(["Admin", "CEO"]))  # noqa: B008
 ):
     """Set the instance-wide country code for holidays."""
     await calendar_service.set_instance_country(db, setting.country_code)

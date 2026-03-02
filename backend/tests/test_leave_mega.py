@@ -1,10 +1,10 @@
+
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User, JiraUser, OrgUnit, Role, UserOrgRole, ApprovalRoute
-from models.leave import LeaveRequest, LeaveType, LeaveStatus
 from core.security import get_password_hash
-from datetime import date, datetime
+from httpx import AsyncClient
+from models import ApprovalRoute, JiraUser, OrgUnit, Role, User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_leave_mega_coverage(client: AsyncClient, db: AsyncSession):
@@ -27,15 +27,15 @@ async def test_leave_mega_coverage(client: AsyncClient, db: AsyncSession):
     unit = OrgUnit(name="Mega Unit")
     db.add(unit)
     await db.flush()
-    
+
     role = Role(name="CEO", is_system=True) # CEO role
     db.add(role)
     await db.flush()
-    
+
     route = ApprovalRoute(org_unit_id=unit.id, target_type='leave', step_order=1, role_id=role.id)
     db.add(route)
     await db.flush()
-    
+
     # 4. Setup Employee in Team
     emp = User(email="emp_mega@ex.com", full_name="Emp Mega", hashed_password=get_password_hash("testpass"), role="Employee", is_active=True)
     db.add(emp)
@@ -45,7 +45,7 @@ async def test_leave_mega_coverage(client: AsyncClient, db: AsyncSession):
     await db.flush()
     emp.jira_user_id = ju.id
     await db.commit()
-    
+
     login_res = await client.post("/api/v1/auth/login", data={"username": "emp_mega@ex.com", "password": "testpass"})
     emp_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
 
@@ -58,19 +58,19 @@ async def test_leave_mega_coverage(client: AsyncClient, db: AsyncSession):
     # 6. Get all leaves (Admin)
     resp = await client.get("/api/v1/leaves/all", headers=admin_headers)
     assert resp.status_code == 200
-    
+
     # 7. Get all leaves (HR)
     resp = await client.get("/api/v1/leaves/all", headers=hr_headers)
     assert resp.status_code == 200
-    
+
     # 8. Update status (REJECTED)
     resp = await client.patch(f"/api/v1/leaves/{leave_id}", json={"status": "REJECTED", "comment": "No"}, headers=admin_headers)
     assert resp.status_code == 200
-    
+
     # 9. Get my leaves
     resp = await client.get("/api/v1/leaves/my", headers=emp_headers)
     assert resp.status_code == 200
-    
+
     # 10. Get team leaves
     resp = await client.get("/api/v1/leaves/team", headers=admin_headers)
     assert resp.status_code == 200

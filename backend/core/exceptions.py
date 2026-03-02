@@ -1,5 +1,7 @@
-from typing import Any, Dict, Optional
+from typing import Any
+
 from fastapi import HTTPException, status
+
 
 class ErrorCode:
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
@@ -16,7 +18,7 @@ class APIException(HTTPException):
         status_code: int,
         error_code: str,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ):
         super().__init__(status_code=status_code, detail=message)
         self.error_code = error_code
@@ -24,7 +26,7 @@ class APIException(HTTPException):
         self.details = details or {}
 
 class NotFoundException(APIException):
-    def __init__(self, message: str = "Resource not found", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Resource not found", details: dict[str, Any] | None = None):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
             error_code=ErrorCode.NOT_FOUND,
@@ -33,7 +35,7 @@ class NotFoundException(APIException):
         )
 
 class UnauthorizedException(APIException):
-    def __init__(self, message: str = "Unauthorized", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Unauthorized", details: dict[str, Any] | None = None):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             error_code=ErrorCode.UNAUTHORIZED,
@@ -42,7 +44,7 @@ class UnauthorizedException(APIException):
         )
 
 class ForbiddenException(APIException):
-    def __init__(self, message: str = "Forbidden", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Forbidden", details: dict[str, Any] | None = None):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
             error_code=ErrorCode.FORBIDDEN,
@@ -51,7 +53,7 @@ class ForbiddenException(APIException):
         )
 
 class BadRequestException(APIException):
-    def __init__(self, message: str = "Bad Request", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Bad Request", details: dict[str, Any] | None = None):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
             error_code=ErrorCode.BAD_REQUEST,
@@ -60,7 +62,7 @@ class BadRequestException(APIException):
         )
 
 class RateLimitException(APIException):
-    def __init__(self, message: str = "Rate limit exceeded", details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str = "Rate limit exceeded", details: dict[str, Any] | None = None):
         super().__init__(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             error_code=ErrorCode.RATE_LIMIT_EXCEEDED,

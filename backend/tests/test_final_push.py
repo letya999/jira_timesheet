@@ -1,11 +1,12 @@
-import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User, JiraUser, OrgUnit, Worklog, Project, Issue
-from core.security import get_password_hash
-from unittest.mock import patch
-from datetime import date
 import uuid
+from datetime import date
+
+import pytest
+from core.security import get_password_hash
+from httpx import AsyncClient
+from models import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_sync_fail_branches(client: AsyncClient, db: AsyncSession):
@@ -14,10 +15,10 @@ async def test_sync_fail_branches(client: AsyncClient, db: AsyncSession):
     user = User(email=email, full_name="U", hashed_password=get_password_hash("pw"), role="Employee", is_active=True, jira_user_id=99999)
     db.add(user)
     await db.commit()
-    
+
     login_res = await client.post("/api/v1/auth/login", data={"username": email, "password": "pw"})
     headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
-    
+
     resp = await client.post("/api/v1/sync/worklogs", headers=headers)
     assert resp.status_code == 200
     assert resp.json()["message"] == "Jira user not found"
@@ -34,7 +35,7 @@ async def test_reports_more_branches(client: AsyncClient, auth_headers: dict, db
     }
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
     assert resp.status_code == 200
-    
+
     # 2. group_by_rows includes category
     payload["group_by_rows"] = ["user", "category"]
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
@@ -46,7 +47,7 @@ async def test_auth_inactive_user(client: AsyncClient, db: AsyncSession):
     user = User(email=email, full_name="I", hashed_password=get_password_hash("pw"), role="Employee", is_active=False)
     db.add(user)
     await db.commit()
-    
+
     resp = await client.post("/api/v1/auth/login", data={"username": email, "password": "pw"})
     assert resp.status_code == 400
     assert "Inactive user" in resp.json()["detail"]

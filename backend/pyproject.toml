@@ -1,0 +1,28 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Backend for Jira Timesheet System"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.112.0",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg",
+    "alembic",
+    "pyjwt",
+    "passlib[bcrypt]",
+    "pydantic[email]",
+    "pydantic-settings",
+    "python-multipart",
+    "redis",
+    "fastapi-cache2[redis]",
+    "python-dotenv",
+    "httpx",
+    "pandas",
+    "openpyxl",
+    "pytest",
+    "pytest-asyncio",
+    "python-dateutil",
+    "holidays",
+]

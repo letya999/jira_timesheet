@@ -1,5 +1,6 @@
-import httpx
 import asyncio
+
+import httpx
 
 JIRA_URL = "https://neuralab.atlassian.net"
 JIRA_EMAIL = "a.letyushev@twinby.com"
@@ -10,7 +11,7 @@ async def test_search():
     jql = f"id in ({ids})"
     url = f"{JIRA_URL}/rest/api/3/search/jql"
     auth = (JIRA_EMAIL, JIRA_API_TOKEN)
-    
+
     async with httpx.AsyncClient(auth=auth) as client:
         # Try GET first as in the original code
         print("Testing GET /search...")

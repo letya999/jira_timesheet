@@ -1,12 +1,11 @@
-
 import streamlit as st
-import pandas as pd
 from api_client import (
-    fetch_db_projects, 
-    refresh_projects_from_jira, 
-    update_project_status,
+    fetch_db_projects,
+    get_headers,
+    refresh_projects_from_jira,
     sync_all_projects_worklogs,
-    sync_project_worklogs
+    sync_project_worklogs,
+    update_project_status,
 )
 from auth_utils import ensure_session
 from i18n import t
@@ -60,11 +59,10 @@ if search_query != st.session_state["projects_search"]:
 page_size = 10
 
 # Fetch data for current page
-from api_client import get_headers
 headers = get_headers()
 data = fetch_db_projects(
-    page=st.session_state["projects_page"], 
-    size=page_size, 
+    page=st.session_state["projects_page"],
+    size=page_size,
     search=st.session_state["projects_search"],
     _headers=headers
 )
@@ -76,15 +74,15 @@ if not projects_list and st.session_state["projects_page"] == 1:
     st.info(t("projects.no_projects_hint"))
 else:
     st.write(f"{t('common.total')} {t('common.projects')}: **{total_count}**")
-    
+
     # Custom display with toggles/buttons
     for project in projects_list:
         with st.container():
             p_col1, p_col2, p_col3, p_col4 = st.columns([1, 3, 1, 1])
-            
+
             p_col1.write(f"**{project['key']}**")
             p_col2.write(project['name'])
-            
+
             # Sync Toggle
             is_active = p_col3.toggle(t("common.sync"), value=project['is_active'], key=f"toggle_{project['id']}")
             if is_active != project['is_active']:
@@ -93,7 +91,7 @@ else:
                     st.rerun()
                 else:
                     st.error(t("common.error"))
-            
+
             # Manual Sync Button
             if project['is_active']:
                 if p_col4.button(t("projects.sync_now"), key=f"sync_{project['id']}"):
@@ -107,26 +105,38 @@ else:
 
     # Pagination controls
     p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns([1, 1, 2, 1, 1])
-    
+
     with p_col1:
         if st.button("« " + t("common.first"), disabled=st.session_state["projects_page"] == 1, key="proj_first"):
             st.session_state["projects_page"] = 1
             st.rerun()
-            
+
     with p_col2:
-        if st.button("‹ " + t("common.prev"), disabled=st.session_state["projects_page"] == 1, key="proj_prev"):
+        if st.button(
+            "‹ " + t("common.prev"),
+            disabled=st.session_state["projects_page"] == 1,
+            key="proj_prev"
+        ):
             st.session_state["projects_page"] -= 1
             st.rerun()
-            
+
     with p_col3:
         st.write(f"{t('common.page')} {st.session_state['projects_page']} {t('common.of')} {total_pages}")
-        
+
     with p_col4:
-        if st.button(t("common.next") + " ›", disabled=st.session_state["projects_page"] >= total_pages, key="proj_next"):
+        if st.button(
+            t("common.next") + " ›",
+            disabled=st.session_state["projects_page"] >= total_pages,
+            key="proj_next"
+        ):
             st.session_state["projects_page"] += 1
             st.rerun()
-            
+
     with p_col5:
-        if st.button(t("common.last") + " »", disabled=st.session_state["projects_page"] >= total_pages, key="proj_last"):
+        if st.button(
+            t("common.last") + " »",
+            disabled=st.session_state["projects_page"] >= total_pages,
+            key="proj_last"
+        ):
             st.session_state["projects_page"] = total_pages
             st.rerun()

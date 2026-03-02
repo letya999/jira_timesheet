@@ -1,11 +1,13 @@
-import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models.user import User
-from models.leave import LeaveRequest, LeaveType, LeaveStatus
-from core.security import get_password_hash
-from datetime import date
 import json
+from datetime import date
+
+import pytest
+from core.security import get_password_hash
+from httpx import AsyncClient
+from models.leave import LeaveRequest, LeaveStatus, LeaveType
+from models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.fixture
 async def setup_slack_leave(db: AsyncSession):
@@ -35,7 +37,7 @@ async def setup_slack_leave(db: AsyncSession):
 @pytest.mark.asyncio
 async def test_slack_interactive_approve(client: AsyncClient, setup_slack_leave, db: AsyncSession):
     leave = setup_slack_leave["leave"]
-    
+
     # Slack sends a URL-encoded form POST with a "payload" field containing JSON
     slack_payload = {
         "user": {"username": "manager_bot"},
@@ -46,15 +48,15 @@ async def test_slack_interactive_approve(client: AsyncClient, setup_slack_leave,
             }
         ]
     }
-    
+
     response = await client.post(
-        "/api/v1/slack/interactive", 
+        "/api/v1/slack/interactive",
         data={"payload": json.dumps(slack_payload)}
     )
-    
+
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    
+
     # Verify in DB
     db.expunge_all()
     from sqlalchemy import select
@@ -66,7 +68,7 @@ async def test_slack_interactive_approve(client: AsyncClient, setup_slack_leave,
 @pytest.mark.asyncio
 async def test_slack_interactive_reject(client: AsyncClient, setup_slack_leave, db: AsyncSession):
     leave = setup_slack_leave["leave"]
-    
+
     slack_payload = {
         "user": {"username": "manager_bot"},
         "actions": [
@@ -76,15 +78,15 @@ async def test_slack_interactive_reject(client: AsyncClient, setup_slack_leave, 
             }
         ]
     }
-    
+
     response = await client.post(
-        "/api/v1/slack/interactive", 
+        "/api/v1/slack/interactive",
         data={"payload": json.dumps(slack_payload)}
     )
-    
+
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    
+
     db.expunge_all()
     from sqlalchemy import select
     res = await db.execute(select(LeaveRequest).where(LeaveRequest.id == leave.id))

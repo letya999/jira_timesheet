@@ -1,12 +1,11 @@
 from datetime import timedelta
+
+from core.config import settings
+from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from core.database import get_db
-from core.config import settings
 from services.auth import auth_service
-from schemas.user import UserResponse
-from api import deps
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -24,7 +23,7 @@ async def login(
         )
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth_service.create_access_token(
         data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires

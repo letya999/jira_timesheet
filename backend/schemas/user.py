@@ -1,26 +1,27 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr
+
 
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: Optional[str] = "Jira User"
+    full_name: str | None = "Jira User"
     role: str = "Employee"
-    jira_user_id: Optional[int] = None
+    jira_user_id: int | None = None
 
 class UserCreate(UserBase):
     password: str
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
+    full_name: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
 
 class UserResponse(UserBase):
     id: int
     is_active: bool
     needs_password_change: bool = False
-    org_unit_id: Optional[int] = None
-    display_name: Optional[str] = None
+    org_unit_id: int | None = None
+    display_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,16 +35,16 @@ class JiraUserResponse(BaseModel):
     id: int
     jira_account_id: str
     display_name: str
-    email: Optional[EmailStr] = None
-    avatar_url: Optional[str] = None
+    email: EmailStr | None = None
+    avatar_url: str | None = None
     is_active: bool
     weekly_quota: int
-    org_unit_id: Optional[int] = None
-    user_id: Optional[int] = None
+    org_unit_id: int | None = None
+    user_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 class JiraUserUpdate(BaseModel):
-    org_unit_id: Optional[int] = None
-    is_active: Optional[bool] = None
-    weekly_quota: Optional[int] = None
+    org_unit_id: int | None = None
+    is_active: bool | None = None
+    weekly_quota: int | None = None

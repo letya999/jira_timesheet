@@ -1,7 +1,10 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-from services.jira import sync_jira_projects_to_db, fetch_jira_projects, fetch_jira_project_versions, fetch_jira_project_sprints
-from models import Project
+from services.jira import (
+    sync_jira_projects_to_db,
+)
+
 
 @pytest.mark.asyncio
 async def test_sync_jira_projects_full():
@@ -18,7 +21,7 @@ async def test_sync_jira_projects_full():
         mock_res = MagicMock()
         mock_res.scalar_one_or_none.return_value = None # No existing project
         db.execute.return_value = mock_res
-        
+
         await sync_jira_projects_to_db(db)
         assert db.add.called
         # Check if it tried to add Project, Version, Sprint

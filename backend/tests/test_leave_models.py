@@ -1,9 +1,11 @@
+from datetime import date
+
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-from models.user import User
-from models.leave import LeaveRequest, LeaveType, LeaveStatus
 from core.security import get_password_hash
-from datetime import date, datetime
+from models.leave import LeaveRequest, LeaveStatus, LeaveType
+from models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_create_leave_request(db: AsyncSession):

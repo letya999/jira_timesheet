@@ -1,10 +1,12 @@
-import streamlit as st
-import extra_streamlit_components as stx
-from datetime import datetime, timedelta
-import time
-import json
 import base64
+import json
+import time
+from datetime import datetime, timedelta
+
+import extra_streamlit_components as stx
+import streamlit as st
 from i18n import t
+
 
 def get_cookie_manager():
     if "cookie_manager" not in st.session_state:
@@ -29,7 +31,7 @@ def ensure_session(allow_wait=False):
     Returns (token, cookie_manager)
     """
     cookie_manager = get_cookie_manager()
-    
+
     # 1. MEMORY - Instant
     current_token = st.session_state.get("token")
     if current_token:
@@ -55,7 +57,7 @@ def ensure_session(allow_wait=False):
                 return token, cookie_manager
     except Exception:
         pass
-    
+
     # 4. JS BEACON - Restore from LocalStorage to URL
     js_beacon()
 
@@ -65,7 +67,7 @@ def ensure_session(allow_wait=False):
         with st.spinner(t("auth.restoring_session")):
             time.sleep(1.2)
             st.rerun()
-            
+
     return None, cookie_manager
 
 def js_beacon():
@@ -94,11 +96,11 @@ def js_beacon():
 def set_token(token, cookie_manager):
     st.session_state["token"] = token
     st.query_params["token"] = token
-    
+
     # Save to Cookies
     expires_at = datetime.now() + timedelta(days=7)
     cookie_manager.set("token", token, expires_at=expires_at, key="set_token_cookie")
-    
+
     # Save to LocalStorage via JS
     import streamlit.components.v1 as components
     components.html(f"<script>localStorage.setItem('auth_token', '{token}');</script>", height=0, width=0)
@@ -107,17 +109,17 @@ def delete_token(cookie_manager):
     st.session_state["token"] = "logged_out"
     if "token" in st.query_params:
         del st.query_params["token"]
-    
+
     # Delete from cookies
     try:
         cookie_manager.delete("token", key="delete_token_cookie")
     except Exception:
         pass
-    
+
     # Clear LocalStorage
     import streamlit.components.v1 as components
     components.html("<script>localStorage.setItem('auth_token', 'logged_out'); localStorage.removeItem('auth_token');</script>", height=0, width=0)
-    
+
     st.rerun()
 
 def get_user_role():

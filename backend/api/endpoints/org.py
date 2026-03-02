@@ -1,22 +1,31 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
-from core.database import get_db
-from api import deps
-from schemas.org import (
-    OrgUnitCreate, OrgUnitUpdate, OrgUnitResponse, OrgUnitTree,
-    RoleCreate, RoleUpdate, RoleResponse,
-    UserOrgRoleCreate, UserOrgRoleResponse,
-    ApprovalRouteCreate, ApprovalRouteUpdate, ApprovalRouteResponse
-)
-from schemas.user import JiraUserResponse, JiraUserUpdate
-from schemas.pagination import PaginatedResponse
-from models.user import JiraUser, User
-from models.org import OrgUnit, Role, UserOrgRole, ApprovalRoute
-from crud.org import org_unit as crud_org, role as crud_role, user_org_role as crud_uor, approval_route as crud_ar
 import math
+
+from core.database import get_db
+from crud.org import approval_route as crud_ar
+from crud.org import org_unit as crud_org
+from crud.org import role as crud_role
+from crud.org import user_org_role as crud_uor
+from fastapi import APIRouter, Depends, HTTPException, status
+from models.org import ApprovalRoute, OrgUnit, UserOrgRole
+from models.user import JiraUser, User
+from schemas.org import (
+    ApprovalRouteCreate,
+    ApprovalRouteResponse,
+    OrgUnitCreate,
+    OrgUnitResponse,
+    OrgUnitUpdate,
+    RoleCreate,
+    RoleResponse,
+    UserOrgRoleCreate,
+    UserOrgRoleResponse,
+)
+from schemas.pagination import PaginatedResponse
+from schemas.user import JiraUserResponse, JiraUserUpdate
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from api import deps
 
 router = APIRouter()
 
@@ -27,8 +36,8 @@ async def get_employees(
     current_user = Depends(deps.get_current_user),
     page: int = 1,
     size: int = 50,
-    search: Optional[str] = None,
-    org_unit_id: Optional[int] = None
+    search: str | None = None,
+    org_unit_id: int | None = None
 ):
     query = select(JiraUser).options(selectinload(JiraUser.user))
     if search:
@@ -71,11 +80,11 @@ async def update_employee(
         raise HTTPException(status_code=404, detail="Employee not found")
 
     update_data = obj_in.model_dump(exclude_unset=True)
-    
+
     # Handle org_unit_id specifically if it comes instead of team_id
     if "team_id" in update_data:
         employee.org_unit_id = update_data.pop("team_id")
-        
+
     for field, value in update_data.items():
         if hasattr(employee, field):
             setattr(employee, field, value)
@@ -92,11 +101,11 @@ async def update_employee(
 
 
 # --- Org Units ---
-@router.get("/units", response_model=List[OrgUnitResponse])
+@router.get("/units", response_model=list[OrgUnitResponse])
 async def get_org_units(db: AsyncSession = Depends(get_db)):
     return await crud_org.get_multi(db, limit=1000)
 
-@router.get("/my-teams", response_model=List[OrgUnitResponse])
+@router.get("/my-teams", response_model=list[OrgUnitResponse])
 async def get_my_teams(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(deps.get_current_user)
@@ -104,7 +113,7 @@ async def get_my_teams(
     """Return units where user has a role assigned."""
     if current_user.role in ["Admin", "CEO"]:
         return await crud_org.get_multi(db, limit=1000)
-        
+
     result = await db.execute(
         select(OrgUnit)
         .join(UserOrgRole)
@@ -145,7 +154,7 @@ async def delete_org_unit(
     return None
 
 # --- Roles ---
-@router.get("/roles", response_model=List[RoleResponse])
+@router.get("/roles", response_model=list[RoleResponse])
 async def get_roles(db: AsyncSession = Depends(get_db), current_user = Depends(deps.require_role(["Admin"]))):
     return await crud_role.get_multi(db, limit=100)
 
@@ -170,7 +179,7 @@ async def delete_role(
     return None
 
 # --- User Org Roles (Assignments) ---
-@router.get("/units/{unit_id}/roles", response_model=List[UserOrgRoleResponse])
+@router.get("/units/{unit_id}/roles", response_model=list[UserOrgRoleResponse])
 async def get_unit_roles(
     unit_id: int,
     db: AsyncSession = Depends(get_db),
@@ -206,18 +215,22 @@ async def remove_user_role(
     return None
 
 # --- Approval Routes ---
-@router.get("/units/{unit_id}/approval-routes", response_model=List[ApprovalRouteResponse])
+@router.get("/units/{unit_id}/approval-routes", response_model=list[ApprovalRouteResponse])
 async def get_unit_approval_routes(
     unit_id: int,
-    target_type: Optional[str] = None,
+    target_type: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(deps.require_role(["Admin"]))
 ):
     if target_type:
         return await crud_ar.get_by_unit_and_target(db, org_unit_id=unit_id, target_type=target_type)
-    
+
     # Alternatively get all
-    result = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == unit_id).options(selectinload(ApprovalRoute.role)))
+    result = await db.execute(
+        select(ApprovalRoute)
+        .where(ApprovalRoute.org_unit_id == unit_id)
+        .options(selectinload(ApprovalRoute.role))
+    )
     return result.scalars().all()
 
 @router.post("/units/approval-routes", response_model=ApprovalRouteResponse)
@@ -228,7 +241,11 @@ async def create_approval_route(
 ):
     route = await crud_ar.create(db, obj_in=obj_in)
     # Refetch to load role
-    result = await db.execute(select(ApprovalRoute).where(ApprovalRoute.id == route.id).options(selectinload(ApprovalRoute.role)))
+    result = await db.execute(
+        select(ApprovalRoute)
+        .where(ApprovalRoute.id == route.id)
+        .options(selectinload(ApprovalRoute.role))
+    )
     return result.scalar_one()
 
 @router.delete("/units/approval-routes/{route_id}", status_code=status.HTTP_204_NO_CONTENT)

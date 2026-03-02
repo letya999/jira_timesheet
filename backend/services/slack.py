@@ -1,7 +1,7 @@
-import httpx
-from typing import Optional, List, Dict, Any
-from core.config import settings
 import logging
+
+import httpx
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,18 +13,18 @@ class SlackService:
             "Content-Type": "application/json"
         }
 
-    async def send_message(self, channel: str, text: str, blocks: Optional[List[Dict]] = None) -> bool:
+    async def send_message(self, channel: str, text: str, blocks: list[dict] | None = None) -> bool:
         if not settings.SLACK_BOT_TOKEN:
             logger.warning("Slack bot token not configured")
             return False
-            
+
         payload = {
             "channel": channel,
             "text": text
         }
         if blocks:
             payload["blocks"] = blocks
-            
+
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{self.base_url}/chat.postMessage", json=payload, headers=self.headers)
             data = response.json()
@@ -34,18 +34,18 @@ class SlackService:
             return True
 
     async def send_leave_request_notification(
-        self, 
-        user_name: str, 
-        leave_type: str, 
-        start_date: str, 
-        end_date: str, 
+        self,
+        user_name: str,
+        leave_type: str,
+        start_date: str,
+        end_date: str,
         reason: str,
         leave_id: int
     ):
         """Sends an interactive leave request to the configured Slack channel."""
         if not settings.SLACK_NOTIFICATIONS_CHANNEL:
             return False
-            
+
         text = f"New Leave Request from {user_name}"
         blocks = [
             {
@@ -89,7 +89,7 @@ class SlackService:
                 ]
             }
         ]
-        
+
         return await self.send_message(settings.SLACK_NOTIFICATIONS_CHANNEL, text, blocks)
 
 slack_service = SlackService()

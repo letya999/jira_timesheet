@@ -1,4 +1,3 @@
-import os
 import glob
 
 router_replacement = """router = APIRouter(
@@ -15,9 +14,9 @@ router_replacement = """router = APIRouter(
 
 directory = "backend/api/endpoints"
 for filepath in glob.glob(f"{directory}/*.py"):
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = f.read()
-    
+
     if "router = APIRouter()" in content:
         content = content.replace("router = APIRouter()", router_replacement)
         with open(filepath, "w", encoding="utf-8") as f:

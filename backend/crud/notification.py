@@ -1,14 +1,15 @@
-from typing import List, Optional
-from sqlalchemy import select, func, desc
-from sqlalchemy.ext.asyncio import AsyncSession
-from crud.base import CRUDBase
 from models.notification import Notification
 from schemas.notification import NotificationCreate, NotificationUpdate
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from crud.base import CRUDBase
+
 
 class CRUDNotification(CRUDBase[Notification, NotificationCreate, NotificationUpdate]):
     async def get_multi_by_user(
         self, db: AsyncSession, *, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Notification]:
+    ) -> list[Notification]:
         result = await db.execute(
             select(self.model)
             .where(self.model.user_id == user_id)
@@ -23,7 +24,7 @@ class CRUDNotification(CRUDBase[Notification, NotificationCreate, NotificationUp
             select(func.count())
             .select_from(self.model)
             .where(self.model.user_id == user_id)
-            .where(self.model.is_read == False)
+            .where(not self.model.is_read)
         )
         return result.scalar_one()
 
@@ -32,7 +33,7 @@ class CRUDNotification(CRUDBase[Notification, NotificationCreate, NotificationUp
         result = await db.execute(
             update(self.model)
             .where(self.model.user_id == user_id)
-            .where(self.model.is_read == False)
+            .where(not self.model.is_read)
             .values(is_read=True)
         )
         # Assuming commit happens elsewhere or we commit here

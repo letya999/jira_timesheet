@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 from datetime import date, datetime
+
+from pydantic import BaseModel, ConfigDict
+
 
 class ProjectBase(BaseModel):
     jira_id: str
@@ -12,8 +13,8 @@ class ProjectCreate(ProjectBase):
     pass
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    is_active: bool | None = None
 
 class ProjectResponse(ProjectBase):
     id: int
@@ -25,8 +26,8 @@ class SprintBase(BaseModel):
     jira_id: str
     name: str
     state: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start_date: date | None = None
+    end_date: date | None = None
 
 class SprintResponse(SprintBase):
     id: int
@@ -38,7 +39,7 @@ class ReleaseBase(BaseModel):
     jira_id: str
     name: str
     released: bool
-    release_date: Optional[date] = None
+    release_date: date | None = None
     project_id: int
 
 class ReleaseResponse(ReleaseBase):
@@ -51,4 +52,4 @@ class JiraProject(BaseModel):
     id: str
     key: str
     name: str
-    projectTypeKey: Optional[str] = None
+    projectTypeKey: str | None = None

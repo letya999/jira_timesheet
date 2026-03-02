@@ -1,16 +1,17 @@
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import date
-from services.calendar import calendar_service
-from services.timesheet import timesheet_service
-from services.notification import notification_service
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from models.calendar import CalendarEvent
-from models.timesheet import TimesheetPeriod
+from services.calendar import calendar_service
+from services.notification import notification_service
+from services.timesheet import timesheet_service
+
 
 @pytest.mark.asyncio
 async def test_calendar_service_extra():
     db = AsyncMock()
-    with patch("services.calendar.select") as mock_select:
+    with patch("services.calendar.select"):
         mock_res = MagicMock()
         mock_res.scalars.return_value.all.return_value = [CalendarEvent(date=date(2026,1,1))]
         db.execute.return_value = mock_res
@@ -20,7 +21,7 @@ async def test_calendar_service_extra():
 @pytest.mark.asyncio
 async def test_timesheet_service_extra():
     db = AsyncMock()
-    with patch("services.timesheet.select") as mock_select:
+    with patch("services.timesheet.select"):
         mock_res = MagicMock()
         mock_res.scalars.return_value.all.return_value = []
         db.execute.return_value = mock_res
@@ -38,7 +39,7 @@ async def test_notification_service_extra():
 async def test_jira_service_extra():
     db = AsyncMock()
     from services.jira import get_default_category_id
-    with patch("services.jira.select") as mock_select:
+    with patch("services.jira.select"):
         mock_cat = MagicMock()
         mock_cat.id = 1
         mock_res = MagicMock()

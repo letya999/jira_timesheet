@@ -1,16 +1,16 @@
-from typing import List
+import math
+
+from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
+from models.notification import Notification
+from models.user import User
+from schemas.notification import NotificationResponse, NotificationStats, NotificationUpdate
+from schemas.pagination import PaginatedResponse
+from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, update
 from sqlalchemy.orm import joinedload
 
 from api import deps
-from core.database import get_db
-from models.notification import Notification
-from models.user import User
-from schemas.notification import NotificationResponse, NotificationUpdate, NotificationStats
-from schemas.pagination import PaginatedResponse
-import math
 
 router = APIRouter()
 
@@ -23,19 +23,19 @@ async def get_my_notifications(
 ):
     """Fetch notifications for the current user with pagination."""
     query = select(Notification).where(Notification.user_id == current_user.id).options(joinedload(Notification.sender))
-    
+
     # Count total
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-    
+
     # Fetch items
     query = query.order_by(desc(Notification.created_at)).offset((page - 1) * size).limit(size)
     result = await db.execute(query)
     notifications = result.scalars().all()
-    
+
     pages = math.ceil(total / size) if size > 0 else 1
-    
+
     resp_items = []
     for n in notifications:
         resp_items.append({
@@ -52,7 +52,7 @@ async def get_my_notifications(
             "created_at": n.created_at,
             "updated_at": n.updated_at
         })
-    
+
     return {
         "items": resp_items,
         "total": total,
@@ -71,7 +71,7 @@ async def get_notification_stats(
         select(func.count())
         .select_from(Notification)
         .where(Notification.user_id == current_user.id)
-        .where(Notification.is_read == False)
+        .where(Notification.is_read.is_(False))
     )
     return {"unread_count": result.scalar() or 0}
 
@@ -87,20 +87,20 @@ async def update_notification(
         select(Notification).where(Notification.id == notification_id).options(joinedload(Notification.sender))
     )
     notification = result.scalar_one_or_none()
-    
+
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
-    
+
     if notification.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    
+
     if obj_in.is_read is not None:
         notification.is_read = obj_in.is_read
-    
+
     db.add(notification)
     await db.commit()
     await db.refresh(notification)
-    
+
     return {
         "id": notification.id,
         "user_id": notification.user_id,
@@ -125,7 +125,7 @@ async def mark_all_notifications_read(
     await db.execute(
         update(Notification)
         .where(Notification.user_id == current_user.id)
-        .where(Notification.is_read == False)
+        .where(Notification.is_read.is_(False))
         .values(is_read=True)
     )
     await db.commit()

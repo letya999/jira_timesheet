@@ -1,9 +1,11 @@
-import pytest
-from httpx import AsyncClient
-from core.security import get_password_hash
-from models import User, JiraUser, OrgUnit, Worklog, WorklogCategory
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date, timedelta
+
+import pytest
+from core.security import get_password_hash
+from httpx import AsyncClient
+from models import JiraUser, OrgUnit, User, Worklog, WorklogCategory
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.fixture
 async def setup_control_sheet_data(db: AsyncSession):
@@ -28,11 +30,11 @@ async def setup_control_sheet_data(db: AsyncSession):
     dept = OrgUnit(name="IT")
     db.add(dept)
     await db.flush()
-    
+
     div = OrgUnit(name="Software", parent_id=dept.id)
     db.add(div)
     await db.flush()
-    
+
     team_a = OrgUnit(name="OrgUnit Alpha", parent_id=div.id)
     team_b = OrgUnit(name="OrgUnit Beta", parent_id=div.id) # Different team
     db.add_all([team_a, team_b])
@@ -43,7 +45,7 @@ async def setup_control_sheet_data(db: AsyncSession):
     pm_role = Role(name="PM", is_system=True)
     db.add(pm_role)
     await db.flush()
-    
+
     uor = UserOrgRole(user_id=pm.id, org_unit_id=team_a.id, role_id=pm_role.id)
     db.add(uor)
     await db.flush()
@@ -110,10 +112,10 @@ async def test_pm_dashboard_scoping(client: AsyncClient, setup_control_sheet_dat
 
     today = date.today().isoformat()
     response = await client.get(f"/api/v1/reports/dashboard?start_date={today}&end_date={today}", headers=headers)
-    
+
     assert response.status_code == 200
     data = response.json()["data"]
-    
+
     assert len(data) == 1
     assert data[0]["User"] == "Alice (OrgUnit A)"
     assert data[0]["OrgUnit"] == "OrgUnit Alpha"
@@ -126,7 +128,7 @@ async def test_admin_dashboard_sees_all(client: AsyncClient, setup_control_sheet
 
     today = date.today().isoformat()
     response = await client.get(f"/api/v1/reports/dashboard?start_date={today}&end_date={today}", headers=headers)
-    
+
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 2
@@ -139,10 +141,10 @@ async def test_jira_user_response_includes_user_id(client: AsyncClient, setup_co
     response = await client.get("/api/v1/org/employees", headers=headers)
     assert response.status_code == 200
     items = response.json()["items"]
-    
+
     alice = next(u for u in items if "Alice" in u["display_name"])
     bob = next(u for u in items if "Bob" in u["display_name"])
-    
+
     assert alice["user_id"] is not None
     assert bob["user_id"] is None
 
@@ -154,9 +156,9 @@ async def test_team_periods_scoping_for_pm(client: AsyncClient, setup_control_sh
     today = date.today()
     monday = today - timedelta(days=today.weekday())
     sunday = monday + timedelta(days=6)
-    
+
     response = await client.get(
-        f"/api/v1/approvals/team-periods?start_date={monday.isoformat()}&end_date={sunday.isoformat()}", 
+        f"/api/v1/approvals/team-periods?start_date={monday.isoformat()}&end_date={sunday.isoformat()}",
         headers=headers
     )
     assert response.status_code == 200
@@ -167,9 +169,9 @@ async def test_pm_approves_timesheet(client: AsyncClient, setup_control_sheet_da
     today = date.today()
     monday = today - timedelta(days=today.weekday())
     sunday = monday + timedelta(days=6)
-    
+
     sub_res = await client.post(
-        "/api/v1/approvals/submit", 
+        "/api/v1/approvals/submit",
         json={"start_date": monday.isoformat(), "end_date": sunday.isoformat()},
         headers={"Authorization": f"Bearer {alice_token}"}
     )
@@ -178,7 +180,7 @@ async def test_pm_approves_timesheet(client: AsyncClient, setup_control_sheet_da
 
     pm_token = await get_token(client, "pm@example.com", "pass")
     pm_headers = {"Authorization": f"Bearer {pm_token}"}
-    
+
     app_res = await client.post(
         f"/api/v1/approvals/{period_id}/approve",
         json={"status": "APPROVED", "comment": "Good job"},

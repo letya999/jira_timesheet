@@ -1,15 +1,16 @@
-from pydantic import BaseModel, ConfigDict, Field
 from datetime import date, datetime
-from typing import Optional
-from enum import Enum
+from enum import StrEnum
 
-class LeaveType(str, Enum):
+from pydantic import BaseModel, ConfigDict
+
+
+class LeaveType(StrEnum):
     VACATION = "VACATION"
     SICK_LEAVE = "SICK_LEAVE"
     DAY_OFF = "DAY_OFF"
     OTHER = "OTHER"
 
-class LeaveStatus(str, Enum):
+class LeaveStatus(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
@@ -19,33 +20,33 @@ class LeaveBase(BaseModel):
     type: LeaveType = LeaveType.VACATION
     start_date: date
     end_date: date
-    reason: Optional[str] = None
+    reason: str | None = None
 
 class LeaveCreate(LeaveBase):
     pass
 
 class LeaveUpdate(BaseModel):
-    status: Optional[LeaveStatus] = None
-    comment: Optional[str] = None
-    approver_id: Optional[int] = None
-    type: Optional[LeaveType] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    reason: Optional[str] = None
+    status: LeaveStatus | None = None
+    comment: str | None = None
+    approver_id: int | None = None
+    type: LeaveType | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    reason: str | None = None
 
 class LeaveResponse(LeaveBase):
     id: int
     user_id: int
     status: LeaveStatus
-    approver_id: Optional[int] = None
-    comment: Optional[str] = None
+    approver_id: int | None = None
+    comment: str | None = None
     current_step_order: int = 1
     created_at: datetime
     updated_at: datetime
-    
+
     # Simple versions of related entities if needed
-    user_full_name: Optional[str] = None
-    approver_full_name: Optional[str] = None
+    user_full_name: str | None = None
+    approver_full_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

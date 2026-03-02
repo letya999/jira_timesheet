@@ -1,18 +1,19 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload, joinedload
-from api import deps
-from schemas.user import UserResponse, UserPromoteResponse, PasswordChangeRequest
-from schemas.pagination import PaginatedResponse
-from core.database import get_db
-from core.security import get_password_hash
-from models.user import User, JiraUser
-from services.jira import sync_jira_users_to_db
 import math
 import secrets
 import string
+
+from core.database import get_db
+from core.security import get_password_hash
+from fastapi import APIRouter, Depends, HTTPException
+from models.user import JiraUser, User
+from schemas.pagination import PaginatedResponse
+from schemas.user import PasswordChangeRequest, UserPromoteResponse, UserResponse
+from services.jira import sync_jira_users_to_db
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+
+from api import deps
 
 router = APIRouter()
 
@@ -25,19 +26,19 @@ async def get_users(
 ):
     """Fetch all system users with pagination."""
     query = select(User).options(joinedload(User.jira_user))
-    
+
     # Count total
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-    
+
     # Fetch items
     query = query.offset((page - 1) * size).limit(size)
     result = await db.execute(query)
     users = result.scalars().all()
-    
+
     pages = math.ceil(total / size) if size > 0 else 1
-    
+
     # Map to response with jira data
     resp_items = []
     for u in users:
@@ -52,7 +53,7 @@ async def get_users(
             "org_unit_id": u.jira_user.org_unit_id if u.jira_user else None,
             "display_name": u.jira_user.display_name if u.jira_user else u.full_name
         })
-    
+
     return {
         "items": resp_items,
         "total": total,
@@ -93,17 +94,17 @@ async def promote_to_system_user(
     jira_user = result.scalar_one_or_none()
     if not jira_user:
         raise HTTPException(status_code=404, detail="Jira user not found")
-    
+
     # Check if already has system user
     result = await db.execute(select(User).where(User.jira_user_id == jira_user_id))
     existing_user = result.scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="User already has system access")
-    
+
     # Generate random password
     alphabet = string.ascii_letters + string.digits
     temp_password = ''.join(secrets.choice(alphabet) for i in range(10))
-    
+
     new_user = User(
         email=jira_user.email if jira_user.email else f"user_{jira_user_id}@local.internal",
         hashed_password=get_password_hash(temp_password),
@@ -113,11 +114,11 @@ async def promote_to_system_user(
         needs_password_change=True,
         jira_user_id=jira_user_id
     )
-    
+
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
+
     return {
         "id": new_user.id,
         "email": new_user.email,
@@ -140,10 +141,10 @@ async def change_password(
     """Change current user password and clear needs_password_change flag."""
     current_user.hashed_password = get_password_hash(payload.new_password)
     current_user.needs_password_change = False
-    
+
     db.add(current_user)
     await db.commit()
-    
+
     return {"status": "success", "message": "Password changed successfully"}
 
 @router.post("/sync")

@@ -1,7 +1,10 @@
-from sqlalchemy import String, Date, Boolean, Integer
-from sqlalchemy.orm import Mapped, mapped_column
-from models.base import Base
 from datetime import date
+
+from sqlalchemy import Boolean, Date, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from models.base import Base
+
 
 class CalendarEvent(Base):
     __tablename__ = "calendar_events"

@@ -1,7 +1,9 @@
 import asyncio
-from sqlalchemy import select
+
 from core.database import async_session
 from models.user import User
+from sqlalchemy import select
+
 
 async def run():
     async with async_session() as session:

@@ -1,7 +1,9 @@
 
 import asyncio
+
 from core.database import async_session
 from services.jira import sync_jira_users_to_db
+
 
 async def force_user_sync():
     async with async_session() as db:

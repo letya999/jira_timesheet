@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from init_db import init_db
 from seed import seed
 
+
 async def full_reinit():
     print("=== DATABASE RE-INITIALIZATION START ===")
     await init_db()

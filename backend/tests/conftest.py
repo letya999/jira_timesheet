@@ -1,22 +1,21 @@
-import asyncio
 import os
 
 # Increase rate limit for tests
 os.environ["RATE_LIMIT_MAX_REQUESTS"] = "10000"
 
+import os
+from collections.abc import AsyncGenerator
+
 import pytest
-from typing import AsyncGenerator
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from main import app
-import models # Ensure all models are imported for metadata
-from models.base import Base
 from core.database import get_db
 from core.security import get_password_hash
-from models import User
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
-import os
+from httpx import ASGITransport, AsyncClient
+from main import app
+from models import User
+from models.base import Base
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Increase rate limit for tests
 os.environ["RATE_LIMIT_MAX_REQUESTS"] = "10000"

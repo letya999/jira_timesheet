@@ -1,8 +1,13 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 from api_client import (
-    get_employees, sync_users_from_jira, fetch_org_units,
-    update_employee, get_headers, promote_user, get_me
+    fetch_org_units,
+    get_employees,
+    get_headers,
+    get_me,
+    promote_user,
+    sync_users_from_jira,
+    update_employee,
 )
 from auth_utils import ensure_session
 from i18n import t
@@ -74,8 +79,12 @@ with tab_list:
         df = pd.DataFrame(users_list)
 
         # Map org_unit_id to path for display
-        df["OrgUnit"] = df["org_unit_id"].apply(lambda x: unit_map.get(x, t("common.unassigned")))
-        df[t("employees.system_access")] = df["user_id"].apply(lambda x: "✅ " + t("employees.has_access") if x else "❌ " + t("employees.no_access"))
+        df["OrgUnit"] = df["org_unit_id"].apply(
+            lambda x: unit_map.get(x, t("common.unassigned"))
+        )
+        df[t("employees.system_access")] = df["user_id"].apply(
+            lambda x: "✅ " + t("employees.has_access") if x else "❌ " + t("employees.no_access")
+        )
 
         # Prepare for editor
         df_editor = df[["id", "display_name", "email", "OrgUnit", "is_active", t("employees.system_access")]].copy()
@@ -86,7 +95,11 @@ with tab_list:
                 "id": st.column_config.NumberColumn("ID", disabled=True),
                 "display_name": st.column_config.TextColumn(t("common.name"), disabled=True),
                 "email": st.column_config.TextColumn(t("common.email"), disabled=True),
-                "OrgUnit": st.column_config.SelectboxColumn(t("common.department"), options=list(unit_map.values()), required=True),
+                "OrgUnit": st.column_config.SelectboxColumn(
+                    t("common.department"),
+                    options=list(unit_map.values()),
+                    required=True
+                ),
                 "is_active": st.column_config.CheckboxColumn(t("common.active")),
                 t("employees.system_access"): st.column_config.TextColumn(t("employees.system_access"), disabled=True)
             },
@@ -102,8 +115,8 @@ with tab_list:
             if no_access_users:
                 col_u, col_b = st.columns([0.7, 0.3])
                 user_to_promote = col_u.selectbox(
-                    t("common.employee"), 
-                    options=no_access_users, 
+                    t("common.employee"),
+                    options=no_access_users,
                     format_func=lambda x: f"{x['display_name']} ({x['email'] or t('common.na')})",
                     key="promote_select"
                 )
@@ -120,10 +133,10 @@ with tab_list:
             new_u = st.session_state["last_created_user"]
             st.success(t("employees.temp_password_title"))
             st.info(t("employees.temp_password_msg", name=new_u['display_name']))
-            
+
             creds = f"Email: {new_u['email']}\nPassword: {new_u['temporary_password']}"
             st.code(creds, language="text")
-            
+
             if st.button(t("common.close")):
                 del st.session_state["last_created_user"]
                 st.rerun()
@@ -133,8 +146,16 @@ with tab_list:
             for i, row in edited_df.iterrows():
                 original_row = df_editor.iloc[i]
                 if row["OrgUnit"] != original_row["OrgUnit"] or row["is_active"] != original_row["is_active"]:
-                    new_org_unit_id = next((tid for tid, path in unit_map.items() if path == row["OrgUnit"]), None)
-                    if update_employee(row["id"], org_unit_id=new_org_unit_id if new_org_unit_id != 0 else None, is_active=row["is_active"]):
+                    new_org_unit_id = next(
+                        (tid for tid, path in unit_map.items() if path == row["OrgUnit"]),
+                        None
+                    )
+                    success = update_employee(
+                        row["id"],
+                        org_unit_id=new_org_unit_id if new_org_unit_id != 0 else None,
+                        is_active=row["is_active"]
+                    )
+                    if success:
                         updated_names.append(row["display_name"])
 
             if updated_names:
@@ -171,11 +192,11 @@ with tab_hier:
         current_unit = next((u for u in units_list if u["id"] == current_unit_id), None)
         if current_unit:
             st.markdown(f"{indent}📂 **{current_unit['name']}**")
-            
+
             unit_emps = [e for e in all_emps if e.get("org_unit_id") == current_unit_id]
             for e in unit_emps:
                 st.markdown(f"{indent}&nbsp;&nbsp;&nbsp;&nbsp;👤 {e['display_name']}")
-                
+
             children = [u for u in units_list if u.get("parent_id") == current_unit_id]
             for child in children:
                 render_emps_in_unit(units_list, child["id"], level + 1)

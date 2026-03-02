@@ -1,8 +1,9 @@
-import streamlit as st
 import time
-from auth_utils import ensure_session, get_cookie_manager, delete_token, check_access
-from api_client import get_me, fetch_notification_stats, change_password
-from i18n import t, language_selector
+
+import streamlit as st
+from api_client import change_password, fetch_notification_stats, get_me
+from auth_utils import check_access, delete_token, ensure_session
+from i18n import language_selector, t
 from ui_components import notification_sidebar_summary
 
 st.set_page_config(page_title=t("common.system_title"), page_icon="logo.png", layout="wide")
@@ -33,42 +34,50 @@ if not token:
     # If not logged in, force navigation to Login page.
     def auth_redirect():
         st.switch_page(login_page)
-        
+
     redirect_page = st.Page(auth_redirect, title="Redirecting...", default=True)
     st.navigation([redirect_page, login_page], position="hidden").run()
     st.stop()
 else:
     # Define page groups based on role
     is_privileged = check_access(allowed_roles=["Admin", "CEO", "PM"])
-    
+
     # Check if we are on the login page via URL (e.g. after refresh if state was lost)
-    # Streamlit doesn't give a direct way to see the "current page" BEFORE navigation, 
+    # Streamlit doesn't give a direct way to see the "current page" BEFORE navigation,
     # but the navigation run() handles it based on URL.
 
     if is_privileged:
         # Full menu for privileged users
         pages_to_show = {
-            t("common.nav_main"): [home_page, journal_page, timesheet_page, leaves_page, dashboard_page, notifications_page],
+            t("common.nav_main"): [
+                home_page, journal_page, timesheet_page,
+                leaves_page, dashboard_page, notifications_page
+            ],
             t("common.nav_analytics"): [reports_builder_page],
-            t("common.nav_admin"): [org_page, employees_page, projects_page, approvals_page, control_sheet_page, hr_module_page, settings_page]
+            t("common.nav_admin"): [
+                org_page, employees_page, projects_page,
+                approvals_page, control_sheet_page,
+                hr_module_page, settings_page
+            ]
         }
+
     else:
         # Minimal menu for regular employees
         pages_to_show = {
             t("common.nav_workspace"): [home_page, journal_page, timesheet_page, leaves_page, notifications_page],
             t("common.nav_reporting"): [reports_builder_page]
         }
-    
+
     # Check if password change is required
     user_info = get_me()
     if user_info and user_info.get("needs_password_change"):
         st.warning(t("employees.password_change_required"))
         st.info(t("employees.password_change_msg"))
-        
+
         with st.form("change_password_form"):
             new_pwd = st.text_input(t("employees.new_password"), type="password")
             conf_pwd = st.text_input(t("employees.confirm_password"), type="password")
-            
+
             if st.form_submit_button(t("employees.change_password_btn"), type="primary"):
                 if new_pwd != conf_pwd:
                     st.error(t("employees.passwords_dont_match"))
@@ -83,7 +92,7 @@ else:
                         st.error(t("common.error"))
         st.stop()
 
-    # IMPORTANT: Initialize navigation. 
+    # IMPORTANT: Initialize navigation.
     # If the user was on a specific subpage, st.navigation will respect the URL.
     pg = st.navigation(pages_to_show)
 
@@ -100,14 +109,14 @@ else:
                 user_role = user_info.get("role", "User")
                 st.markdown(f"**👤 {user_display}**")
                 st.caption(f"{t('common.role')}: {user_role}")
-                
+
                 # Show unread notifications summary
                 stats = fetch_notification_stats()
                 if stats and stats.get("unread_count", 0) > 0:
                     notification_sidebar_summary(stats["unread_count"])
             else:
                 st.markdown(f"**👤 {t('sidebar.profile')}**")
-                
+
             if st.button(f"🚪 {t('common.logout')}", width="stretch"):
                 delete_token(cookie_manager)
 

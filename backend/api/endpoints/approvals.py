@@ -1,14 +1,15 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
-from core.database import get_db
-from api import deps
-from models.timesheet import TimesheetPeriod, TimesheetApprovalStep
-from models.user import User, JiraUser
-from models.org import OrgUnit, Role, UserOrgRole, ApprovalRoute
 from datetime import date, datetime, timedelta
+
+from core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from models.org import ApprovalRoute, UserOrgRole
+from models.timesheet import TimesheetApprovalStep, TimesheetPeriod
+from models.user import JiraUser, User
 from pydantic import BaseModel
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps import get_current_user, require_role
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ class PeriodSubmit(BaseModel):
 
 class ApprovalAction(BaseModel):
     status: str
-    comment: Optional[str] = None
+    comment: str | None = None
 
 def get_period_dates(ref_date: date, period_type: str):
     if period_type == "weekly":
@@ -42,9 +43,9 @@ def get_period_dates(ref_date: date, period_type: str):
 
 @router.get("/my-period")
 async def get_my_period(
-    target_date: Optional[date] = None,
+    target_date: date | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Fetch period status for the current user and target date."""
     if not target_date:
@@ -91,7 +92,7 @@ async def get_my_period(
 async def submit_period(
     payload: PeriodSubmit,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Submit a timesheet period for approval."""
     result = await db.execute(
@@ -131,9 +132,9 @@ async def submit_period(
 async def get_team_periods(
     start_date: date,
     end_date: date,
-    org_unit_id: Optional[int] = None,
+    org_unit_id: int | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
+    current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"]))  # noqa: B008
 ):
     """Fetch all period statuses for a team in a specific date range."""
     user_query = select(User).join(JiraUser)
@@ -147,7 +148,7 @@ async def get_team_periods(
         unit_ids = [row for row in uor_res.scalars().all()]
         if not unit_ids:
             return []
-        
+
         if org_unit_id:
             if org_unit_id not in unit_ids:
                 return []
@@ -172,54 +173,95 @@ async def get_team_periods(
     result = await db.execute(period_query)
     return result.scalars().all()
 
+async def _check_approval_permission(
+    db: AsyncSession, user: User, period: TimesheetPeriod, org_unit_id: int | None
+) -> bool:
+    if user.role in ["Admin", "CEO"]:
+        return True
+    if not org_unit_id:
+        return False
+
+    stmt_routes = (
+        select(ApprovalRoute)
+        .where(
+            and_(
+                ApprovalRoute.org_unit_id == org_unit_id,
+                ApprovalRoute.target_type == 'timesheet'
+            )
+        )
+        .order_by(ApprovalRoute.step_order)
+    )
+    routes_res = await db.execute(stmt_routes)
+    routes = routes_res.scalars().all()
+
+    if routes:
+        current_route = next((r for r in routes if r.step_order == period.current_step_order), None)
+        if current_route:
+            stmt_uor = (
+                select(UserOrgRole)
+                .where(
+                    and_(
+                        UserOrgRole.user_id == user.id,
+                        UserOrgRole.org_unit_id == org_unit_id,
+                        UserOrgRole.role_id == current_route.role_id
+                    )
+                )
+            )
+            uor_res = await db.execute(stmt_uor)
+            return uor_res.scalar_one_or_none() is not None
+    else:
+        stmt_uor_simple = (
+            select(UserOrgRole)
+            .where(
+                and_(
+                    UserOrgRole.user_id == user.id,
+                    UserOrgRole.org_unit_id == org_unit_id
+                )
+            )
+        )
+        uor_res = await db.execute(stmt_uor_simple)
+        return uor_res.scalar_one_or_none() is not None
+    return False
+
 @router.post("/{period_id}/approve")
 async def approve_period(
     period_id: int,
     action: ApprovalAction,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Approve or reject a submitted period with routing."""
     from sqlalchemy.orm import joinedload
-    result = await db.execute(select(TimesheetPeriod).where(TimesheetPeriod.id == period_id).options(joinedload(TimesheetPeriod.user).joinedload(User.jira_user)))
+    stmt = (
+        select(TimesheetPeriod)
+        .where(TimesheetPeriod.id == period_id)
+        .options(joinedload(TimesheetPeriod.user).joinedload(User.jira_user))
+    )
+    result = await db.execute(stmt)
     period = result.scalar_one_or_none()
 
     if not period:
         raise HTTPException(status_code=404, detail="Period not found")
-
     if period.status != "SUBMITTED":
         raise HTTPException(status_code=400, detail="Only submitted periods can be processed")
 
-    can_approve = False
     org_unit_id = period.user.jira_user.org_unit_id if period.user and period.user.jira_user else None
-    
-    if current_user.role in ["Admin", "CEO"]:
-        can_approve = True
-        
-    routes = []
-    if org_unit_id and not can_approve:
-        routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet').order_by(ApprovalRoute.step_order))
-        routes = routes_res.scalars().all()
-        
-        if routes:
-            current_route = next((r for r in routes if r.step_order == period.current_step_order), None)
-            if current_route:
-                uor_res = await db.execute(select(UserOrgRole).where(UserOrgRole.user_id == current_user.id, UserOrgRole.org_unit_id == org_unit_id, UserOrgRole.role_id == current_route.role_id))
-                if uor_res.scalar_one_or_none():
-                    can_approve = True
-
-    if not can_approve and not routes:
-        if org_unit_id:
-            uor_res = await db.execute(select(UserOrgRole).where(UserOrgRole.user_id == current_user.id, UserOrgRole.org_unit_id == org_unit_id))
-            if uor_res.scalar_one_or_none():
-                can_approve = True
-                
-    if not can_approve:
+    if not await _check_approval_permission(db, current_user, period, org_unit_id):
         raise HTTPException(status_code=403, detail="Not authorized to approve this step")
 
-    role_id_used = None
+    role_id_used = 1
     if org_unit_id:
-        routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet', ApprovalRoute.step_order == period.current_step_order))
+        stmt_cr = (
+            select(ApprovalRoute)
+            .where(
+                and_(
+                    ApprovalRoute.org_unit_id == org_unit_id,
+                    ApprovalRoute.target_type == 'timesheet',
+                    ApprovalRoute.step_order == period.current_step_order
+                )
+            )
+        )
+        routes_res = await db.execute(stmt_cr)
         cr = routes_res.scalar_one_or_none()
         if cr:
             role_id_used = cr.role_id
@@ -227,7 +269,7 @@ async def approve_period(
     step = TimesheetApprovalStep(
         timesheet_period_id=period.id,
         step_order=period.current_step_order,
-        role_id=role_id_used or 1,
+        role_id=role_id_used,
         status=action.status,
         approver_id=current_user.id,
         comment=action.comment,
@@ -239,7 +281,17 @@ async def approve_period(
         period.status = "REJECTED"
     elif action.status == "APPROVED":
         if org_unit_id:
-            routes_res = await db.execute(select(ApprovalRoute).where(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'timesheet').order_by(ApprovalRoute.step_order))
+            stmt_routes_check = (
+                select(ApprovalRoute)
+                .where(
+                    and_(
+                        ApprovalRoute.org_unit_id == org_unit_id,
+                        ApprovalRoute.target_type == 'timesheet'
+                    )
+                )
+                .order_by(ApprovalRoute.step_order)
+            )
+            routes_res = await db.execute(stmt_routes_check)
             routes = routes_res.scalars().all()
             if routes and period.current_step_order < len(routes):
                 period.current_step_order += 1
