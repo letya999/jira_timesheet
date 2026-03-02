@@ -4,7 +4,7 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 
 class LeaveType(enum.StrEnum):
@@ -21,7 +21,7 @@ class LeaveStatus(enum.StrEnum):
     CANCELLED = "CANCELLED"
 
 
-class LeaveRequest(Base):
+class LeaveRequest(Base, AuditMixin):
     __tablename__ = "leave_requests"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -50,7 +50,7 @@ class LeaveRequest(Base):
     approval_steps = relationship("LeaveApprovalStep", back_populates="leave_request", cascade="all, delete-orphan")
 
 
-class LeaveApprovalStep(Base):
+class LeaveApprovalStep(Base, AuditMixin):
     __tablename__ = "leave_approval_steps"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

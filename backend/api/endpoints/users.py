@@ -7,7 +7,7 @@ from core.security import get_password_hash
 from fastapi import APIRouter, Depends, HTTPException
 from models.user import JiraUser, User
 from schemas.pagination import PaginatedResponse
-from schemas.user import PasswordChangeRequest, UserPromoteResponse, UserResponse
+from schemas.user import PasswordChangeRequest, UserPromoteResponse, UserResponse, UserUpdate
 from services.jira import sync_jira_users_to_db
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -149,3 +149,37 @@ async def sync_users(db: AsyncSession = Depends(get_db), current_user=Depends(de
     """Sync users from Jira."""
     count = await sync_jira_users_to_db(db)
     return {"status": "success", "synced": count, "message": f"Successfully synced {count} users from Jira"}
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    payload: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(deps.require_role(["Admin"])),
+):
+    """Update system user details (Admin only)."""
+    result = await db.execute(select(User).where(User.id == user_id).options(joinedload(User.jira_user)))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "is_active": user.is_active,
+        "needs_password_change": user.needs_password_change,
+        "jira_user_id": user.jira_user_id,
+        "org_unit_id": user.jira_user.org_unit_id if user.jira_user else None,
+        "display_name": user.jira_user.display_name if user.jira_user else user.full_name,
+    }

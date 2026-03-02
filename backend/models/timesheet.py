@@ -3,10 +3,10 @@ from datetime import date, datetime
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 
-class Worklog(Base):
+class Worklog(Base, AuditMixin):
     __tablename__ = "worklogs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -32,7 +32,7 @@ class Worklog(Base):
     issue = relationship("Issue", back_populates="worklogs")
 
 
-class TimesheetPeriod(Base):
+class TimesheetPeriod(Base, AuditMixin):
     __tablename__ = "timesheet_periods"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -60,7 +60,7 @@ class TimesheetPeriod(Base):
     )
 
 
-class TimesheetApprovalStep(Base):
+class TimesheetApprovalStep(Base, AuditMixin):
     __tablename__ = "timesheet_approval_steps"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

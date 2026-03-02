@@ -41,3 +41,18 @@ async def test_leave_extreme_branches(client: AsyncClient, auth_headers: dict, d
     # 3. Already acted upon check
     resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED"}, headers=auth_headers)
     assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint(client: AsyncClient):
+    response = await client.get("/metrics")
+    assert response.status_code == 200
+    assert "build_info" in response.text
+
+
+@pytest.mark.asyncio
+async def test_sso_login_not_configured(client: AsyncClient):
+    # By default, SSO is not configured in tests unless we set env vars
+    response = await client.get("/api/v1/auth/sso/login")
+    # If not configured, it returns 501 Not Implemented
+    assert response.status_code == 501

@@ -202,9 +202,12 @@ def change_password(new_password):
 
 def get_me():
     """Fetch current logged in user profile."""
-    response = requests.get(f"{BACKEND_URL}/users/me", headers=get_headers())
-    if response.status_code == 200:
-        return response.json()
+    try:
+        response = requests.get(f"{BACKEND_URL}/users/me", headers=get_headers())
+        if response.status_code == 200:
+            return response.json()
+    except requests.exceptions.RequestException:
+        return None
     return None
 
 

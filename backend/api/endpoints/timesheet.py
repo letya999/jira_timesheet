@@ -5,6 +5,7 @@ from typing import Any
 from core.database import get_db
 from crud.timesheet import worklog as crud_worklog
 from fastapi import APIRouter, Depends, Request
+from fastapi_cache import FastAPICache
 from models.category import WorklogCategory
 from models.project import Issue
 from models.timesheet import TimesheetPeriod, Worklog
@@ -162,6 +163,7 @@ async def create_manual_log(
     db.add(db_log)
     await db.commit()
     await db.refresh(db_log)
+    await FastAPICache.clear(namespace="reports")
 
     # Re-fetch with joined info for response
     result = await db.execute(

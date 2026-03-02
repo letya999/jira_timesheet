@@ -11,10 +11,12 @@ from core.database import get_db
 from core.security import get_password_hash
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_limiter import FastAPILimiter
 from httpx import ASGITransport, AsyncClient
 from main import app
 from models import User
 from models.base import Base
+from redis import asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Increase rate limit for tests
@@ -33,6 +35,14 @@ async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 app.dependency_overrides[get_db] = override_get_db
+
+
+@pytest.fixture(autouse=True, scope="function")
+async def setup_limiter():
+    redis = aioredis.from_url("redis://localhost:6379/0", encoding="utf8", decode_responses=True)
+    await FastAPILimiter.init(redis)
+    yield
+    await FastAPILimiter.close()
 
 
 @pytest.fixture(autouse=True, scope="function")

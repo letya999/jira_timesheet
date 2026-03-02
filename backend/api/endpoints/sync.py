@@ -1,6 +1,8 @@
 from core.database import get_db
 from core.worker import queue
 from fastapi import APIRouter, Depends, Request
+from fastapi_cache import FastAPICache
+from fastapi_limiter.depends import RateLimiter
 from models.user import JiraUser
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +12,7 @@ from api import deps
 router = APIRouter()
 
 
-@router.post("/worklogs")
+@router.post("/worklogs", dependencies=[Depends(RateLimiter(times=2, seconds=60))])
 async def sync_my_worklogs(db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)):
     """Trigger background sync of worklogs from Jira via SAQ."""
     if not current_user.jira_user_id:
@@ -24,13 +26,15 @@ async def sync_my_worklogs(db: AsyncSession = Depends(get_db), current_user=Depe
 
     # Enqueue task to SAQ with retries and timeout for robustness
     await queue.enqueue("task_sync_user_worklogs", jira_user_id=jira_user.id, days=30, retries=5, timeout=1800)
+    await FastAPICache.clear(namespace="reports")
     return {"status": "sync_enqueued"}
 
 
-@router.post("/projects")
+@router.post("/projects", dependencies=[Depends(RateLimiter(times=1, seconds=60))])
 async def sync_all_projects_endpoint(current_user=Depends(deps.require_role(["Admin"]))):
     """Admin-only: Trigger global sync of all projects and worklogs."""
     job = await queue.enqueue("task_sync_all_projects", retries=3, timeout=3600)
+    await FastAPICache.clear(namespace="reports")
     return {"status": "global_sync_enqueued", "job_id": job.id}
 
 
@@ -50,6 +54,7 @@ async def jira_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if worklog_id:
             # Enqueue a task to sync this specific worklog
             await queue.enqueue("task_sync_specific_worklogs", worklog_ids=[str(worklog_id)])
+            await FastAPICache.clear(namespace="reports")
             return {"status": "webhook_received", "event": event, "worklog_id": worklog_id}
 
     return {"status": "ignored", "event": event}

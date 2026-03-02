@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 # Association tables for M2M relationships
 issue_sprints = Table(
@@ -21,7 +21,7 @@ issue_releases = Table(
 )
 
 
-class Project(Base):
+class Project(Base, AuditMixin):
     __tablename__ = "projects"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -33,7 +33,7 @@ class Project(Base):
     releases = relationship("Release", back_populates="project")
 
 
-class Sprint(Base):
+class Sprint(Base, AuditMixin):
     __tablename__ = "sprints"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -45,7 +45,7 @@ class Sprint(Base):
     issues = relationship("Issue", secondary=issue_sprints, back_populates="sprints")
 
 
-class Release(Base):
+class Release(Base, AuditMixin):
     __tablename__ = "releases"
     __table_args__ = {"extend_existing": True}
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -59,7 +59,7 @@ class Release(Base):
     issues = relationship("Issue", secondary=issue_releases, back_populates="releases")
 
 
-class Issue(Base):
+class Issue(Base, AuditMixin):
     __tablename__ = "issues"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)

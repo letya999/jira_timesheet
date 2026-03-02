@@ -1,5 +1,6 @@
 import jwt
 from core.config import settings
+from core.context import user_id_ctx
 from core.database import get_db
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -29,6 +30,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
+
+    user_id_ctx.set(user.id)
     return user
 
 

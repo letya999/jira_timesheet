@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # Frontend Settings (passed via /health or dedicated endpoint)
     POLLING_INTERVAL_MS: int = 5000
 
+    # App Version Info
+    APP_VERSION: str = "0.1.0"
+
+    # SSO / OIDC (Authentik)
+    AUTHENTIK_CLIENT_ID: str | None = None
+    AUTHENTIK_CLIENT_SECRET: str | None = None
+    AUTHENTIK_OIDC_URL: str | None = None  # e.g., https://auth.example.com/application/o/jira-timesheet/
+    AUTHENTIK_REDIRECT_URI: str | None = None  # e.g., http://localhost:8000/api/v1/auth/sso/callback
+
     # Slack Integration
     SLACK_BOT_TOKEN: str | None = None
     SLACK_SIGNING_SECRET: str | None = None

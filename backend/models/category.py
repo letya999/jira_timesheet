@@ -1,10 +1,10 @@
 from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 
-class WorklogCategory(Base):
+class WorklogCategory(Base, AuditMixin):
     __tablename__ = "worklog_categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

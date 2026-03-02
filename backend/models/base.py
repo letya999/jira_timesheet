@@ -4,6 +4,14 @@ from sqlalchemy import DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
+class AuditMixin:
+    """
+    Mixin to enable automatic auditing for a model.
+    Models inheriting from this will have their changes logged to audit_logs.
+    """
+    pass
+
+
 class Base(DeclarativeBase):
     """
     Base class for all models.

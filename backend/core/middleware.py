@@ -1,7 +1,6 @@
 import time
 import traceback
 import uuid
-from collections import defaultdict
 
 import structlog
 from fastapi import FastAPI, Request, status
@@ -12,16 +11,10 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from core.config import settings
+from core.context import ip_address_ctx, user_id_ctx
 from core.exceptions import APIException, ErrorCode
 
 logger = structlog.get_logger(__name__)
-
-# Basic in-memory rate limiter for demonstration
-# In production, replace with Redis-based limiter
-RATE_LIMIT_WINDOW = settings.RATE_LIMIT_WINDOW_SECONDS
-RATE_LIMIT_MAX_REQUESTS = settings.RATE_LIMIT_MAX_REQUESTS
-request_counts = defaultdict(lambda: {"count": 0, "reset_time": time.time() + RATE_LIMIT_WINDOW})
 
 
 class AdvancedMiddleware(BaseHTTPMiddleware):
@@ -32,29 +25,12 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(trace_id=trace_id)
 
-        # 2. Rate Limiting check
+        # Clear and set context for auditing
+        user_id_ctx.set(None)
         client_ip = request.client.host if request.client else "unknown"
-        current_time = time.time()
+        ip_address_ctx.set(client_ip)
 
-        limiter = request_counts[client_ip]
-        if current_time > limiter["reset_time"]:
-            limiter["count"] = 0
-            limiter["reset_time"] = current_time + RATE_LIMIT_WINDOW
-
-        limiter["count"] += 1
-        if limiter["count"] > RATE_LIMIT_MAX_REQUESTS:
-            return JSONResponse(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                content={
-                    "error": {
-                        "code": ErrorCode.RATE_LIMIT_EXCEEDED,
-                        "message": "Too many requests. Please try again later.",
-                        "traceId": trace_id,
-                    }
-                },
-            )
-
-        # 3. Process Request
+        # 2. Process Request
         start_time = time.time()
         try:
             response = await call_next(request)

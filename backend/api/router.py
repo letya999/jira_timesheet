@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from api.endpoints import (
     approvals,
     auth,
+    auth_sso,
     calendar,
     leave,
     notifications,
@@ -18,6 +19,7 @@ from api.endpoints import (
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(auth_sso.router, prefix="/auth/sso", tags=["SSO Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["User Management"])
 api_router.include_router(org.router, prefix="/org", tags=["Organization Structure"])
 api_router.include_router(timesheet.router, prefix="/timesheet", tags=["Timesheet Operations"])

@@ -5,6 +5,7 @@ from typing import Any
 from core.database import get_db
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from fastapi_cache.decorator import cache
 from models.category import WorklogCategory
 from models.org import OrgUnit, UserOrgRole
 from models.project import Issue, Sprint
@@ -21,6 +22,7 @@ router = APIRouter()
 
 
 @router.get("/dashboard", response_model=dict[str, Any])
+@cache(expire=300, namespace="reports")
 async def get_dashboard_data(
     start_date: date,
     end_date: date,
@@ -121,6 +123,7 @@ async def export_report(
 
 
 @router.get("/categories", response_model=list[dict[str, Any]])
+@cache(expire=3600, namespace="reports")
 async def get_report_categories(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     """Returns all worklog categories for filtering."""
     result = await db.execute(select(WorklogCategory))
@@ -129,6 +132,7 @@ async def get_report_categories(db: AsyncSession = Depends(get_db), current_user
 
 
 @router.get("/sprints", response_model=list[dict[str, Any]])
+@cache(expire=3600, namespace="reports")
 async def get_report_sprints(db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
     """Returns all sprints for filtering."""
     result = await db.execute(select(Sprint).order_by(Sprint.start_date.desc()))
@@ -168,6 +172,7 @@ async def _apply_custom_filters(query, payload: CustomReportRequest, current_use
 
 
 @router.post("/custom", response_model=dict[str, Any])
+@cache(expire=300, namespace="reports")
 async def get_custom_report(
     payload: CustomReportRequest,
     db: AsyncSession = Depends(get_db),

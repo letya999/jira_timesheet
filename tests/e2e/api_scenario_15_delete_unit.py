@@ -12,7 +12,12 @@ async def test_scenario_15_delete_unit(client: AsyncClient, db: AsyncSession):
     db.add(unit)
     await db.commit()
 
-    admin = User(email="admin_sc15@ex.com", full_name="Admin 15", hashed_password=get_password_hash("pass"), role="Admin")
+    admin = User(
+        email="admin_sc15@ex.com",
+        full_name="Admin 15",
+        hashed_password=get_password_hash("pass"),
+        role="Admin"
+    )
     db.add(admin)
     await db.commit()
     login_res = await client.post("/api/v1/auth/login", data={"username": "admin_sc15@ex.com", "password": "pass"})

@@ -37,5 +37,9 @@ async def test_scenario_09_locked_period(client: AsyncClient, db: AsyncSession):
     login_res_admin = await client.post("/api/v1/auth/login", data={"username": "admin_sc9@ex.com", "password": "pass"})
     admin_headers = {"Authorization": f"Bearer {login_res_admin.json()['access_token']}"}
 
-    resp = await client.post(f"/api/v1/approvals/{period_id}/approve", json={"status": "APPROVED", "comment": "ok"}, headers=admin_headers)
+    resp = await client.post(
+        f"/api/v1/approvals/{period_id}/approve",
+        json={"status": "APPROVED", "comment": "ok"},
+        headers=admin_headers
+    )
     assert resp.status_code == 200

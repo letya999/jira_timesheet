@@ -36,6 +36,7 @@ def _get_gantt_styles(total_days: int):
             overflow-x: auto; background: #ffffff;
             box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             display: flex; flex-direction: column; width: 100%; color: #2c3e50;
+            position: relative;
         }}
         .gantt-header-row {{
             display: flex; border-bottom: 2px solid #f0f0f0;
@@ -47,7 +48,7 @@ def _get_gantt_styles(total_days: int):
             display: flex; align-items: center; background: #fcfcfc;
             position: sticky; left: 0; z-index: 110; color: #666;
         }}
-        .gantt-time-header {{ flex: 1; display: flex; flex-direction: column; }}
+        .gantt-time-header {{ flex: 1; display: flex; flex-direction: column; overflow: hidden; }}
         .gantt-months {{
             display: grid; grid-template-columns: repeat({total_days}, minmax(25px, 1fr));
             border-bottom: 1px solid #eee;
@@ -55,18 +56,23 @@ def _get_gantt_styles(total_days: int):
         .gantt-month {{
             padding: 10px 5px; text-align: center; font-weight: 700;
             border-right: 1px solid #eee; font-size: 13px; background: #f8f9fa;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }}
         .gantt-days {{ display: grid; grid-template-columns: repeat({total_days}, minmax(25px, 1fr)); }}
         .gantt-day {{
             text-align: center; padding: 8px 0; border-right: 1px solid #f0f0f0;
             font-size: 11px; display: flex; flex-direction: column; color: #777;
         }}
-        .gantt-day.weekend, .gantt-day.holiday {{ background: #fdfdfd; color: #bbb; }}
-        .gantt-day.holiday {{ color: #e07a5f; font-weight: bold; }}
+        .gantt-day.weekend {{ background: #f9f9f9; color: #bbb; }}
+        .gantt-day.holiday {{ background: #fff5f5; color: #e07a5f; font-weight: bold; }}
         .gantt-day .dow {{ font-size: 9px; font-weight: 600; margin-top: 2px; }}
-        .gantt-body {{ display: flex; flex-direction: column; max-height: 600px; overflow-y: auto; }}
-        .gantt-row {{ display: flex; border-bottom: 1px solid #f0f0f0; height: 52px; }}
-        .gantt-row:hover {{ background: #f9fbfe; }}
+        .gantt-body {{ 
+            display: flex; flex-direction: column; 
+            min-height: 200px;
+            padding-bottom: 100px;
+        }}
+        .gantt-row {{ display: flex; border-bottom: 1px solid #f0f0f0; height: 52px; position: relative; }}
+        .gantt-row:hover {{ z-index: 150; }}
         .gantt-user-info {{
             width: 200px; min-width: 200px; border-right: 1px solid #eee;
             padding: 8px 15px; display: flex; align-items: center;
@@ -80,7 +86,8 @@ def _get_gantt_styles(total_days: int):
         .user-name {{ font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }}
         .gantt-grid-container {{ flex: 1; display: grid; position: relative; }}
         .gantt-cell {{ border-right: 1px solid #f5f5f5; height: 100%; }}
-        .gantt-cell.weekend-cell, .gantt-cell.holiday-cell {{ background: rgba(0, 0, 0, 0.015); }}
+        .gantt-cell.weekend-cell {{ background: rgba(0, 0, 0, 0.02); }}
+        .gantt-cell.holiday-cell {{ background: rgba(224, 122, 95, 0.05); }}
         .gantt-bars-container {{
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             display: grid; grid-template-columns: repeat({total_days}, minmax(25px, 1fr));
@@ -96,10 +103,11 @@ def _get_gantt_styles(total_days: int):
         .gantt-tooltip {{
             visibility: hidden; width: 220px; background-color: #333; color: #fff;
             border-radius: 8px; padding: 12px; position: absolute; z-index: 2000;
-            top: 125%; left: 50%; transform: translateX(-50%); opacity: 0;
-            transition: opacity 0.3s; font-size: 12px; line-height: 1.5;
+            top: 110%; left: 50%; transform: translateX(-50%); opacity: 0;
+            transition: opacity 0.2s; font-size: 12px; line-height: 1.5;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); pointer-events: none;
         }}
-        .gantt-bar:hover .gantt-tooltip {{ visibility: visible; opacity: 1; }}
+        .gantt-bar:hover .gantt-tooltip {{ visibility: visible; opacity: 1; transform: translateX(-50%) translateY(5px); }}
         .gantt-bar.pending {{
             opacity: 0.6;
             background-image: repeating-linear-gradient(45deg, transparent, transparent 10px,
@@ -108,8 +116,17 @@ def _get_gantt_styles(total_days: int):
         @media (prefers-color-scheme: dark) {{
             .gantt-wrapper {{ background: #1a1a1b; border-color: #303030; color: #e1e1e1; }}
             .gantt-header-row, .gantt-user-header {{ background: #262627; border-color: #303030; }}
-            .gantt-user-info {{ background: #1a1a1b; }}
-            .gantt-tooltip {{ background-color: #eee; color: #222; }}
+            .gantt-user-info {{ background: #1a1a1b; border-color: #303030; }}
+            .gantt-month {{ background: #222223; border-color: #303030; color: #ccc; }}
+            .gantt-day {{ border-color: #2a2a2b; color: #999; }}
+            .gantt-day.weekend {{ background: #222223; color: #666; }}
+            .gantt-day.holiday {{ background: #3d2b2b; color: #ff8a8a; }}
+            .gantt-row {{ border-color: #2a2a2b; }}
+            .gantt-row:hover {{ background: transparent; }}
+            .gantt-cell {{ border-color: #2a2a2b; }}
+            .gantt-cell.weekend-cell {{ background: rgba(255, 255, 255, 0.02); }}
+            .gantt-cell.holiday-cell {{ background: rgba(255, 138, 138, 0.05); }}
+            .gantt-tooltip {{ background-color: #333; color: #fff; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: 1px solid #444; }}
         }}
     </style>
     """
@@ -137,9 +154,12 @@ def _get_holiday_dates(holiday_data):
     for h in holiday_data or []:
         if h.get("is_holiday"):
             try:
-                h_date = datetime.strptime(h["date"], "%Y-%m-%d").date()
+                if isinstance(h["date"], (date, datetime)):
+                    h_date = h["date"].date() if isinstance(h["date"], datetime) else h["date"]
+                else:
+                    h_date = datetime.strptime(h["date"], "%Y-%m-%d").date()
                 holiday_dates[h_date] = h.get("name", "Holiday")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, KeyError):
                 pass
     return holiday_dates
 
@@ -156,12 +176,13 @@ def _generate_gantt_headers(days, view_mode, holiday_dates, start_date):
         else:
             month_colspan += 1
 
-        is_nw = d.weekday() >= 5 or d in holiday_dates
-        cls = f"gantt-day {'weekend' if is_nw else ''} {'holiday' if d in holiday_dates else ''}".strip()
+        is_h = d in holiday_dates
+        is_w = d.weekday() >= 5
+        cls = f"gantt-day {'weekend' if is_w else ''} {'holiday' if is_h else ''}".strip()
         if view_mode == "Year":
             days_html += f"<div class='{cls}'></div>"
         else:
-            tip = f"{d.strftime('%b %d, %Y')}{' - ' + holiday_dates[d] if d in holiday_dates else ''}"
+            tip = f"{d.strftime('%b %d, %Y')}{' - ' + holiday_dates[d] if is_h else ''}"
             days_html += (
                 f"<div class='{cls}' title='{tip}'><div>{d.strftime('%d')}</div>"
                 f"<div class='dow'>{calendar.day_abbr[d.weekday()][:2]}</div></div>"
@@ -177,8 +198,9 @@ def _generate_user_row(u_name, user_leaves, days, start_date, end_date, holiday_
     u_color = get_user_color(u_name)
     row_cells_list = []
     for i, d in enumerate(days):
-        is_nw = d.weekday() >= 5 or d in holiday_dates
-        cls = "weekend-cell" if is_nw else ""
+        is_h = d in holiday_dates
+        is_w = d.weekday() >= 5
+        cls = "holiday-cell" if is_h else ("weekend-cell" if is_w else "")
         row_cells_list.append(f"<div class='gantt-cell {cls}' style='grid-column: {i + 1}'></div>")
     row_cells = "".join(row_cells_list)
 
@@ -192,14 +214,16 @@ def _generate_user_row(u_name, user_leaves, days, start_date, end_date, holiday_
         d_s, d_e = max(l_s, start_date), min(l_e, end_date)
         if d_s <= d_e:
             c_s, c_sp = (d_s - start_date).days + 1, (d_e - d_s).days + 1
+            l_type = leaf.get('type', 'Leave')
+            l_status = leaf.get('status', 'Pending')
             tip = (
-                f"<div class='gantt-tooltip'><b>{t('leaves.' + leaf['type'].lower())}</b><br/>"
-                f"{t('common.status')}: {t('common.status_' + leaf['status'].lower())}<br/>"
+                f"<div class='gantt-tooltip'><b>{t('leaves.' + l_type.lower())}</b><br/>"
+                f"{t('common.status')}: {t('common.status_' + l_status.lower())}<br/>"
                 f"{t('common.period')}: {leaf['start_date']} to {leaf['end_date']}</div>"
             )
             bars_html += (
                 f"<div class='gantt-bar-wrapper' style='grid-column: {c_s} / span {c_sp};'>"
-                f"<div class='gantt-bar {leaf['status'].lower()}' style='background: {u_color};'>{tip}</div></div>"
+                f"<div class='gantt-bar {l_status.lower()}' style='background: {u_color};'>{tip}</div></div>"
             )
 
     return f"""

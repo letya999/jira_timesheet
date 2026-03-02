@@ -1,7 +1,7 @@
 from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 
 class JiraUser(Base):
@@ -27,7 +27,7 @@ class JiraUser(Base):
         return self.user.id if self.user else None
 
 
-class User(Base):
+class User(Base, AuditMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

@@ -1,4 +1,7 @@
+from contextlib import asynccontextmanager
+
 from api.router import api_router
+from core import audit_events  # noqa: F401
 from core.config import settings
 from core.logging_config import setup_logging
 from core.middleware import setup_exception_handlers, setup_middlewares
@@ -7,8 +10,22 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from fastapi_limiter import FastAPILimiter
+from prometheus_client import Gauge
+from prometheus_fastapi_instrumentator import Instrumentator
 from redis import asyncio as aioredis
 from saq.web.starlette import saq_web
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize Redis for Caching and Rate Limiting
+    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    await FastAPILimiter.init(redis)
+    yield
+    await redis.close()
+
 
 app = FastAPI(
     title="Jira Timesheet API",
@@ -17,6 +34,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan,
 )
 
 # Setup Structured Logging
@@ -25,6 +43,24 @@ setup_logging()
 # Apply middlewares and exception handlers
 setup_middlewares(app)
 setup_exception_handlers(app)
+
+# Prometheus Metrics
+instrumentator = Instrumentator(
+    should_group_status_codes=True,
+    should_ignore_untemplated=True,
+    should_instrument_requests_inprogress=True,
+    excluded_handlers=[".*admin.*", "/metrics", "/health"],
+)
+
+# Custom metric: build_info
+BUILD_INFO = Gauge(
+    "build_info",
+    "Build information",
+    labelnames=["version", "status"],
+)
+BUILD_INFO.labels(version=settings.APP_VERSION, status="running").set(1)
+
+instrumentator.instrument(app).expose(app, endpoint="/metrics", tags=["System"])
 
 # Include API routers with /api/v1 prefix
 app.include_router(api_router, prefix="/api/v1")
@@ -49,12 +85,6 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
-
-
-@app.on_event("startup")
-async def startup():
-    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
 
 @app.get("/health", tags=["System"])

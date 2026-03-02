@@ -4,13 +4,14 @@ from core.config import settings
 from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 from services.auth import auth_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
     user = await auth_service.authenticate_user(db, form_data.username, form_data.password)
     if not user:

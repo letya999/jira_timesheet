@@ -1,17 +1,17 @@
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base
+from models.base import AuditMixin, Base
 
 
-class Role(Base):
+class Role(Base, AuditMixin):
     __tablename__ = "roles"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
-class OrgUnit(Base):
+class OrgUnit(Base, AuditMixin):
     __tablename__ = "org_units"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
@@ -25,7 +25,7 @@ class OrgUnit(Base):
     user_roles = relationship("UserOrgRole", back_populates="org_unit", cascade="all, delete-orphan")
 
 
-class UserOrgRole(Base):
+class UserOrgRole(Base, AuditMixin):
     __tablename__ = "user_org_roles"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -37,7 +37,7 @@ class UserOrgRole(Base):
     role = relationship("Role")
 
 
-class ApprovalRoute(Base):
+class ApprovalRoute(Base, AuditMixin):
     __tablename__ = "approval_routes"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     org_unit_id: Mapped[int] = mapped_column(ForeignKey("org_units.id"))
