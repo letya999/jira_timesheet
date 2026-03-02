@@ -1,9 +1,9 @@
-import logging
 import time
 import traceback
 import uuid
 from collections import defaultdict
 
+import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -15,7 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from core.config import settings
 from core.exceptions import APIException, ErrorCode
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Basic in-memory rate limiter for demonstration
 # In production, replace with Redis-based limiter
@@ -29,6 +29,8 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
         # 1. Trace ID generation
         trace_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request.state.trace_id = trace_id
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(trace_id=trace_id)
 
         # 2. Rate Limiting check
         client_ip = request.client.host if request.client else "unknown"

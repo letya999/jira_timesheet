@@ -1,6 +1,6 @@
 from core.database import get_db
 from core.worker import queue
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from models.user import JiraUser
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +34,27 @@ async def sync_all_projects_endpoint(current_user=Depends(deps.require_role(["Ad
     return {"status": "global_sync_enqueued", "job_id": job.id}
 
 
+@router.post("/webhooks/jira")
+async def jira_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """Handle Jira webhooks for real-time sync of worklogs."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {"status": "error", "message": "Invalid JSON"}
+
+    event = payload.get("webhookEvent")
+    # Jira events for worklogs
+    if event in ["worklog_created", "worklog_updated", "worklog_deleted"]:
+        worklog = payload.get("worklog", {})
+        worklog_id = worklog.get("id")
+        if worklog_id:
+            # Enqueue a task to sync this specific worklog
+            await queue.enqueue("task_sync_specific_worklogs", worklog_ids=[str(worklog_id)])
+            return {"status": "webhook_received", "event": event, "worklog_id": worklog_id}
+
+    return {"status": "ignored", "event": event}
+
+
 @router.get("/jobs/{job_id}")
 async def get_job_status(job_id: str, current_user=Depends(deps.get_current_user)):
     """Check the status and result of a background job."""
@@ -41,16 +62,16 @@ async def get_job_status(job_id: str, current_user=Depends(deps.get_current_user
     # SAQ 0.26.1 queue.job(key) expects the key without 'saq:job:{queue_name}:' prefix if called with job_id
     # But queue.job technically takes the 'key'.
     # In our tests, q.job(UUID) worked, but q.job(full_key) did not.
-    
+
     # Try direct key first
     job = await queue.job(job_id)
-    
+
     # If not found and it looks like a full key, try stripping prefix
     if not job and job_id.startswith("saq:job:"):
         # Extract the last part (UUID)
         uuid_part = job_id.split(":")[-1]
         job = await queue.job(uuid_part)
-        
+
     if not job:
         return {"status": "not_found"}
 

@@ -1,5 +1,6 @@
 from api.router import api_router
 from core.config import settings
+from core.logging_config import setup_logging
 from core.middleware import setup_exception_handlers, setup_middlewares
 from core.worker import queue
 from fastapi import FastAPI
@@ -17,6 +18,9 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/api/v1/openapi.json",
 )
+
+# Setup Structured Logging
+setup_logging()
 
 # Apply middlewares and exception handlers
 setup_middlewares(app)

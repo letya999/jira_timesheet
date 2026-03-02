@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import OrgUnit, User, Role, ApprovalRoute
 from core.security import get_password_hash
+from httpx import AsyncClient
+from models import ApprovalRoute, OrgUnit, Role, User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_11_different_routes(client: AsyncClient, db: AsyncSession):

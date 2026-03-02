@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User
 from core.security import get_password_hash
+from httpx import AsyncClient
+from models import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_08_sync_performance(client: AsyncClient, db: AsyncSession):

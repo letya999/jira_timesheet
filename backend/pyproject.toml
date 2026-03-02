@@ -25,4 +25,5 @@ dependencies = [
     "pytest-asyncio",
     "python-dateutil",
     "holidays",
+    "structlog>=25.5.0",
 ]

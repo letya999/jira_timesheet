@@ -1,15 +1,15 @@
 import math
 
 from core.database import get_db
+from core.worker import queue
 from crud.project import project as crud_project
 from crud.project import release as crud_release
 from crud.project import sprint as crud_sprint
-from core.worker import queue
 from fastapi import APIRouter, Depends, HTTPException
 from models.project import Project
 from schemas.pagination import PaginatedResponse
 from schemas.project import ProjectResponse, ProjectUpdate, ReleaseResponse, SprintResponse
-from services.jira import sync_jira_projects_to_db, sync_jira_worklogs_for_projects
+from services.jira import sync_jira_projects_to_db
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

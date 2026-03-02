@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 from core.config import settings
+from crud.settings import system_settings
 from dateutil import parser
 from models import Issue, JiraUser, Project, Release, Sprint, User, Worklog, WorklogCategory
 from models.project import issue_releases
@@ -161,8 +162,87 @@ async def _update_issue_releases(db: AsyncSession, db_issue: Issue, db_project: 
             await db.execute(insert(issue_releases), [{"issue_id": db_issue.id, "release_id": rid} for rid in rel_ids])
 
 
-async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
-    """Sync worklogs from Jira Cloud API to the new Worklog model."""
+async def sync_specific_worklogs(db: AsyncSession, worklog_ids: list[str]):
+    """Sync specific worklogs by their Jira IDs."""
+    if not worklog_ids:
+        return {"status": "success", "synced": 0}
+
+    url_list = f"{settings.JIRA_URL}/rest/api/3/worklog/list"
+    auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
+
+    try:
+        async with httpx.AsyncClient(auth=auth) as client:
+            resp_details = await client.post(url_list, json={"ids": [int(wid) for wid in worklog_ids]})
+            resp_details.raise_for_status()
+            worklogs_data = resp_details.json()
+
+            issue_ids = list(set([it.get("issueId") for it in worklogs_data if it.get("issueId")]))
+            issue_mapping = await fetch_issue_details(issue_ids)
+            default_cat_id = await get_default_category_id(db)
+
+            synced_count = 0
+            for item in worklogs_data:
+                iss_id = item.get("issueId")
+                if not item.get("author", {}).get("accountId") or not iss_id:
+                    continue
+                iss_data = issue_mapping.get(iss_id)
+                if not iss_data:
+                    continue
+
+                db_j_user, db_proj, db_iss = await _ensure_entities_exist(db, item, iss_data)
+                await _update_issue_releases(db, db_iss, db_proj, iss_data)
+
+                jw_id = str(item.get("id"))
+                hours = item.get("timeSpentSeconds", 0) / 3600.0
+                l_date = parser.isoparse(item.get("started")).date()
+                s_created = parser.isoparse(item.get("created")).replace(tzinfo=None)
+                desc = _extract_jira_comment(item.get("comment", {}))
+
+                res = await db.execute(select(Worklog).where(Worklog.jira_id == jw_id))
+                db_w = res.scalar_one_or_none()
+                if db_w:
+                    db_w.hours, db_w.date, db_w.description = hours, l_date, desc[:1024] if desc else None
+                    db_w.source_created_at, db_w.category_id = s_created, default_cat_id
+                else:
+                    db.add(
+                        Worklog(
+                            jira_id=jw_id,
+                            type="JIRA",
+                            category_id=default_cat_id,
+                            date=l_date,
+                            hours=hours,
+                            description=desc[:1024] if desc else None,
+                            jira_user_id=db_j_user.id,
+                            issue_id=db_iss.id,
+                            source_created_at=s_created,
+                        )
+                    )
+                synced_count += 1
+
+            await db.commit()
+
+            return {"status": "success", "synced": synced_count}
+    except Exception as e:
+        logger.error(f"Failed to sync specific worklogs: {e}")
+        return {"status": "error", "detail": str(e)}
+
+
+async def sync_jira_worklogs(db: AsyncSession, since: int | None = None, project_id: int | None = None):
+    """Sync worklogs from Jira Cloud API. Can filter by project_id locally after fetching updates."""
+    if since is None:
+        # Get last sync timestamp from DB
+        sync_key = "last_jira_worklog_sync" if project_id is None else f"last_jira_worklog_sync_proj_{project_id}"
+        last_sync_obj = await system_settings.get(db, sync_key)
+        if last_sync_obj:
+            since = last_sync_obj.value.get("timestamp", 0)
+        else:
+            # If no project-specific sync, maybe use global as fallback?
+            if project_id is not None:
+                global_sync = await system_settings.get(db, "last_jira_worklog_sync")
+                since = global_sync.value.get("timestamp", 0) if global_sync else 0
+            else:
+                since = 0
+
     url_updated = f"{settings.JIRA_URL}/rest/api/3/worklog/updated"
     url_list = f"{settings.JIRA_URL}/rest/api/3/worklog/list"
     auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
@@ -282,7 +362,7 @@ async def sync_jira_projects_to_db(db: AsyncSession, only_keys: list[str] = None
     synced_count = 0
     for jp in jira_projects:
         key = jp.get("key")
-        
+
         # If filtering is enabled, skip projects not in the active list
         if only_keys is not None and key not in only_keys:
             continue
@@ -347,8 +427,16 @@ async def sync_jira_projects_to_db(db: AsyncSession, only_keys: list[str] = None
 
 
 async def sync_jira_worklogs_for_projects(db: AsyncSession, project_keys: list[str] = None, since: int = 0):
-    """Sync worklogs for projects (placeholder for targeted sync)."""
-    return await sync_jira_worklogs(db, since)
+    """Sync worklogs for projects. If project_keys given, we could try JQL, but worklog/updated is more reliable."""
+    # For now, we'll just use the global sync if multiple keys, or project-specific if one key
+    if project_keys and len(project_keys) == 1:
+        # Find project_id by key
+        res = await db.execute(select(Project).where(Project.key == project_keys[0]))
+        p = res.scalar_one_or_none()
+        if p:
+            return await sync_jira_worklogs(db, project_id=p.jira_id)
+
+    return await sync_jira_worklogs(db, since=since)
 
 
 async def fetch_jira_users():

@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import OrgUnit, User, Role, ApprovalRoute
 from core.security import get_password_hash
+from httpx import AsyncClient
+from models import ApprovalRoute, OrgUnit, Role, User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_04_multi_approval(client: AsyncClient, db: AsyncSession):
@@ -10,7 +11,7 @@ async def test_scenario_04_multi_approval(client: AsyncClient, db: AsyncSession)
     unit = OrgUnit(name="API Team 4")
     db.add(unit)
     await db.flush()
-    
+
     role1 = Role(name="Team Lead 4")
     role2 = Role(name="Div Head 4")
     db.add_all([role1, role2])

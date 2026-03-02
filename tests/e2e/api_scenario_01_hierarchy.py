@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import OrgUnit, User
 from core.security import get_password_hash
+from httpx import AsyncClient
+from models import OrgUnit, User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_01_hierarchy(client: AsyncClient, db: AsyncSession):
@@ -29,7 +30,7 @@ async def test_scenario_01_hierarchy(client: AsyncClient, db: AsyncSession):
     admin = User(email="admin_hier@ex.com", full_name="Admin", hashed_password=get_password_hash("pass"), role="Admin")
     db.add(admin)
     await db.commit()
-    
+
     login_res = await client.post("/api/v1/auth/login", data={"username": "admin_hier@ex.com", "password": "pass"})
     admin_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
 

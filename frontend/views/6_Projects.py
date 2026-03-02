@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 from api_client import (
     fetch_db_projects,
@@ -8,7 +10,6 @@ from api_client import (
     sync_project_worklogs,
     update_project_status,
 )
-import time
 from auth_utils import ensure_session
 from i18n import t
 

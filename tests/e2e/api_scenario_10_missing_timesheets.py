@@ -1,9 +1,11 @@
-import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User
-from core.security import get_password_hash
 from datetime import date, timedelta
+
+import pytest
+from core.security import get_password_hash
+from httpx import AsyncClient
+from models import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_10_missing_timesheets(client: AsyncClient, db: AsyncSession):
@@ -11,7 +13,7 @@ async def test_scenario_10_missing_timesheets(client: AsyncClient, db: AsyncSess
     admin = User(email="admin_sc10@ex.com", full_name="Admin", hashed_password=get_password_hash("pass"), role="Admin")
     db.add(admin)
     await db.commit()
-    
+
     login_res = await client.post("/api/v1/auth/login", data={"username": "admin_sc10@ex.com", "password": "pass"})
     admin_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
 

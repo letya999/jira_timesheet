@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import date, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from core.security import get_password_hash
@@ -157,7 +157,8 @@ async def test_projects_refresh_and_sync(client: AsyncClient, auth_headers: dict
     db.add(project)
     await db.commit()
 
-    with patch("api.endpoints.projects.sync_jira_worklogs_for_projects", return_value={"synced": 5}):
+    with patch("api.endpoints.projects.queue.enqueue", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = AsyncMock(id="job-123")
         # Sync all
         resp = await client.post("/api/v1/projects/sync-all", headers=auth_headers)
         assert resp.status_code == 200
@@ -788,7 +789,8 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
         assert resp.json()["synced"] == 5
 
     # 2. Sync All
-    with patch("api.endpoints.projects.sync_jira_worklogs_for_projects", return_value={"status": "success"}):
+    with patch("api.endpoints.projects.queue.enqueue", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = AsyncMock(id="job-all")
         # No active projects case (might already have some from previous tests,
         # so we can't easily guarantee 0 without clearing)
         resp = await client.post("/api/v1/projects/sync-all", headers=auth_headers)
@@ -804,7 +806,8 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
         assert resp.status_code == 200
 
     # 3. Single Project Sync
-    with patch("api.endpoints.projects.sync_jira_worklogs_for_projects", return_value={"status": "success"}):
+    with patch("api.endpoints.projects.queue.enqueue", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = AsyncMock(id="job-single")
         resp = await client.post(f"/api/v1/projects/{p.id}/sync", headers=auth_headers)
         assert resp.status_code == 200
 

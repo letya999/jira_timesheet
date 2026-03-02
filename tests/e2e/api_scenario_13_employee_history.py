@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User
 from core.security import get_password_hash
+from httpx import AsyncClient
+from models import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 @pytest.mark.asyncio
 async def test_scenario_13_employee_history(client: AsyncClient, db: AsyncSession):
@@ -14,7 +15,7 @@ async def test_scenario_13_employee_history(client: AsyncClient, db: AsyncSessio
 
     login_res = await client.post("/api/v1/auth/login", data={"username": "emp_sc13@ex.com", "password": "pass"})
     emp_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
-    
+
     login_res_admin = await client.post("/api/v1/auth/login", data={"username": "admin_sc13@ex.com", "password": "pass"})
     admin_headers = {"Authorization": f"Bearer {login_res_admin.json()['access_token']}"}
 

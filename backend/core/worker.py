@@ -3,7 +3,7 @@ import logging
 
 from models.user import JiraUser
 from saq import CronJob, Queue
-from services.jira import sync_jira_projects_to_db, sync_jira_worklogs, sync_user_worklogs
+from services.jira import sync_jira_projects_to_db, sync_specific_worklogs, sync_user_worklogs
 from sqlalchemy import select
 
 from core.config import settings
@@ -29,27 +29,38 @@ async def task_sync_user_worklogs(ctx, *, jira_user_id: int, days: int = 30):
         return {"status": "success", "user_id": jira_user_id}
 
 
+async def task_sync_specific_worklogs(ctx, *, worklog_ids: list[str]):
+    """Background task to sync specific worklogs by IDs."""
+    logger.info(f"Starting sync for specific worklog IDs: {worklog_ids}")
+    async with async_session() as db:
+        return await sync_specific_worklogs(db, worklog_ids)
+
+
 async def task_sync_all_projects(ctx):
-    """Background task to sync all ACTIVE projects and their worklogs."""
-    logger.info("Starting global projects and worklogs sync (active only)")
+    """Background task to sync all ACTIVE projects metadata and trigger worklog syncs."""
+    logger.info("Starting global projects sync (metadata) and enqueuing project-specific worklog syncs")
     async with async_session() as db:
         from models.project import Project
-        from sqlalchemy import select
-        # 0. Fetch active projects keys
-        res = await db.execute(select(Project.key).where(Project.is_active == True))
-        active_keys = [r for r in res.scalars().all()]
-        
-        if not active_keys:
+        # 0. Fetch active projects
+        res = await db.execute(select(Project).where(Project.is_active))
+        active_projects = res.scalars().all()
+
+        if not active_projects:
             logger.info("No active projects found for sync")
             return {"status": "success", "synced": 0, "message": "No active projects"}
 
-        # 1. Sync metadata ONLY for active projects
-        # We pass active_keys to sync_jira_projects_to_db if possible, or filter inside
+        active_keys = [p.key for p in active_projects]
+
+        # 1. Sync metadata ONLY for active projects (already sequential inside)
         await sync_jira_projects_to_db(db, only_keys=active_keys)
-        
-        # 2. Sync worklogs for all projects (already uses internal filters or just syncs everything)
-        result = await sync_jira_worklogs(db)
-        return result
+
+        # 2. Enqueue sequential worklog syncs for each project
+        # This spreads the load if the worker handles them one by one
+        for p in active_projects:
+            # We add a small delay between enqueues to spread it out slightly, or just let SAQ handle it
+            await queue.enqueue("task_sync_project", project_id=p.id)
+
+        return {"status": "project_syncs_enqueued", "count": len(active_projects)}
 
 
 async def task_sync_project(ctx, *, project_id: int):
@@ -76,7 +87,11 @@ async def run_worker():
     # Sync all projects and worklogs every hour
     cron_jobs = [CronJob(task_sync_all_projects, cron="0 * * * *")]
 
-    worker = Worker(queue, functions=[task_sync_user_worklogs, task_sync_all_projects, task_sync_project], cron_jobs=cron_jobs)
+    worker = Worker(
+        queue,
+        functions=[task_sync_user_worklogs, task_sync_all_projects, task_sync_project, task_sync_specific_worklogs],
+        cron_jobs=cron_jobs,
+    )
     logger.info("Worker started with periodic task (every hour)")
     await worker.start()
 

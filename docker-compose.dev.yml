@@ -33,7 +33,8 @@ services:
       - redis
     # Using uv run from the backend directory
     working_dir: /app/backend
-    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "uv run alembic upgrade head && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
   worker:
     build:

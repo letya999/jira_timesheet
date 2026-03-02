@@ -13,11 +13,11 @@ backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../ba
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
+from core.database import get_db
+from core.security import get_password_hash
 from main import app
 from models import User
 from models.base import Base
-from core.database import get_db
-from core.security import get_password_hash
 
 # Increase rate limit for tests
 os.environ["RATE_LIMIT_MAX_REQUESTS"] = "10000"

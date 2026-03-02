@@ -1,5 +1,6 @@
 from playwright.sync_api import Page
 
+
 def test_leaves_page_loads(page: Page):
     # Navigate directly to the Leave Requests page
     page.goto("http://localhost:8501/Leave_Requests")

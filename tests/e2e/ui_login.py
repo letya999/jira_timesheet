@@ -1,5 +1,7 @@
 import re
+
 from playwright.sync_api import Page, expect
+
 
 def test_login(page: Page):
     # Navigate to the Streamlit app
