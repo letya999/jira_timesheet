@@ -34,6 +34,7 @@ if not user_info:
 
 user_role = user_info.get("role") if user_info else "Employee"
 
+
 def _select_user(user_role, user_info):
     if user_role in ["Admin", "CEO", "PM"]:
         emp_data, err = safe_api_call(get_employees, size=1000, _headers=get_headers())
@@ -44,17 +45,16 @@ def _select_user(user_role, user_info):
         employees = emp_data.get("items", [])
         emp_options = {e["id"]: e["display_name"] for e in employees}
         return st.selectbox(
-            t("common.employee"),
-            options=list(emp_options.keys()),
-            format_func=lambda x: emp_options[x]
+            t("common.employee"), options=list(emp_options.keys()), format_func=lambda x: emp_options[x]
         )
     else:
         # Regular user can only log for themselves
         selected_user_id = user_info.get("jira_user_id")
-        st.write(t("journal.logging_for", name=user_info.get('full_name')))
+        st.write(t("journal.logging_for", name=user_info.get("full_name")))
         if not selected_user_id:
             st.error(t("auth.no_jira_linked"))
         return selected_user_id
+
 
 def _select_category(log_type):
     if log_type == t("journal.type_jira"):
@@ -66,14 +66,15 @@ def _select_category(log_type):
         "Left": t("common.category_leave"),
         "Documentation": t("common.category_doc"),
         "Design": t("common.category_design"),
-        "Other": t("common.category_other")
+        "Other": t("common.category_other"),
     }
     return st.selectbox(
         t("common.category"),
         options=list(categories_map.keys()),
         format_func=lambda x: categories_map[x],
-        index=list(categories_map.keys()).index("Other")
+        index=list(categories_map.keys()).index("Other"),
     )
+
 
 def _select_task():
     st.info(t("journal.task_search_hint"))
@@ -85,13 +86,12 @@ def _select_task():
         elif found_issues:
             issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
             return st.selectbox(
-                t("journal.select_task"),
-                options=list(issue_options.keys()),
-                format_func=lambda x: issue_options[x]
+                t("journal.select_task"), options=list(issue_options.keys()), format_func=lambda x: issue_options[x]
             )
         else:
             st.warning(t("journal.no_tasks"))
     return None
+
 
 # --- Dialog for Adding Worklog ---
 @st.dialog(t("journal.add_worklog"))
@@ -122,27 +122,25 @@ def add_worklog_dialog():
         else:
             with st.spinner(t("journal.submitting")):
                 success = add_manual_log(
-                    log_date,
-                    hours,
-                    category,
-                    description,
-                    user_id=selected_user_id,
-                    issue_id=issue_id
+                    log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id
                 )
                 if success:
                     st.success(t("journal.added_success", hours=hours, category=category))
                     if "last_journal_filter_hash" in st.session_state:
-                        st.session_state.last_journal_filter_hash = "" # Force refresh
+                        st.session_state.last_journal_filter_hash = ""  # Force refresh
                     st.rerun()
                 else:
                     st.error(t("journal.failed_to_add"))
+
 
 # --- State Management for Dates ---
 if "ts_target_date" not in st.session_state:
     st.session_state.ts_target_date = date.today()
 
+
 def move_period(delta_days):
     st.session_state.ts_target_date += timedelta(days=delta_days)
+
 
 # --- Fetch Period Info ---
 period_info = get_my_period(st.session_state.ts_target_date)
@@ -177,12 +175,7 @@ with col_next:
         st.rerun()
 
 with col_status:
-    color_map = {
-        "OPEN": "blue",
-        "SUBMITTED": "orange",
-        "APPROVED": "green",
-        "REJECTED": "red"
-    }
+    color_map = {"OPEN": "blue", "SUBMITTED": "orange", "APPROVED": "green", "REJECTED": "red"}
     status_label = t(f"common.status_{status.lower()}")
     st.markdown(f"{t('common.status')}: **:{color_map.get(status, 'grey')}[{status_label}]**")
 
@@ -211,8 +204,8 @@ data = fetch_timesheet(
     start_date=start_date,
     end_date=end_date,
     user_id=user_jira_id,
-    org_unit_id=None, # Explicitly none for "My Timesheet"
-    size=1000 # Fetch all for this period
+    org_unit_id=None,  # Explicitly none for "My Timesheet"
+    size=1000,  # Fetch all for this period
 )
 worklogs = data.get("items", [])
 
@@ -240,7 +233,7 @@ while curr <= end_date:
     curr += timedelta(days=1)
 
 # Grouping
-grid_data = {} # Key: (Category, Name), Value: {date: hours}
+grid_data = {}  # Key: (Category, Name), Value: {date: hours}
 
 for wl in worklogs:
     cat = wl.get("category") or t("ui.jira_task")
@@ -262,10 +255,7 @@ for wl in worklogs:
 # --- Build DataFrame ---
 rows = []
 for (cat, name), day_values in grid_data.items():
-    row = {
-        "Category": cat,
-        "Name": name
-    }
+    row = {"Category": cat, "Name": name}
     for d in days_in_period:
         row[d.strftime("%a %d")] = day_values[d]
     row["Total"] = sum(day_values.values())
@@ -277,8 +267,8 @@ if rows:
     # Styling
     def highlight_positive(v):
         if isinstance(v, (int, float)) and v > 0:
-            return 'background-color: #e6f3ff'
-        return ''
+            return "background-color: #e6f3ff"
+        return ""
 
     # Calculate daily totals
     daily_totals = {d.strftime("%a %d"): 0.0 for d in days_in_period}
@@ -321,8 +311,8 @@ if rows:
             "Category": st.column_config.TextColumn(label=t("common.category"), width="small"),
             "Name": st.column_config.TextColumn(label=t("common.name"), width="large"),
             "Total": st.column_config.NumberColumn(label=t("common.total"), format="%.1f", width="small"),
-            **{d: st.column_config.NumberColumn(format="%.1f", width="small") for d in day_cols}
-        }
+            **{d: st.column_config.NumberColumn(format="%.1f", width="small") for d in day_cols},
+        },
     )
 
 else:

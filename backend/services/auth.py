@@ -27,4 +27,5 @@ class AuthService:
             return None
         return user
 
+
 auth_service = AuthService()

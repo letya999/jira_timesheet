@@ -15,6 +15,7 @@ from api.deps import get_current_user, require_role
 
 router = APIRouter()
 
+
 async def _get_leave_approval_permission(
     db: AsyncSession, user: User, leave: LeaveRequest, org_unit_id: int | None
 ) -> bool:
@@ -25,12 +26,7 @@ async def _get_leave_approval_permission(
 
     stmt_routes = (
         select(ApprovalRoute)
-        .where(
-            and_(
-                ApprovalRoute.org_unit_id == org_unit_id,
-                ApprovalRoute.target_type == 'leave'
-            )
-        )
+        .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == "leave"))
         .order_by(ApprovalRoute.step_order)
     )
     routes_res = await db.execute(stmt_routes)
@@ -39,38 +35,28 @@ async def _get_leave_approval_permission(
     if routes:
         current_route = next((r for r in routes if r.step_order == leave.current_step_order), None)
         if current_route:
-            stmt_uor = (
-                select(UserOrgRole)
-                .where(
-                    and_(
-                        UserOrgRole.user_id == user.id,
-                        UserOrgRole.org_unit_id == org_unit_id,
-                        UserOrgRole.role_id == current_route.role_id
-                    )
+            stmt_uor = select(UserOrgRole).where(
+                and_(
+                    UserOrgRole.user_id == user.id,
+                    UserOrgRole.org_unit_id == org_unit_id,
+                    UserOrgRole.role_id == current_route.role_id,
                 )
             )
             uor_res = await db.execute(stmt_uor)
             return uor_res.scalar_one_or_none() is not None
     else:
-        stmt_uor_fallback = (
-            select(UserOrgRole)
-            .where(
-                and_(
-                    UserOrgRole.user_id == user.id,
-                    UserOrgRole.org_unit_id == org_unit_id
-                )
-            )
+        stmt_uor_fallback = select(UserOrgRole).where(
+            and_(UserOrgRole.user_id == user.id, UserOrgRole.org_unit_id == org_unit_id)
         )
         uor_res = await db.execute(stmt_uor_fallback)
         return uor_res.scalar_one_or_none() is not None
     return False
 
-async def _notify_next_leave_approvers(
-    db: AsyncSession, leave: LeaveRequest, org_unit_id: int, current_user: User
-):
+
+async def _notify_next_leave_approvers(db: AsyncSession, leave: LeaveRequest, org_unit_id: int, current_user: User):
     stmt_routes = (
         select(ApprovalRoute)
-        .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == 'leave'))
+        .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == "leave"))
         .order_by(ApprovalRoute.step_order)
     )
     routes_res = await db.execute(stmt_routes)
@@ -79,14 +65,8 @@ async def _notify_next_leave_approvers(
     if routes and leave.current_step_order < len(routes):
         leave.current_step_order += 1
         next_step = routes[leave.current_step_order - 1]
-        stmt_next_uor = (
-            select(UserOrgRole)
-            .where(
-                and_(
-                    UserOrgRole.org_unit_id == org_unit_id,
-                    UserOrgRole.role_id == next_step.role_id
-                )
-            )
+        stmt_next_uor = select(UserOrgRole).where(
+            and_(UserOrgRole.org_unit_id == org_unit_id, UserOrgRole.role_id == next_step.role_id)
         )
         uor_res = await db.execute(stmt_next_uor)
         uors = uor_res.scalars().all()
@@ -103,16 +83,30 @@ async def _notify_next_leave_approvers(
                 message=msg,
                 type="leave_request_submitted",
                 related_entity_id=leave.id,
-                related_entity_type="LeaveRequest"
+                related_entity_type="LeaveRequest",
             )
     else:
         leave.status = LeaveStatus.APPROVED
 
+
+async def _get_current_role_id(db: AsyncSession, org_unit_id: int | None, step_order: int) -> int:
+    if not org_unit_id:
+        return 1
+    stmt = select(ApprovalRoute).where(
+        and_(
+            ApprovalRoute.org_unit_id == org_unit_id,
+            ApprovalRoute.target_type == "leave",
+            ApprovalRoute.step_order == step_order,
+        )
+    )
+    res = await db.execute(stmt)
+    cr = res.scalar_one_or_none()
+    return cr.role_id if cr else 1
+
+
 @router.post("/", response_model=LeaveResponse)
 async def create_leave_request(
-    payload: LeaveCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    payload: LeaveCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Create a new leave request and notify the first step managers."""
     if payload.end_date < payload.start_date:
@@ -125,8 +119,8 @@ async def create_leave_request(
             or_(
                 and_(LeaveRequest.start_date <= payload.start_date, LeaveRequest.end_date >= payload.start_date),
                 and_(LeaveRequest.start_date <= payload.end_date, LeaveRequest.end_date >= payload.end_date),
-                and_(LeaveRequest.start_date >= payload.start_date, LeaveRequest.end_date <= payload.end_date)
-            )
+                and_(LeaveRequest.start_date >= payload.start_date, LeaveRequest.end_date <= payload.end_date),
+            ),
         )
     )
     result = await db.execute(overlapping_query)
@@ -134,9 +128,7 @@ async def create_leave_request(
         raise HTTPException(status_code=400, detail="You already have a leave request overlapping these dates")
 
     result = await db.execute(
-        select(User)
-        .where(User.id == current_user.id)
-        .options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
+        select(User).where(User.id == current_user.id).options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
     )
     user_with_team = result.scalar_one()
 
@@ -151,7 +143,7 @@ async def create_leave_request(
         end_date=payload.end_date,
         reason=payload.reason,
         status=LeaveStatus.PENDING,
-        current_step_order=1
+        current_step_order=1,
     )
     db.add(leave_request)
     await db.commit()
@@ -161,12 +153,7 @@ async def create_leave_request(
     if org_unit_id:
         stmt_routes = (
             select(ApprovalRoute)
-            .where(
-                and_(
-                    ApprovalRoute.org_unit_id == org_unit_id,
-                    ApprovalRoute.target_type == 'leave'
-                )
-            )
+            .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == "leave"))
             .order_by(ApprovalRoute.step_order)
         )
         routes_res = await db.execute(stmt_routes)
@@ -175,14 +162,8 @@ async def create_leave_request(
         if routes:
             first_step = routes[0]
             # Find users with this role in this unit
-            stmt_uors = (
-                select(UserOrgRole)
-                .where(
-                    and_(
-                        UserOrgRole.org_unit_id == org_unit_id,
-                        UserOrgRole.role_id == first_step.role_id
-                    )
-                )
+            stmt_uors = select(UserOrgRole).where(
+                and_(UserOrgRole.org_unit_id == org_unit_id, UserOrgRole.role_id == first_step.role_id)
             )
             uor_res = await db.execute(stmt_uors)
             uors = uor_res.scalars().all()
@@ -199,29 +180,26 @@ async def create_leave_request(
                     message=msg,
                     type="leave_request_submitted",
                     related_entity_id=leave_request.id,
-                    related_entity_type="LeaveRequest"
+                    related_entity_type="LeaveRequest",
                 )
 
-        await db.commit() # Save notification
+        await db.commit()  # Save notification
 
     return leave_request
 
+
 @router.get("/my", response_model=list[LeaveResponse])
-async def get_my_leave_requests(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def get_my_leave_requests(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     result = await db.execute(
-        select(LeaveRequest)
-        .where(LeaveRequest.user_id == current_user.id)
-        .order_by(LeaveRequest.start_date.desc())
+        select(LeaveRequest).where(LeaveRequest.user_id == current_user.id).order_by(LeaveRequest.start_date.desc())
     )
     return result.scalars().all()
+
 
 @router.get("/team", response_model=list[LeaveResponse])
 async def get_team_leave_requests(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"]))  # noqa: B008
+    current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"])),  # noqa: B008
 ):
     """Fetch leave requests for units where the current user is an approver based on roles."""
     if current_user.role in ["Admin", "CEO"]:
@@ -242,10 +220,7 @@ async def get_team_leave_requests(
             .where(JiraUser.org_unit_id.in_(unit_ids))
         )
 
-    result = await db.execute(
-        query.options(joinedload(LeaveRequest.user))
-        .order_by(LeaveRequest.start_date.desc())
-    )
+    result = await db.execute(query.options(joinedload(LeaveRequest.user)).order_by(LeaveRequest.start_date.desc()))
     leaves = result.scalars().all()
 
     for leaf in leaves:
@@ -253,12 +228,13 @@ async def get_team_leave_requests(
 
     return leaves
 
+
 @router.get("/all", response_model=list[LeaveResponse])
 async def get_all_leave_requests(
     start_date: date | None = None,
     end_date: date | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     query = select(LeaveRequest).join(User, LeaveRequest.user_id == User.id)
 
@@ -267,10 +243,7 @@ async def get_all_leave_requests(
     if end_date:
         query = query.where(LeaveRequest.end_date <= end_date)
 
-    result = await db.execute(
-        query.options(joinedload(LeaveRequest.user))
-        .order_by(LeaveRequest.start_date.desc())
-    )
+    result = await db.execute(query.options(joinedload(LeaveRequest.user)).order_by(LeaveRequest.start_date.desc()))
     leaves = result.scalars().all()
 
     for leaf in leaves:
@@ -278,12 +251,13 @@ async def get_all_leave_requests(
 
     return leaves
 
+
 @router.patch("/{leave_id}", response_model=LeaveResponse)
 async def update_leave_status(
     leave_id: int,
     payload: LeaveUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Approve or reject a leave request processing the approval routes."""
     stmt = (
@@ -304,22 +278,7 @@ async def update_leave_status(
         raise HTTPException(status_code=403, detail="Not authorized to approve this step")
 
     if payload.status:
-        role_id_used = 1
-        if org_unit_id:
-            stmt_cr = (
-                select(ApprovalRoute)
-                .where(
-                    and_(
-                        ApprovalRoute.org_unit_id == org_unit_id,
-                        ApprovalRoute.target_type == 'leave',
-                        ApprovalRoute.step_order == leave.current_step_order
-                    )
-                )
-            )
-            routes_res = await db.execute(stmt_cr)
-            cr = routes_res.scalar_one_or_none()
-            if cr:
-                role_id_used = cr.role_id
+        role_id_used = await _get_current_role_id(db, org_unit_id, leave.current_step_order)
 
         step = LeaveApprovalStep(
             leave_request_id=leave.id,
@@ -328,9 +287,12 @@ async def update_leave_status(
             status=payload.status,
             approver_id=current_user.id,
             comment=payload.comment,
-            acted_at=datetime.utcnow()
+            acted_at=datetime.utcnow(),
         )
         db.add(step)
+
+        leave.comment = payload.comment
+        leave.approver_id = current_user.id
 
         if payload.status == LeaveStatus.REJECTED:
             leave.status = LeaveStatus.REJECTED
@@ -349,8 +311,11 @@ async def update_leave_status(
             message=f"Your request has been **{leave.status.lower()}**.",
             type=f"leave_request_{leave.status.lower()}",
             related_entity_id=leave.id,
-            related_entity_type="LeaveRequest"
+            related_entity_type="LeaveRequest",
         )
         await db.commit()
+        await db.refresh(leave)
+        if leave.user:
+            leave.user_full_name = leave.user.full_name
 
     return leave

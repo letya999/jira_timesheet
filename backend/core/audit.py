@@ -12,7 +12,7 @@ async def log_audit(
     target_id: str | None = None,
     payload: dict[str, Any] | None = None,
     user_id: int | None = None,
-    request: Request | None = None
+    request: Request | None = None,
 ):
     """
     Utility function to record an audit log entry.
@@ -27,7 +27,7 @@ async def log_audit(
         target_type=target_type,
         target_id=target_id,
         payload=payload,
-        ip_address=ip_address
+        ip_address=ip_address,
     )
     db.add(audit_entry)
     # We don't commit here, assuming it's part of a larger transaction

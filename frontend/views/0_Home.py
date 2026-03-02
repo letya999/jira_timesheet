@@ -8,7 +8,8 @@ def show_home():
     # Polling for live updates
     auto_refresh(interval_ms=30000, key="home_polling")
 
-    st.markdown("""
+    st.markdown(
+        """
         <style>
         .main-header {
             text-align: center;
@@ -49,13 +50,14 @@ def show_home():
             margin-bottom: 1rem;
         }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         f"<div class='main-header'><h1>🚀 {t('home.title')}</h1><p>{t('home.welcome_text')}</p></div>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
-
 
     # Define tiles configuration
     all_tiles = [
@@ -64,71 +66,71 @@ def show_home():
             "icon": "📝",
             "desc": t("home.journal_desc"),
             "page": "views/1_Journal.py",
-            "roles": ["Employee", "PM", "CEO", "Admin"]
+            "roles": ["Employee", "PM", "CEO", "Admin"],
         },
         {
             "title": t("common.dashboard"),
             "icon": "📊",
             "desc": t("home.dashboard_desc"),
             "page": "views/2_Dashboard.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.reports"),
             "icon": "📈",
             "desc": t("home.reports_desc"),
             "page": "views/3_Report_Builder.py",
-            "roles": ["Employee", "PM", "CEO", "Admin"]
+            "roles": ["Employee", "PM", "CEO", "Admin"],
         },
         {
             "title": t("leaves.title"),
             "icon": "📅",
             "desc": t("leaves.title"),
             "page": "views/12_Leave_Requests.py",
-            "roles": ["Employee", "PM", "CEO", "Admin"]
+            "roles": ["Employee", "PM", "CEO", "Admin"],
         },
         {
             "title": t("approvals.title"),
             "icon": "✅",
             "desc": t("approvals.title"),
             "page": "views/8_Approvals.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.control_sheet"),
             "icon": "📋",
             "desc": t("home.control_sheet_desc"),
             "page": "views/8_Control_Sheet.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.org_structure"),
             "icon": "🌳",
             "desc": t("home.org_structure_desc"),
             "page": "views/4_Org_Structure.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.employees"),
             "icon": "👥",
             "desc": t("home.employees_desc"),
             "page": "views/5_Employees.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.projects"),
             "icon": "🏗️",
             "desc": t("home.projects_desc"),
             "page": "views/6_Projects.py",
-            "roles": ["PM", "CEO", "Admin"]
+            "roles": ["PM", "CEO", "Admin"],
         },
         {
             "title": t("common.settings"),
             "icon": "⚙️",
             "desc": t("home.settings_desc"),
             "page": "views/7_Settings.py",
-            "roles": ["Admin"]
-        }
+            "roles": ["Admin"],
+        },
     ]
 
     # Filter tiles based on access
@@ -143,21 +145,23 @@ def show_home():
                 tile = available_tiles[i + j]
                 with cols[j]:
                     with st.container():
-                        st.markdown(f"""
+                        st.markdown(
+                            f"""
                             <div class='card-container'>
                                 <div>
-                                    <div class='card-icon'>{tile['icon']}</div>
-                                    <div class='card-title'>{tile['title']}</div>
-                                    <div class='card-desc'>{tile['desc']}</div>
+                                    <div class='card-icon'>{tile["icon"]}</div>
+                                    <div class='card-title'>{tile["title"]}</div>
+                                    <div class='card-desc'>{tile["desc"]}</div>
                                 </div>
                             </div>
-                        """, unsafe_allow_html=True)
+                        """,
+                            unsafe_allow_html=True,
+                        )
                         if st.button(
-                            t("home.open_btn", title=tile['title']),
-                            key=f"btn_{tile['title']}",
-                            width="stretch"
+                            t("home.open_btn", title=tile["title"]), key=f"btn_{tile['title']}", width="stretch"
                         ):
-                            st.switch_page(tile['page'])
+                            st.switch_page(tile["page"])
+
 
 if __name__ == "__main__":
     show_home()

@@ -38,9 +38,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
 
     with f_col1:
         start_date = st.date_input(
-            t("journal.start_date"),
-            datetime.now().date() - timedelta(days=30),
-            key="api_start_date"
+            t("journal.start_date"), datetime.now().date() - timedelta(days=30), key="api_start_date"
         )
         end_date = st.date_input(t("journal.end_date"), datetime.now().date(), key="api_end_date")
 
@@ -51,7 +49,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             t("reports.categories"),
             options=list(cat_options.keys()),
             format_func=lambda x: cat_options[x],
-            key="api_cats"
+            key="api_cats",
         )
 
     with f_col2:
@@ -62,7 +60,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             t("common.project"),
             options=[None] + list(project_options.keys()),
             format_func=lambda x: project_options[x] if x else t("journal.all_projects"),
-            key="api_project"
+            key="api_project",
         )
 
         selected_release_id = None
@@ -74,7 +72,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
                     t("reports.release"),
                     options=[None] + list(ver_map.keys()),
                     format_func=lambda x: ver_map[x] if x else t("reports.all_releases"),
-                    key="api_release"
+                    key="api_release",
                 )
         else:
             # Optionally show a generic release filter or keep hidden
@@ -87,7 +85,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             t("common.sprint"),
             options=list(sprint_options.keys()),
             format_func=lambda x: sprint_options[x],
-            key="api_sprints"
+            key="api_sprints",
         )
 
     with f_col3:
@@ -98,7 +96,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
                 t("common.team"),
                 options=[None] + list(unit_options.keys()),
                 format_func=lambda x: unit_options[x] if x else t("common.all"),
-                key="api_unit"
+                key="api_unit",
             )
         else:
             selected_org_unit_id = None
@@ -116,7 +114,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
                 t("common.employees"),
                 options=list(emp_options.keys()),
                 format_func=lambda x: emp_options[x],
-                key="api_users"
+                key="api_users",
             )
         else:
             sel_user_ids = None
@@ -127,8 +125,17 @@ st.subheader(f"⚙️ {t('reports.pivot_config')}")
 c1, c2, c3 = st.columns(3)
 
 pivot_options = [
-    "user", "project", "task", "release", "sprint",
-    "team", "division", "department", "date", "category", "type"
+    "user",
+    "project",
+    "task",
+    "release",
+    "sprint",
+    "team",
+    "division",
+    "department",
+    "date",
+    "category",
+    "type",
 ]
 
 with c1:
@@ -137,7 +144,7 @@ with c1:
         options=pivot_options,
         default=["user", "project"],
         format_func=lambda x: t(f"common.{x}") if x in pivot_options else x,
-        key="pivot_rows"
+        key="pivot_rows",
     )
 
     group_cols = st.multiselect(
@@ -145,7 +152,7 @@ with c1:
         options=pivot_options,
         default=["date"],
         format_func=lambda x: t(f"common.{x}") if x in pivot_options else x,
-        key="pivot_cols"
+        key="pivot_cols",
     )
 
 with c2:
@@ -159,10 +166,9 @@ with c2:
             options=["day", "week", "2weeks", "month", "quarter"],
             value="week",
             format_func=lambda x: (
-                t(f"dashboard.{x}") if x in ["month"]
-                else t(f"org.period_{x.replace('2weeks', 'biweekly')}")
+                t(f"dashboard.{x}") if x in ["month"] else t(f"org.period_{x.replace('2weeks', 'biweekly')}")
             ),
-            key="pivot_granularity"
+            key="pivot_granularity",
         )
 
 with c3:
@@ -187,7 +193,7 @@ with c3:
                     "group_by_cols": group_cols,
                     "date_granularity": granularity,
                     "format": val_format,
-                    "hours_per_day": h_per_day
+                    "hours_per_day": h_per_day,
                 }
                 data = fetch_custom_report(payload)
                 if data:
@@ -219,9 +225,7 @@ if state.report_raw_data is not None:
         elif gran == "2weeks":
             # Bucket to the Monday of the odd week (simple 14-day bucketing)
             df["2weeks"] = df["date"].apply(
-                lambda d: d - timedelta(
-                    days=d.weekday() + (7 if (d.isocalendar()[1] % 2 == 0) else 0)
-                )
+                lambda d: d - timedelta(days=d.weekday() + (7 if (d.isocalendar()[1] % 2 == 0) else 0))
             )
             df["2weeks"] = pd.to_datetime(df["2weeks"]).dt.date
         elif gran == "month":
@@ -243,10 +247,10 @@ if state.report_raw_data is not None:
     with st.expander(f"🧪 {t('reports.advanced_filters')}"):
         l_col1, l_col2 = st.columns(2)
         with l_col1:
-            all_users = sorted(df["user"].unique().tolist())
+            all_users = sorted([str(u) for u in df["user"].unique() if u is not None])
             sel_users = st.multiselect(t("reports.filter_employees"), all_users, default=all_users, key="loc_users")
         with l_col2:
-            all_projs = sorted(df["project"].unique().tolist())
+            all_projs = sorted([str(p) for p in df["project"].unique() if p is not None])
             sel_projs = st.multiselect(t("reports.filter_projects"), all_projs, default=all_projs, key="loc_projs")
 
         df = df[df["user"].isin(sel_users) & df["project"].isin(sel_projs)]
@@ -259,13 +263,7 @@ if state.report_raw_data is not None:
 
         # Aggregation
         if final_cols:
-            pivot_df = df.pivot_table(
-                index=final_rows,
-                columns=final_cols,
-                values="value",
-                aggfunc="sum",
-                fill_value=0
-            )
+            pivot_df = df.pivot_table(index=final_rows, columns=final_cols, values="value", aggfunc="sum", fill_value=0)
         else:
             pivot_df = df.groupby(final_rows)["value"].sum().to_frame()
             pivot_df.columns = [f"{t('common.total')} ({val_format})"]
@@ -292,12 +290,10 @@ if state.report_raw_data is not None:
                 t("reports.chart_type"),
                 ["Bar", "Line", "Pie"],
                 format_func=lambda x: t(f"reports.chart_{x.lower()}"),
-                key="viz_choice"
+                key="viz_choice",
             )
             color_by = st.selectbox(
-                t("reports.color_by"),
-                options=final_rows + (final_cols if final_cols else []),
-                key="viz_color"
+                t("reports.color_by"), options=final_rows + (final_cols if final_cols else []), key="viz_color"
             )
 
         with v_col2:
@@ -318,5 +314,5 @@ if state.report_raw_data is not None:
                 st.plotly_chart(fig, use_container_width=True)
 
         # Export
-        csv = pivot_df.to_csv().encode('utf-8-sig')
+        csv = pivot_df.to_csv().encode("utf-8-sig")
         st.download_button(f"📥 {t('reports.download_csv')}", csv, "pivot_report.csv", "text/csv", key="dl_btn")

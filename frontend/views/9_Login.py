@@ -7,7 +7,8 @@ from i18n import language_selector, t
 
 
 def show_login():
-    st.markdown("""
+    st.markdown(
+        """
         <style>
         .login-container {
             max-width: 400px;
@@ -33,7 +34,9 @@ def show_login():
             text-align: center;
         }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Language selector at the top right
     lang_col1, lang_col2 = st.columns([8, 2])
@@ -69,11 +72,12 @@ def show_login():
                         else:
                             st.error(f"❌ {t('auth.invalid_credentials')}")
 
+
 if __name__ == "__main__":
     # If the script is run directly, it needs set_page_config
     try:
         st.set_page_config(page_title=t("auth.page_title"), layout="centered", page_icon="logo.png")
     except Exception:
-        pass # Already set in app.py if run as a page
+        pass  # Already set in app.py if run as a page
 
     show_login()

@@ -38,7 +38,7 @@ with col2:
         with st.spinner(t("common.loading")):
             result = sync_all_projects_worklogs()
             if result and result.get("status") == "success":
-                st.success(t("projects.sync_success", count=result.get('synced')))
+                st.success(t("projects.sync_success", count=result.get("synced")))
             else:
                 st.error(f"{t('common.error')}: {result.get('detail') if result else t('common.error')}")
 
@@ -61,10 +61,7 @@ page_size = 10
 # Fetch data for current page
 headers = get_headers()
 data = fetch_db_projects(
-    page=st.session_state["projects_page"],
-    size=page_size,
-    search=st.session_state["projects_search"],
-    _headers=headers
+    page=st.session_state["projects_page"], size=page_size, search=st.session_state["projects_search"], _headers=headers
 )
 projects_list = data.get("items", [])
 total_count = data.get("total", 0)
@@ -81,24 +78,24 @@ else:
             p_col1, p_col2, p_col3, p_col4 = st.columns([1, 3, 1, 1])
 
             p_col1.write(f"**{project['key']}**")
-            p_col2.write(project['name'])
+            p_col2.write(project["name"])
 
             # Sync Toggle
-            is_active = p_col3.toggle(t("common.sync"), value=project['is_active'], key=f"toggle_{project['id']}")
-            if is_active != project['is_active']:
-                if update_project_status(project['id'], is_active):
+            is_active = p_col3.toggle(t("common.sync"), value=project["is_active"], key=f"toggle_{project['id']}")
+            if is_active != project["is_active"]:
+                if update_project_status(project["id"], is_active):
                     st.toast(f"{t('common.update')}: {project['key']}")
                     st.rerun()
                 else:
                     st.error(t("common.error"))
 
             # Manual Sync Button
-            if project['is_active']:
+            if project["is_active"]:
                 if p_col4.button(t("projects.sync_now"), key=f"sync_{project['id']}"):
                     with st.spinner(f"{t('common.sync')} {project['key']}..."):
-                        result = sync_project_worklogs(project['id'])
+                        result = sync_project_worklogs(project["id"])
                         if result and result.get("status") == "success":
-                            st.success(t("projects.sync_success", count=result.get('synced')))
+                            st.success(t("projects.sync_success", count=result.get("synced")))
                         else:
                             st.error(f"{t('common.error')} {project['key']}")
         st.divider()
@@ -112,11 +109,7 @@ else:
             st.rerun()
 
     with p_col2:
-        if st.button(
-            "‹ " + t("common.prev"),
-            disabled=st.session_state["projects_page"] == 1,
-            key="proj_prev"
-        ):
+        if st.button("‹ " + t("common.prev"), disabled=st.session_state["projects_page"] == 1, key="proj_prev"):
             st.session_state["projects_page"] -= 1
             st.rerun()
 
@@ -125,18 +118,14 @@ else:
 
     with p_col4:
         if st.button(
-            t("common.next") + " ›",
-            disabled=st.session_state["projects_page"] >= total_pages,
-            key="proj_next"
+            t("common.next") + " ›", disabled=st.session_state["projects_page"] >= total_pages, key="proj_next"
         ):
             st.session_state["projects_page"] += 1
             st.rerun()
 
     with p_col5:
         if st.button(
-            t("common.last") + " »",
-            disabled=st.session_state["projects_page"] >= total_pages,
-            key="proj_last"
+            t("common.last") + " »", disabled=st.session_state["projects_page"] >= total_pages, key="proj_last"
         ):
             st.session_state["projects_page"] = total_pages
             st.rerun()

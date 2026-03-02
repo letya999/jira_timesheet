@@ -1,4 +1,3 @@
-
 code = """
 # --- Flexible Org & Roles ---
 def fetch_org_units(_headers=None):
@@ -28,7 +27,11 @@ def fetch_roles(_headers=None):
     return response.json() if response.status_code == 200 else []
 
 def create_role(name, is_system=False):
-    response = requests.post(f"{BACKEND_URL}/org/roles", json={"name": name, "is_system": is_system}, headers=get_headers())
+    response = requests.post(
+        f"{BACKEND_URL}/org/roles",
+        json={"name": name, "is_system": is_system},
+        headers=get_headers(),
+    )
     return response.status_code == 200
 
 def delete_role(role_id):

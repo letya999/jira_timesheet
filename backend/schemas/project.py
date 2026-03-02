@@ -9,18 +9,22 @@ class ProjectBase(BaseModel):
     name: str
     is_active: bool = False
 
+
 class ProjectCreate(ProjectBase):
     pass
+
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     is_active: bool | None = None
+
 
 class ProjectResponse(ProjectBase):
     id: int
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class SprintBase(BaseModel):
     jira_id: str
@@ -29,11 +33,13 @@ class SprintBase(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
 
+
 class SprintResponse(SprintBase):
     id: int
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class ReleaseBase(BaseModel):
     jira_id: str
@@ -42,11 +48,13 @@ class ReleaseBase(BaseModel):
     release_date: date | None = None
     project_id: int
 
+
 class ReleaseResponse(ReleaseBase):
     id: int
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class JiraProject(BaseModel):
     id: str

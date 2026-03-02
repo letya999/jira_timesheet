@@ -40,7 +40,11 @@ async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSe
     unit_id = unit.id
     db.expire_all()
 
-    resp = await client.post("/api/v1/org/units/roles", json={"user_id": admin_user_id, "org_unit_id": unit_id, "role_id": role_id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/roles",
+        json={"user_id": admin_user_id, "org_unit_id": unit_id, "role_id": role_id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     assign_id = resp.json()["id"]
 
@@ -48,7 +52,11 @@ async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSe
     assert len(resp.json()) >= 1
 
     # 5. Approval Routes
-    resp = await client.post("/api/v1/org/units/approval-routes", json={"org_unit_id": unit_id, "target_type": "leave", "step_order": 1, "role_id": role_id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/approval-routes",
+        json={"org_unit_id": unit_id, "target_type": "leave", "step_order": 1, "role_id": role_id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     route_id = resp.json()["id"]
 

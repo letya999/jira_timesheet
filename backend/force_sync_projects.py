@@ -10,5 +10,6 @@ async def force_sync():
         count = await sync_jira_projects_to_db(db)
         print(f"Sync complete. Synced {count} projects.")
 
+
 if __name__ == "__main__":
     asyncio.run(force_sync())

@@ -13,7 +13,7 @@ class NotificationService:
         sender_id: int | None = None,
         type: str = "info",
         related_entity_id: int | None = None,
-        related_entity_type: str | None = None
+        related_entity_type: str | None = None,
     ) -> Notification:
         """
         Create a new notification for a user.
@@ -25,20 +25,14 @@ class NotificationService:
             message=message,
             type=type,
             related_entity_id=related_entity_id,
-            related_entity_type=related_entity_type
+            related_entity_type=related_entity_type,
         )
         db.add(notification)
         # We don't commit here, assuming it's part of a larger transaction
         return notification
 
     async def notify_timesheet_submitted(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: int,
-        timesheet_id: int,
-        user_name: str,
-        period_label: str
+        self, db: AsyncSession, *, user_id: int, timesheet_id: int, user_name: str, period_label: str
     ):
         """
         Notify the relevant managers when a timesheet is submitted.
@@ -50,9 +44,7 @@ class NotificationService:
 
         # Find the user and their team PM
         result = await db.execute(
-            select(User)
-            .where(User.id == user_id)
-            .options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
+            select(User).where(User.id == user_id).options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
         )
         user = result.scalar_one_or_none()
 
@@ -61,14 +53,12 @@ class NotificationService:
             recipients.append(user.jira_user.org_unit.pm_id)
         else:
             # Fallback: Notify all Admins
-            admin_result = await db.execute(
-                select(User.id).where(User.role == "Admin")
-            )
+            admin_result = await db.execute(select(User.id).where(User.role == "Admin"))
             recipients = [r for r in admin_result.scalars().all()]
 
         for recipient_id in recipients:
             if recipient_id == user_id:
-                continue # Don't notify self
+                continue  # Don't notify self
 
             await self.create_notification(
                 db,
@@ -78,7 +68,7 @@ class NotificationService:
                 message=f"**{user_name}** has submitted their timesheet for the period **{period_label}**.",
                 type="timesheet_submitted",
                 related_entity_id=timesheet_id,
-                related_entity_type="TimesheetPeriod"
+                related_entity_type="TimesheetPeriod",
             )
 
     async def notify_timesheet_status_change(
@@ -88,9 +78,9 @@ class NotificationService:
         user_id: int,
         approver_id: int,
         timesheet_id: int,
-        status: str, # APPROVED or REJECTED
+        status: str,  # APPROVED or REJECTED
         period_label: str,
-        comment: str | None = None
+        comment: str | None = None,
     ):
         """
         Notify the user when their timesheet is approved or rejected.
@@ -111,7 +101,8 @@ class NotificationService:
             message=message,
             type=type_str,
             related_entity_id=timesheet_id,
-            related_entity_type="TimesheetPeriod"
+            related_entity_type="TimesheetPeriod",
         )
+
 
 notification_service = NotificationService()

@@ -1,4 +1,3 @@
-
 import asyncio
 
 from sqlalchemy import func, select
@@ -18,9 +17,11 @@ async def check_projects():
         for p in projects:
             print(f" - {p.key}: {p.name} (Active: {p.is_active})")
 
+
 if __name__ == "__main__":
     import os
     import sys
+
     # Add backend to path
     sys.path.append(os.path.join(os.getcwd(), "backend"))
     asyncio.run(check_projects())

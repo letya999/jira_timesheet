@@ -20,6 +20,7 @@ issue_releases = Table(
     Column("release_id", Integer, ForeignKey("releases.id"), primary_key=True),
 )
 
+
 class Project(Base):
     __tablename__ = "projects"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -31,16 +32,18 @@ class Project(Base):
     issues = relationship("Issue", back_populates="project")
     releases = relationship("Release", back_populates="project")
 
+
 class Sprint(Base):
     __tablename__ = "sprints"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255))
-    state: Mapped[str | None] = mapped_column(String(50)) # active, closed, future
+    state: Mapped[str | None] = mapped_column(String(50))  # active, closed, future
     start_date: Mapped[date | None] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
 
     issues = relationship("Issue", secondary=issue_sprints, back_populates="sprints")
+
 
 class Release(Base):
     __tablename__ = "releases"
@@ -54,6 +57,7 @@ class Release(Base):
 
     project = relationship("Project", back_populates="releases")
     issues = relationship("Issue", secondary=issue_releases, back_populates="releases")
+
 
 class Issue(Base):
     __tablename__ = "issues"

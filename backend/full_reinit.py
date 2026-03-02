@@ -16,5 +16,6 @@ async def full_reinit():
     await seed()
     print("=== DATABASE RE-INITIALIZATION COMPLETE ===")
 
+
 if __name__ == "__main__":
     asyncio.run(full_reinit())

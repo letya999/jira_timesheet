@@ -55,5 +55,6 @@ async def cleanup_db():
         await db.commit()
         print("Database cleanup complete. Only 1 system user remains.")
 
+
 if __name__ == "__main__":
     asyncio.run(cleanup_db())

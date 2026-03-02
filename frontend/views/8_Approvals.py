@@ -42,9 +42,7 @@ with col1:
     # Admins see all teams from fetch_my_teams(), PMs only theirs.
     team_options = {t_item["id"]: t_item["name"] for t_item in my_teams}
     selected_org_unit_id = st.selectbox(
-        t("common.team"),
-        options=list(team_options.keys()),
-        format_func=lambda x: team_options[x]
+        t("common.team"), options=list(team_options.keys()), format_func=lambda x: team_options[x]
     )
 
 with col2:
@@ -66,15 +64,17 @@ with col2:
     elif period_type == "monthly":
         start_date = ref_date.replace(day=1)
         import calendar
+
         _, last_day = calendar.monthrange(ref_date.year, ref_date.month)
         end_date = ref_date.replace(day=last_day)
-    else: # bi-weekly
+    else:  # bi-weekly
         if ref_date.day <= 15:
             start_date = ref_date.replace(day=1)
             end_date = ref_date.replace(day=15)
         else:
             start_date = ref_date.replace(day=16)
             import calendar
+
             _, last_day = calendar.monthrange(ref_date.year, ref_date.month)
             end_date = ref_date.replace(day=last_day)
 
@@ -105,7 +105,7 @@ worklogs = worklogs_data.get("items", [])
 # Calculate hours per user
 user_hours = {}
 for wl in worklogs:
-    uid = wl.get("user_id") # Note: this is jira_user_id in worklog but we need User.id
+    uid = wl.get("user_id")  # Note: this is jira_user_id in worklog but we need User.id
     # Wait, the worklog has user_id which is jira_user_id.
     # The TimesheetPeriod is linked to User.id.
     # We need to map JiraUser to User.
@@ -125,7 +125,7 @@ for member in team_members:
     m_name = member["full_name"]
     m_period = period_map.get(m_id)
     m_status = m_period["status"] if m_period else "OPEN"
-    m_hours = user_totals.get(member.get("full_name"), 0.0) # This matching is loose but okay for MVP
+    m_hours = user_totals.get(member.get("full_name"), 0.0)  # This matching is loose but okay for MVP
 
     with st.container(border=True):
         c1, c2, c3, c4 = st.columns([0.3, 0.2, 0.2, 0.3])
@@ -160,15 +160,13 @@ for member in team_members:
     with st.expander(t("common.details") + f" {m_name}"):
         member_logs = [wl for wl in worklogs if wl.get("user_name") == m_name]
         if member_logs:
-            m_df = pd.DataFrame(member_logs)[[
-                "date", "hours", "project_name", "issue_key", "description"
-            ]]
+            m_df = pd.DataFrame(member_logs)[["date", "hours", "project_name", "issue_key", "description"]]
             m_df.columns = [
                 t("common.date"),
                 t("common.hours"),
                 t("common.project"),
                 t("journal.task_search"),
-                t("common.description")
+                t("common.description"),
             ]
             st.dataframe(m_df, width="stretch", hide_index=True)
         else:

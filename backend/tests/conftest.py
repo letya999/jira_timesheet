@@ -26,16 +26,20 @@ SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 TestingSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False)
 
+
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     async with TestingSessionLocal() as session:
         yield session
 
+
 app.dependency_overrides[get_db] = override_get_db
+
 
 @pytest.fixture(autouse=True, scope="function")
 async def setup_cache():
     FastAPICache.init(InMemoryBackend(), prefix="test-cache")
     yield
+
 
 @pytest.fixture(autouse=True, scope="function")
 async def setup_db():
@@ -46,19 +50,23 @@ async def setup_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
+
 @pytest.fixture(scope="function")
 async def db(setup_db) -> AsyncGenerator[AsyncSession, None]:
     async with TestingSessionLocal() as session:
         yield session
+
 
 @pytest.fixture(scope="function")
 async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
+
 @pytest.fixture(scope="function")
 async def admin_user(db: AsyncSession) -> User:
     from sqlalchemy import select
+
     result = await db.execute(select(User).where(User.email == "testadmin@example.com"))
     admin = result.scalar_one_or_none()
     if not admin:
@@ -67,15 +75,18 @@ async def admin_user(db: AsyncSession) -> User:
             hashed_password=get_password_hash("testpass"),
             full_name="Test Admin",
             role="Admin",
-            is_active=True
+            is_active=True,
         )
         db.add(admin)
         await db.commit()
         await db.refresh(admin)
     return admin
 
+
 @pytest.fixture(scope="function")
 async def auth_headers(client: AsyncClient, admin_user: User) -> dict:
-    login_res = await client.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"}
+    )
     token = login_res.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

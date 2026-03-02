@@ -26,6 +26,7 @@ class JiraUser(Base):
     def user_id(self) -> int | None:
         return self.user.id if self.user else None
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -33,7 +34,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(50), default="Employee", index=True) # Admin, CEO, PM, Employee
+    role: Mapped[str] = mapped_column(String(50), default="Employee", index=True)  # Admin, CEO, PM, Employee
 
     # Login access control only
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

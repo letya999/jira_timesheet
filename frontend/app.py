@@ -50,22 +50,30 @@ else:
         # Full menu for privileged users
         pages_to_show = {
             t("common.nav_main"): [
-                home_page, journal_page, timesheet_page,
-                leaves_page, dashboard_page, notifications_page
+                home_page,
+                journal_page,
+                timesheet_page,
+                leaves_page,
+                dashboard_page,
+                notifications_page,
             ],
             t("common.nav_analytics"): [reports_builder_page],
             t("common.nav_admin"): [
-                org_page, employees_page, projects_page,
-                approvals_page, control_sheet_page,
-                hr_module_page, settings_page
-            ]
+                org_page,
+                employees_page,
+                projects_page,
+                approvals_page,
+                control_sheet_page,
+                hr_module_page,
+                settings_page,
+            ],
         }
 
     else:
         # Minimal menu for regular employees
         pages_to_show = {
             t("common.nav_workspace"): [home_page, journal_page, timesheet_page, leaves_page, notifications_page],
-            t("common.nav_reporting"): [reports_builder_page]
+            t("common.nav_reporting"): [reports_builder_page],
         }
 
     # Check if password change is required

@@ -10,11 +10,13 @@ class LeaveType(StrEnum):
     DAY_OFF = "DAY_OFF"
     OTHER = "OTHER"
 
+
 class LeaveStatus(StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
+
 
 class LeaveBase(BaseModel):
     type: LeaveType = LeaveType.VACATION
@@ -22,8 +24,10 @@ class LeaveBase(BaseModel):
     end_date: date
     reason: str | None = None
 
+
 class LeaveCreate(LeaveBase):
     pass
+
 
 class LeaveUpdate(BaseModel):
     status: LeaveStatus | None = None
@@ -33,6 +37,7 @@ class LeaveUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     reason: str | None = None
+
 
 class LeaveResponse(LeaveBase):
     id: int
@@ -49,6 +54,7 @@ class LeaveResponse(LeaveBase):
     approver_full_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class TeamLeaveResponse(BaseModel):
     user_id: int

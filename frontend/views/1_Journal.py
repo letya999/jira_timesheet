@@ -29,6 +29,7 @@ if not token:
 user_info = get_me()
 user_role = user_info.get("role") if user_info else "Employee"
 
+
 # --- Dialog for Adding Worklog ---
 def _dialog_user_selection(user_role, user_info):
     """Helper to handle user selection in the dialog."""
@@ -41,14 +42,12 @@ def _dialog_user_selection(user_role, user_info):
         employees = emp_data.get("items", [])
         emp_options = {e["id"]: e["display_name"] for e in employees}
         return st.selectbox(
-            t("common.employee"),
-            options=list(emp_options.keys()),
-            format_func=lambda x: emp_options[x]
+            t("common.employee"), options=list(emp_options.keys()), format_func=lambda x: emp_options[x]
         )
 
     # Regular user can only log for themselves
     selected_user_id = user_info.get("jira_user_id")
-    st.write(t("journal.logging_for", name=user_info.get('full_name')))
+    st.write(t("journal.logging_for", name=user_info.get("full_name")))
     if not selected_user_id:
         st.error(t("auth.no_jira_linked"))
         return None
@@ -67,9 +66,7 @@ def _dialog_task_selection():
         elif found_issues:
             issue_options = {i["id"]: f"{i['key']} - {i['summary']}" for i in found_issues}
             issue_id = st.selectbox(
-                t("journal.select_task"),
-                options=list(issue_options.keys()),
-                format_func=lambda x: issue_options[x]
+                t("journal.select_task"), options=list(issue_options.keys()), format_func=lambda x: issue_options[x]
             )
         else:
             st.warning(t("journal.no_tasks"))
@@ -96,13 +93,13 @@ def add_worklog_dialog():
             "Left": t("common.category_leave"),
             "Documentation": t("common.category_doc"),
             "Design": t("common.category_design"),
-            "Other": t("common.category_other")
+            "Other": t("common.category_other"),
         }
         category_key = st.selectbox(
             t("common.category"),
             options=list(categories_map.keys()),
             format_func=lambda x: categories_map[x],
-            index=list(categories_map.keys()).index("Other")
+            index=list(categories_map.keys()).index("Other"),
         )
         category = category_key
 
@@ -121,15 +118,15 @@ def add_worklog_dialog():
         else:
             with st.spinner(t("journal.submitting")):
                 success = add_manual_log(
-                    log_date, hours, category, description,
-                    user_id=selected_user_id, issue_id=issue_id
+                    log_date, hours, category, description, user_id=selected_user_id, issue_id=issue_id
                 )
                 if success:
                     st.success(t("journal.added_success", hours=hours, category=category))
-                    st.session_state.last_journal_filter_hash = "" # Force refresh
+                    st.session_state.last_journal_filter_hash = ""  # Force refresh
                     st.rerun()
                 else:
                     st.error(t("journal.failed_to_add"))
+
 
 # --- Layout ---
 col_title, col_refresh, col_btn = st.columns([0.6, 0.15, 0.25])
@@ -149,10 +146,7 @@ with st.expander(f"🔍 {t('journal.filters_search')}", expanded=False):
 
     with f_col1:
         # Default to 90 days to see "everything"
-        start_date = st.date_input(
-            t("journal.start_date"),
-            datetime.now().date() - timedelta(days=90)
-        )
+        start_date = st.date_input(t("journal.start_date"), datetime.now().date() - timedelta(days=90))
         end_date = st.date_input(t("journal.end_date"), datetime.now().date())
 
         headers = get_headers()
@@ -169,9 +163,8 @@ with st.expander(f"🔍 {t('journal.filters_search')}", expanded=False):
             options=list(project_options.keys()),
             index=0,
             format_func=lambda x: (
-                f"{project_options[x]['key']} - {project_options[x]['name']}"
-                if x != 0 else project_options[x]["name"]
-            )
+                f"{project_options[x]['key']} - {project_options[x]['name']}" if x != 0 else project_options[x]["name"]
+            ),
         )
 
     with f_col2:
@@ -181,9 +174,7 @@ with st.expander(f"🔍 {t('journal.filters_search')}", expanded=False):
         for u in units:
             unit_options[u["id"]] = u["name"]
         selected_team = st.selectbox(
-            t("common.team"),
-            options=list(unit_options.keys()),
-            format_func=lambda x: unit_options[x]
+            t("common.team"), options=list(unit_options.keys()), format_func=lambda x: unit_options[x]
         )
 
     with f_col3:
@@ -194,19 +185,14 @@ with st.expander(f"🔍 {t('journal.filters_search')}", expanded=False):
             "Left": t("common.category_leave"),
             "Documentation": t("common.category_doc"),
             "Design": t("common.category_design"),
-            "Other": t("common.category_other")
+            "Other": t("common.category_other"),
         }
         selected_category = st.selectbox(
-            t("common.category"),
-            options=list(categories_map.keys()),
-            format_func=lambda x: categories_map[x]
+            t("common.category"), options=list(categories_map.keys()), format_func=lambda x: categories_map[x]
         )
         sort_order = st.radio(
-            t("journal.sort_order"),
-            options=["asc", "desc"],
-            index=1,
-            horizontal=True
-        ) # Default to DESC
+            t("journal.sort_order"), options=["asc", "desc"], index=1, horizontal=True
+        )  # Default to DESC
         page_size = st.select_slider(t("journal.logs_per_page"), options=[10, 25, 50, 100], value=25)
 
 # --- Fetch data ---
@@ -236,7 +222,7 @@ with st.spinner(t("journal.loading_logs")):
         org_unit_id=team_param,
         sort_order=sort_order,
         page=state.get_page("journal"),
-        size=page_size
+        size=page_size,
     )
 
 if t_err:
@@ -257,13 +243,13 @@ with main_content.container():
         jira_base_url = "https://neuralab.atlassian.net"
         for log in worklogs:
             worklog_card(log, jira_base_url=jira_base_url)
-            st.write("") # Spacer
+            st.write("")  # Spacer
 
         # Standard Pagination UI
         pagination_ui(
             current_page=state.get_page("journal"),
             total_pages=total_pages,
-            on_change=lambda p: state.set_page("journal", p)
+            on_change=lambda p: state.set_page("journal", p),
         )
     else:
         st.info(t("journal.no_logs_found"))

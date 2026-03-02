@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 @router.post("/interactive")
 async def slack_interactive(request: Request, db: AsyncSession = Depends(get_db)):
     """Receives interactive actions from Slack."""
@@ -38,9 +39,7 @@ async def slack_interactive(request: Request, db: AsyncSession = Depends(get_db)
     from sqlalchemy.orm import joinedload
 
     result = await db.execute(
-        select(LeaveRequest)
-        .where(LeaveRequest.id == leave_id)
-        .options(joinedload(LeaveRequest.user))
+        select(LeaveRequest).where(LeaveRequest.id == leave_id).options(joinedload(LeaveRequest.user))
     )
     leave = result.scalar_one_or_none()
 
@@ -67,12 +66,12 @@ async def slack_interactive(request: Request, db: AsyncSession = Depends(get_db)
     await notification_service.create_notification(
         db,
         user_id=leave.user_id,
-        sender_id=None, # System/Slack
+        sender_id=None,  # System/Slack
         title=f"{status_icon} Leave Request {leave.status}",
         message=msg,
         type=f"leave_request_{leave.status.lower()}",
         related_entity_id=leave.id,
-        related_entity_type="LeaveRequest"
+        related_entity_type="LeaveRequest",
     )
     await db.commit()
 

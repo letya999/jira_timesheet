@@ -26,5 +26,6 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
     print("Tables created.")
 
+
 if __name__ == "__main__":
     asyncio.run(init_db())

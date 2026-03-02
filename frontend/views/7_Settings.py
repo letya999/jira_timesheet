@@ -21,17 +21,17 @@ st.set_page_config(page_title="Settings", page_icon="logo.png", layout="wide")
 token, _ = ensure_session()
 
 st.title(f"⚙️ {t('settings.title')}")
-st.markdown(t('settings.subtitle'))
+st.markdown(t("settings.subtitle"))
 
 if not token:
-    st.warning(t('auth.please_login'))
+    st.warning(t("auth.please_login"))
     st.stop()
 
-tab1, tab2 = st.tabs([t('settings.tab_users'), t('settings.tab_config')])
+tab1, tab2 = st.tabs([t("settings.tab_users"), t("settings.tab_config")])
 
 with tab1:
-    st.subheader(t('settings.tab_users'))
-    st.markdown(t('settings.users_desc'))
+    st.subheader(t("settings.tab_users"))
+    st.markdown(t("settings.users_desc"))
 
     # Pagination State
     if "users_page" not in st.session_state:
@@ -55,11 +55,7 @@ with tab1:
         existing_cols = [c for c in display_cols if c in df.columns]
         df_display = df[existing_cols].copy()
 
-        st.dataframe(
-            df_display,
-            width="stretch",
-            hide_index=True
-        )
+        st.dataframe(df_display, width="stretch", hide_index=True)
 
         # Pagination controls
         if total_pages > 1:
@@ -80,18 +76,14 @@ with tab1:
 
             with p_col4:
                 if st.button(
-                    t("common.next") + " ›",
-                    key="sys_next",
-                    disabled=st.session_state["users_page"] >= total_pages
+                    t("common.next") + " ›", key="sys_next", disabled=st.session_state["users_page"] >= total_pages
                 ):
                     st.session_state["users_page"] += 1
                     st.rerun()
 
             with p_col5:
                 if st.button(
-                    t("common.last") + " »",
-                    key="sys_last",
-                    disabled=st.session_state["users_page"] >= total_pages
+                    t("common.last") + " »", key="sys_last", disabled=st.session_state["users_page"] >= total_pages
                 ):
                     st.session_state["users_page"] = total_pages
                     st.rerun()
@@ -116,7 +108,7 @@ with tab2:
             "BY": "Belarus",
             "UA": "Ukraine",
             "AE": "United Arab Emirates",
-            "UZ": "Uzbekistan"
+            "UZ": "Uzbekistan",
         }
 
         country_options = sorted(list(countries.keys()))
@@ -129,7 +121,7 @@ with tab2:
             t("settings.instance_country"),
             options=country_options,
             index=default_idx,
-            format_func=lambda x: f"{x} - {countries.get(x, x)}"
+            format_func=lambda x: f"{x} - {countries.get(x, x)}",
         )
 
         if new_country != current_country:
@@ -171,9 +163,7 @@ with tab2:
             h_df = pd.DataFrame(holidays_data)
             h_df = h_df.sort_values("date")
             st.dataframe(
-                h_df[["date", "name", "is_holiday", "is_custom", "country_code"]],
-                hide_index=True,
-                width="stretch"
+                h_df[["date", "name", "is_holiday", "is_custom", "country_code"]], hide_index=True, width="stretch"
             )
         else:
             st.info(t("common.not_found"))

@@ -1,4 +1,3 @@
-
 import asyncio
 
 from sqlalchemy import func, select
@@ -40,6 +39,7 @@ async def check_db():
         result = await session.execute(select(func.count(Worklog.id)))
         wl_count = result.scalar()
         print(f"\nTotal Worklogs in DB: {wl_count}")
+
 
 if __name__ == "__main__":
     asyncio.run(check_db())

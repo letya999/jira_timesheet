@@ -12,7 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 async def test_sync_fail_branches(client: AsyncClient, db: AsyncSession):
     # 1. Jira user not found but linked ID exists
     email = f"user_{uuid.uuid4()}@ex.com"
-    user = User(email=email, full_name="U", hashed_password=get_password_hash("pw"), role="Employee", is_active=True, jira_user_id=99999)
+    user = User(
+        email=email,
+        full_name="U",
+        hashed_password=get_password_hash("pw"),
+        role="Employee",
+        is_active=True,
+        jira_user_id=99999,
+    )
     db.add(user)
     await db.commit()
 
@@ -23,16 +30,12 @@ async def test_sync_fail_branches(client: AsyncClient, db: AsyncSession):
     assert resp.status_code == 200
     assert resp.json()["message"] == "Jira user not found"
 
+
 @pytest.mark.asyncio
 async def test_reports_more_branches(client: AsyncClient, auth_headers: dict, db: AsyncSession):
     today = date.today()
     # 1. Custom report with format=total
-    payload = {
-        "start_date": str(today),
-        "end_date": str(today),
-        "format": "total",
-        "group_by_rows": ["project"]
-    }
+    payload = {"start_date": str(today), "end_date": str(today), "format": "total", "group_by_rows": ["project"]}
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
     assert resp.status_code == 200
 
@@ -40,6 +43,7 @@ async def test_reports_more_branches(client: AsyncClient, auth_headers: dict, db
     payload["group_by_rows"] = ["user", "category"]
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
     assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_auth_inactive_user(client: AsyncClient, db: AsyncSession):

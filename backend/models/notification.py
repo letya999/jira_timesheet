@@ -8,12 +8,13 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True) # Recipient
-    sender_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True) # Sender (optional)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)  # Recipient
+    sender_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)  # Sender (optional)
 
     title: Mapped[str] = mapped_column(String(255))
     message: Mapped[str] = mapped_column(String(1024))
-    type: Mapped[str] = mapped_column(String(50), default="info", index=True) # info, success, warning, error, timesheet_submitted, timesheet_approved, timesheet_rejected
+    type: Mapped[str] = mapped_column(String(50), default="info", index=True)
+    # Types: info, success, warning, error, timesheet_submitted, timesheet_approved, timesheet_rejected
 
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 

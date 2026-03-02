@@ -26,5 +26,6 @@ async def debug_jira_projects():
     except Exception as e:
         print(f"Exception: {e}")
 
+
 if __name__ == "__main__":
     asyncio.run(debug_jira_projects())

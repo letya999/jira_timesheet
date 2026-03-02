@@ -16,9 +16,14 @@ def add_docstrings(filepath):
             # Check if it has a decorator with router
             has_router = False
             for d in node.decorator_list:
-                if isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute) and getattr(d.func.value, 'id', '') == 'router':
+                is_router_call = (
+                    isinstance(d, ast.Call)
+                    and isinstance(d.func, ast.Attribute)
+                    and getattr(d.func.value, "id", "") == "router"
+                )
+                if is_router_call:
                     has_router = True
-                elif isinstance(d, ast.Attribute) and getattr(d.value, 'id', '') == 'router':
+                elif isinstance(d, ast.Attribute) and getattr(d.value, "id", "") == "router":
                     has_router = True
 
             if has_router:
@@ -43,6 +48,7 @@ def add_docstrings(filepath):
         with open(filepath, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
         print(f"Added docstrings to {filepath}")
+
 
 directory = "backend/api/endpoints"
 for filepath in glob.glob(f"{directory}/*.py"):

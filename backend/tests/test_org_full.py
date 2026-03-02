@@ -34,7 +34,11 @@ async def test_org_detailed_units(client: AsyncClient, auth_headers: dict, db: A
     role_id = resp.json()["id"]
 
     # Assignment
-    resp = await client.post("/api/v1/org/units/roles", json={"user_id": admin_user.id, "org_unit_id": team.id, "role_id": role_id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/roles",
+        json={"user_id": admin_user.id, "org_unit_id": team.id, "role_id": role_id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     assign_id = resp.json()["id"]
 
@@ -51,7 +55,11 @@ async def test_org_detailed_units(client: AsyncClient, auth_headers: dict, db: A
     db.add(role2)
     await db.commit()
 
-    resp = await client.post("/api/v1/org/units/approval-routes", json={"org_unit_id": team.id, "target_type": "leave", "step_order": 1, "role_id": role2.id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/approval-routes",
+        json={"org_unit_id": team.id, "target_type": "leave", "step_order": 1, "role_id": role2.id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     route_id = resp.json()["id"]
 

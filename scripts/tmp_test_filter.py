@@ -1,4 +1,3 @@
-
 import asyncio
 
 
@@ -30,6 +29,7 @@ async def test_filter():
         print(f"Worklogs for release {release_id}: {len(logs)}")
         for log in logs[:3]:
             print(f"  - Log ID: {log.id}, Issue ID: {log.issue_id}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_filter())

@@ -30,14 +30,13 @@ class CRUDNotification(CRUDBase[Notification, NotificationCreate, NotificationUp
 
     async def mark_all_as_read(self, db: AsyncSession, *, user_id: int) -> int:
         from sqlalchemy import update
+
         result = await db.execute(
-            update(self.model)
-            .where(self.model.user_id == user_id)
-            .where(not self.model.is_read)
-            .values(is_read=True)
+            update(self.model).where(self.model.user_id == user_id).where(not self.model.is_read).values(is_read=True)
         )
         # Assuming commit happens elsewhere or we commit here
         await db.commit()
         return result.rowcount
+
 
 notification = CRUDNotification(Notification)

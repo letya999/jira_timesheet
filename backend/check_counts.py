@@ -31,5 +31,6 @@ async def check_db():
         print(f"Divisions: {divs_count.scalar()}")
         print(f"Teams: {teams_count.scalar()}")
 
+
 if __name__ == "__main__":
     asyncio.run(check_db())

@@ -16,6 +16,7 @@ def get_days_in_range(start_date: date, end_date: date):
         curr += timedelta(days=1)
     return days
 
+
 def get_user_color(user_name: str):
     """Generates a soft, pleasant color based on the user name."""
     hash_object = hashlib.md5(user_name.encode())
@@ -24,6 +25,7 @@ def get_user_color(user_name: str):
     s = 60 + (int(hash_hex[3:5], 16) % 20)
     lum = 65 + (int(hash_hex[5:7], 16) % 15)
     return f"hsl({h}, {s}%, {lum}%)"
+
 
 def _get_gantt_styles(total_days: int):
     return f"""
@@ -100,7 +102,7 @@ def _get_gantt_styles(total_days: int):
         .gantt-bar:hover .gantt-tooltip {{ visibility: visible; opacity: 1; }}
         .gantt-bar.pending {{
             opacity: 0.6;
-            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, 
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px,
                               rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);
         }}
         @media (prefers-color-scheme: dark) {{
@@ -111,6 +113,7 @@ def _get_gantt_styles(total_days: int):
         }}
     </style>
     """
+
 
 def _get_date_range(view_mode: str, base_date: date):
     if view_mode == "Day":
@@ -128,28 +131,20 @@ def _get_date_range(view_mode: str, base_date: date):
         return start, start + relativedelta(months=3) - timedelta(days=1)
     return base_date.replace(month=1, day=1), base_date.replace(month=12, day=31)
 
-def render_custom_gantt(leaves_data: list, view_mode: str = "Month", base_date: date = None):
-    if base_date is None:
-        base_date = date.today()
-    start_date, end_date = _get_date_range(view_mode, base_date)
-    days = get_days_in_range(start_date, end_date)
-    total_days = len(days)
 
-    holiday_data = fetch_holidays(start_date, end_date)
+def _get_holiday_dates(holiday_data):
     holiday_dates = {}
-    for h in (holiday_data or []):
+    for h in holiday_data or []:
         if h.get("is_holiday"):
             try:
                 h_date = datetime.strptime(h["date"], "%Y-%m-%d").date()
                 holiday_dates[h_date] = h.get("name", "Holiday")
             except (ValueError, TypeError):
                 pass
+    return holiday_dates
 
-    users = {}
-    for leaf in leaves_data:
-        u = leaf.get("user_full_name", f"User {leaf.get('user_id', 'Unknown')}")
-        users.setdefault(u, []).append(leaf)
 
+def _generate_gantt_headers(days, view_mode, holiday_dates, start_date):
     months_html, days_html = "", ""
     current_month, month_colspan = None, 0
     for d in days:
@@ -175,53 +170,77 @@ def render_custom_gantt(leaves_data: list, view_mode: str = "Month", base_date: 
     if current_month is not None:
         m_label = f"{calendar.month_name[current_month]} {start_date.year if view_mode != 'Month' else ''}"
         months_html += f"<div class='gantt-month' style='grid-column: span {month_colspan};'>{m_label}</div>"
+    return months_html, days_html
+
+
+def _generate_user_row(u_name, user_leaves, days, start_date, end_date, holiday_dates, total_days):
+    u_color = get_user_color(u_name)
+    row_cells_list = []
+    for i, d in enumerate(days):
+        is_nw = d.weekday() >= 5 or d in holiday_dates
+        cls = "weekend-cell" if is_nw else ""
+        row_cells_list.append(f"<div class='gantt-cell {cls}' style='grid-column: {i + 1}'></div>")
+    row_cells = "".join(row_cells_list)
+
+    bars_html = ""
+    for leaf in user_leaves:
+        try:
+            l_s = datetime.strptime(leaf["start_date"], "%Y-%m-%d").date()
+            l_e = datetime.strptime(leaf["end_date"], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        d_s, d_e = max(l_s, start_date), min(l_e, end_date)
+        if d_s <= d_e:
+            c_s, c_sp = (d_s - start_date).days + 1, (d_e - d_s).days + 1
+            tip = (
+                f"<div class='gantt-tooltip'><b>{t('leaves.' + leaf['type'].lower())}</b><br/>"
+                f"{t('common.status')}: {t('common.status_' + leaf['status'].lower())}<br/>"
+                f"{t('common.period')}: {leaf['start_date']} to {leaf['end_date']}</div>"
+            )
+            bars_html += (
+                f"<div class='gantt-bar-wrapper' style='grid-column: {c_s} / span {c_sp};'>"
+                f"<div class='gantt-bar {leaf['status'].lower()}' style='background: {u_color};'>{tip}</div></div>"
+            )
+
+    return f"""
+    <div class="gantt-row">
+        <div class="gantt-user-info">
+            <div class="user-avatar" style="background: {u_color};">{u_name[0].upper()}</div>
+            <div class="user-name" title="{u_name}">{u_name}</div>
+        </div>
+        <div class="gantt-grid-container" style="grid-template-columns: repeat({total_days}, minmax(25px, 1fr));">
+            {row_cells}<div class="gantt-bars-container">{bars_html}</div>
+        </div>
+    </div>"""
+
+
+def render_custom_gantt(leaves_data: list, view_mode: str = "Month", base_date: date = None):
+    if base_date is None:
+        base_date = date.today()
+    start_date, end_date = _get_date_range(view_mode, base_date)
+    days = get_days_in_range(start_date, end_date)
+    total_days = len(days)
+
+    holiday_dates = _get_holiday_dates(fetch_holidays(start_date, end_date))
+
+    users = {}
+    for leaf in leaves_data:
+        u = leaf.get("user_full_name", f"User {leaf.get('user_id', 'Unknown')}")
+        users.setdefault(u, []).append(leaf)
+
+    months_html, days_html = _generate_gantt_headers(days, view_mode, holiday_dates, start_date)
 
     rows_html = ""
     for u_name in sorted(users.keys()):
-        u_color = get_user_color(u_name)
-        row_cells_list = []
-        for i, d in enumerate(days):
-            is_nw = d.weekday() >= 5 or d in holiday_dates
-            cls = "weekend-cell" if is_nw else ""
-            row_cells_list.append(f"<div class='gantt-cell {cls}' style='grid-column: {i+1}'></div>")
-        row_cells = "".join(row_cells_list)
-
-        bars_html = ""
-        for leaf in users[u_name]:
-            try:
-                l_s = datetime.strptime(leaf["start_date"], "%Y-%m-%d").date()
-                l_e = datetime.strptime(leaf["end_date"], "%Y-%m-%d").date()
-            except (ValueError, TypeError):
-                continue
-            d_s, d_e = max(l_s, start_date), min(l_e, end_date)
-            if d_s <= d_e:
-                c_s, c_sp = (d_s - start_date).days + 1, (d_e - d_s).days + 1
-                tip = (
-                    f"<div class='gantt-tooltip'><b>{t('leaves.' + leaf['type'].lower())}</b><br/>"
-                    f"{t('common.status')}: {t('common.status_' + leaf['status'].lower())}<br/>"
-                    f"{t('common.period')}: {leaf['start_date']} to {leaf['end_date']}</div>"
-                )
-                bars_html += (
-                    f"<div class='gantt-bar-wrapper' style='grid-column: {c_s} / span {c_sp};'>"
-                    f"<div class='gantt-bar {leaf['status'].lower()}' style='background: {u_color};'>{tip}</div></div>"
-                )
-
-        rows_html += f"""
-        <div class="gantt-row">
-            <div class="gantt-user-info">
-                <div class="user-avatar" style="background: {u_color};">{u_name[0].upper()}</div>
-                <div class="user-name" title="{u_name}">{u_name}</div>
-            </div>
-            <div class="gantt-grid-container" style="grid-template-columns: repeat({total_days}, minmax(25px, 1fr));">
-                {row_cells}<div class="gantt-bars-container">{bars_html}</div>
-            </div>
-        </div>"""
+        rows_html += _generate_user_row(
+            u_name, users[u_name], days, start_date, end_date, holiday_dates, total_days
+        )
 
     no_match = f"<div style='padding: 40px; text-align: center; color: #888;'>{t('leaves.no_match')}</div>"
     return f"""{_get_gantt_styles(total_days)}
     <div class="gantt-wrapper">
         <div class="gantt-header-row">
-            <div class="gantt-user-header">{t('common.employee')}</div>
+            <div class="gantt-user-header">{t("common.employee")}</div>
             <div class="gantt-time-header">
                 <div class="gantt-months">{months_html}</div>
                 <div class="gantt-days">{days_html}</div>
@@ -230,36 +249,51 @@ def render_custom_gantt(leaves_data: list, view_mode: str = "Month", base_date: 
         <div class="gantt-body">{rows_html if rows_html else no_match}</div>
     </div>"""
 
-def render_gantt_with_controls(leaves_data):
-    if "gantt_view_mode" not in st.session_state:
-        st.session_state.gantt_view_mode = "Month"
-    if "gantt_base_date" not in st.session_state:
-        st.session_state.gantt_base_date = date.today()
+
+def _get_gantt_title(bd, vm):
+    if vm == "Day":
+        return bd.strftime("%B %d, %Y")
+    if vm == "Week":
+        sw = bd - timedelta(days=bd.weekday())
+        return f"{sw.strftime('%b %d')} - {(sw + timedelta(days=6)).strftime('%b %d, %Y')}"
+    if vm == "Month":
+        return f"{calendar.month_name[bd.month]} {bd.year}"
+    if vm == "Quarter":
+        return f"Q{(bd.month - 1) // 3 + 1} {bd.year}"
+    return f"{bd.year}"
+
+
+def _render_gantt_buttons():
     modes = ["Day", "Week", "Month", "Quarter", "Year"]
     c1, c2, c3, c4, _ = st.columns([1, 0.5, 0.5, 2, 2])
     with c1:
         idx = modes.index(st.session_state.gantt_view_mode)
         v_mode = st.selectbox(
-            t("common.type"), modes, index=idx,
+            t("common.type"),
+            modes,
+            index=idx,
             format_func=lambda x: t(f"org.period_{x.lower()}"),
-            label_visibility="collapsed"
+            label_visibility="collapsed",
         )
         if v_mode != st.session_state.gantt_view_mode:
             st.session_state.gantt_view_mode = v_mode
             st.rerun()
+
     def shift_date(delta):
         vm = st.session_state.gantt_view_mode
+        bd = st.session_state.gantt_base_date
         if vm == "Day":
-            st.session_state.gantt_base_date += timedelta(days=1*delta)
+            st.session_state.gantt_base_date = bd + timedelta(days=1 * delta)
         elif vm == "Week":
-            st.session_state.gantt_base_date += timedelta(days=7*delta)
+            st.session_state.gantt_base_date = bd + timedelta(days=7 * delta)
         elif vm == "Month":
-            st.session_state.gantt_base_date += relativedelta(months=1*delta)
+            st.session_state.gantt_base_date = bd + relativedelta(months=1 * delta)
         elif vm == "Quarter":
-            st.session_state.gantt_base_date += relativedelta(months=3*delta)
+            st.session_state.gantt_base_date = bd + relativedelta(months=3 * delta)
         else:
-            st.session_state.gantt_base_date += relativedelta(years=1*delta)
+            st.session_state.gantt_base_date = bd + relativedelta(years=1 * delta)
         st.rerun()
+
     with c2:
         if st.button("◀", key="gantt_prev", width="stretch"):
             shift_date(-1)
@@ -270,18 +304,17 @@ def render_gantt_with_controls(leaves_data):
         if st.button(t("common.today"), type="primary", key="gantt_today", width="stretch"):
             st.session_state.gantt_base_date = date.today()
             st.rerun()
+
+
+def render_gantt_with_controls(leaves_data):
+    if "gantt_view_mode" not in st.session_state:
+        st.session_state.gantt_view_mode = "Month"
+    if "gantt_base_date" not in st.session_state:
+        st.session_state.gantt_base_date = date.today()
+
+    _render_gantt_buttons()
+
     bd, vm = st.session_state.gantt_base_date, st.session_state.gantt_view_mode
-    if vm == "Day":
-        title = bd.strftime("%B %d, %Y")
-    elif vm == "Week":
-        sw = bd - timedelta(days=bd.weekday())
-        title = f"{sw.strftime('%b %d')} - {(sw+timedelta(days=6)).strftime('%b %d, %Y')}"
-    elif vm == "Month":
-        title = f"{calendar.month_name[bd.month]} {bd.year}"
-    elif vm == "Quarter":
-        title = f"Q{(bd.month-1)//3+1} {bd.year}"
-    else:
-        title = f"{bd.year}"
-    st.markdown(f"#### {title}")
-    grid_html = render_custom_gantt(leaves_data, st.session_state.gantt_view_mode, st.session_state.gantt_base_date)
+    st.markdown(f"#### {_get_gantt_title(bd, vm)}")
+    grid_html = render_custom_gantt(leaves_data, vm, bd)
     st.components.v1.html(grid_html, height=500, scrolling=True)

@@ -1,4 +1,3 @@
-
 import asyncio
 
 from core.database import async_session
@@ -10,6 +9,7 @@ async def force_user_sync():
         print("Starting user sync...")
         count = await sync_jira_users_to_db(db)
         print(f"Sync complete. Synced {count} users.")
+
 
 if __name__ == "__main__":
     asyncio.run(force_user_sync())

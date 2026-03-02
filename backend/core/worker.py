@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from models.user import JiraUser
-from saq import Queue
+from saq import CronJob, Queue
 from services.jira import sync_jira_projects_to_db, sync_jira_worklogs, sync_user_worklogs
 from sqlalchemy import select
 
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Redis-based queue configuration
 queue = Queue.from_url(settings.REDIS_URL)
+
 
 async def task_sync_user_worklogs(ctx, *, jira_user_id: int, days: int = 30):
     """Background task to sync specific user's worklogs."""
@@ -27,6 +28,7 @@ async def task_sync_user_worklogs(ctx, *, jira_user_id: int, days: int = 30):
         await sync_user_worklogs(jira_user, db, days=days)
         return {"status": "success", "user_id": jira_user_id}
 
+
 async def task_sync_all_projects(ctx):
     """Background task to sync all projects and their worklogs."""
     logger.info("Starting global projects and worklogs sync")
@@ -37,11 +39,19 @@ async def task_sync_all_projects(ctx):
         await sync_jira_worklogs(db)
         return {"status": "success"}
 
+
 # Function to run the worker (for CLI usage)
 async def run_worker():
     from saq import Worker
-    worker = Worker(queue, functions=[task_sync_user_worklogs, task_sync_all_projects])
+
+    # Define periodic cron jobs
+    # Sync all projects and worklogs every hour
+    cron_jobs = [CronJob(task_sync_all_projects, cron="0 * * * *")]
+
+    worker = Worker(queue, functions=[task_sync_user_worklogs, task_sync_all_projects], cron_jobs=cron_jobs)
+    logger.info("Worker started with periodic task (every hour)")
     await worker.start()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

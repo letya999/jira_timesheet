@@ -52,9 +52,9 @@ with col_f2:
     if is_admin:
         units = fetch_org_units(_headers=headers)
         for u in units:
-            name = u['name']
+            name = u["name"]
             team_options.append(name)
-            team_map[name] = u['id']
+            team_map[name] = u["id"]
     else:
         # PM case
         my_units = fetch_my_teams()
@@ -64,9 +64,9 @@ with col_f2:
             my_units = fetch_org_units(_headers=headers)
 
         for u in my_units:
-            name = u['name']
+            name = u["name"]
             team_options.append(name)
-            team_map[name] = u['id']
+            team_map[name] = u["id"]
 
     selected_team_label = st.selectbox(t("common.team"), team_options)
     selected_team_id = team_map.get(selected_team_label)
@@ -95,7 +95,7 @@ with st.spinner(t("common.loading")):
             # PM case
             my_teams_data = fetch_my_teams()
             for t_item in my_teams_data:
-                res_emp = get_employees(size=1000, org_unit_id=t_item['id'], _headers=headers)
+                res_emp = get_employees(size=1000, org_unit_id=t_item["id"], _headers=headers)
                 all_members.extend(res_emp.get("items", []))
     except Exception as e:
         st.error(f"{t('common.error')}: {e}")
@@ -108,9 +108,9 @@ df_logs = (
 )
 
 if not df_logs.empty:
-    df_logs['Date'] = pd.to_datetime(df_logs['Date']).dt.date
+    df_logs["Date"] = pd.to_datetime(df_logs["Date"]).dt.date
 
-period_status_map = {p['user_id']: p for p in periods_raw}
+period_status_map = {p["user_id"]: p for p in periods_raw}
 
 # Build Table Columns
 working_days = [start_of_week + timedelta(days=i) for i in range(7)]
@@ -127,9 +127,10 @@ for m in all_members:
     seen_user_ids.add(uid)
     row = {
         "User ID": uid,
-        "User": m['display_name'],
+        "User": m["display_name"],
         "OrgUnit": m.get("team_name", selected_team_label if selected_team_id else t("common.team")),
-        "Total": 0.0, "Status": "OPEN"
+        "Total": 0.0,
+        "Status": "OPEN",
     }
     user_logs = df_logs[df_logs["User ID"] == uid] if not df_logs.empty else pd.DataFrame()
     for i, d in enumerate(working_days):
@@ -138,21 +139,23 @@ for m in all_members:
         row["Total"] += day_h
     p = period_status_map.get(uid)
     if p:
-        row["Status"] = p['status']
-        row["period_id"] = p['id']
+        row["Status"] = p["status"]
+        row["period_id"] = p["id"]
     summary_data.append(row)
 
 # 2. Add remaining users from logs
 if not df_logs.empty:
     for uid in df_logs["User ID"].unique():
-        if uid not in seen_user_ids:
+        if uid and uid not in seen_user_ids:
             u_logs = df_logs[df_logs["User ID"] == uid]
+            if u_logs.empty:
+                continue
             row = {
                 "User ID": uid,
                 "User": u_logs["User"].iloc[0],
                 "OrgUnit": u_logs["OrgUnit"].iloc[0],
                 "Total": 0.0,
-                "Status": "OPEN"
+                "Status": "OPEN",
             }
             for i, d in enumerate(working_days):
                 day_h = u_logs[u_logs["Date"] == d]["Hours"].sum()
@@ -160,8 +163,8 @@ if not df_logs.empty:
                 row["Total"] += day_h
             p = period_status_map.get(uid)
             if p:
-                row["Status"] = p['status']
-                row["period_id"] = p['id']
+                row["Status"] = p["status"]
+                row["period_id"] = p["id"]
             summary_data.append(row)
             seen_user_ids.add(uid)
 
@@ -182,34 +185,33 @@ if pivot_hours.empty:
 # --- Display ---
 st.subheader(f"📊 {t('approvals.weekly_summary')}")
 
+
 def style_status(val):
     colors = {
         "OPEN": "color: gray;",
         "SUBMITTED": "color: #007bff; font-weight: bold;",
         "APPROVED": "color: #28a745; font-weight: bold;",
-        "REJECTED": "color: #dc3545; font-weight: bold;"
+        "REJECTED": "color: #dc3545; font-weight: bold;",
     }
     return colors.get(val, "")
+
 
 def style_hours(v):
     if isinstance(v, (int, float)):
         if v >= 8:
-            return 'background-color: #d4edda; color: #155724'
+            return "background-color: #d4edda; color: #155724"
         if v > 0:
-            return 'background-color: #fff3cd; color: #856404'
-        return 'background-color: #f8d7da; color: #721c24'
-    return ''
+            return "background-color: #fff3cd; color: #856404"
+        return "background-color: #f8d7da; color: #721c24"
+    return ""
+
 
 st.dataframe(
-    pivot_hours[["User", "OrgUnit"] + day_cols + ["Total", "Status"]].style
-        .applymap(style_hours, subset=day_cols)
-        .applymap(style_status, subset=["Status"]),
+    pivot_hours[["User", "OrgUnit"] + day_cols + ["Total", "Status"]]
+    .style.applymap(style_hours, subset=day_cols)
+    .applymap(style_status, subset=["Status"]),
     width="stretch",
-    column_config={
-        "User": t("common.employee"),
-        "OrgUnit": t("common.team"),
-        "Total": t("common.total")
-    }
+    column_config={"User": t("common.employee"), "OrgUnit": t("common.team"), "Total": t("common.total")},
 )
 
 st.divider()
@@ -222,7 +224,7 @@ if can_manage:
         if st.button(t("approvals.approve_all_submitted", count=len(submitted))):
             success = 0
             for _, row in submitted.iterrows():
-                if approve_timesheet(row['period_id'], "APPROVED"):
+                if approve_timesheet(row["period_id"], "APPROVED"):
                     success += 1
             st.success(f"{t('common.success')}: {success}")
             st.rerun()
@@ -240,7 +242,7 @@ for _, row in pivot_hours.iterrows():
             u_logs = df_logs[df_logs["User ID"] == uid] if not df_logs.empty else pd.DataFrame()
             if not u_logs.empty:
                 # Group like in My_Timesheet
-                grid_data = {} # Key: (Category, Name), Value: {date: hours}
+                grid_data = {}  # Key: (Category, Name), Value: {date: hours}
                 for _, wl in u_logs.iterrows():
                     cat = wl.get("Category") or t("ui.jira_task")
                     if wl.get("Type") == "JIRA":
@@ -273,8 +275,8 @@ for _, row in pivot_hours.iterrows():
                         "Category": st.column_config.TextColumn(label=t("common.category"), width="small"),
                         "Name": st.column_config.TextColumn(label=t("common.name"), width="large"),
                         "Total": st.column_config.NumberColumn(label=t("common.total"), format="%.1f", width="small"),
-                        **{d: st.column_config.NumberColumn(format="%.1f", width="small") for d in day_cols}
-                    }
+                        **{d: st.column_config.NumberColumn(format="%.1f", width="small") for d in day_cols},
+                    },
                 )
             else:
                 st.info(t("journal.no_logs_found"))
@@ -285,21 +287,21 @@ for _, row in pivot_hours.iterrows():
                 st.warning(t("approvals.period_not_initiated"))
             else:
                 st.write(f"{t('common.status')}: **{t('common.status_' + status.lower())}**")
-                if p.get('comment'):
-                    st.info(t("approvals.employee_comment", comment=p['comment']))
+                if p.get("comment"):
+                    st.info(t("approvals.employee_comment", comment=p["comment"]))
 
                 # Management actions
                 new_comment = st.text_input(t("approvals.your_comment"), key=f"c_{uid}")
                 b1, b2, b3 = st.columns(3)
                 with b1:
                     if st.button(t("common.approve"), key=f"a_{uid}", type="primary"):
-                        if approve_timesheet(p['id'], "APPROVED", new_comment):
+                        if approve_timesheet(p["id"], "APPROVED", new_comment):
                             st.rerun()
                 with b2:
                     if st.button(t("common.reject"), key=f"r_{uid}"):
-                        if approve_timesheet(p['id'], "REJECTED", new_comment):
+                        if approve_timesheet(p["id"], "REJECTED", new_comment):
                             st.rerun()
                 with b3:
                     if st.button(t("common.return"), key=f"re_{uid}"):
-                        if approve_timesheet(p['id'], "OPEN", new_comment):
+                        if approve_timesheet(p["id"], "OPEN", new_comment):
                             st.rerun()

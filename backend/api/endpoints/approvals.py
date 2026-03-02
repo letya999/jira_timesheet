@@ -13,13 +13,16 @@ from api.deps import get_current_user, require_role
 
 router = APIRouter()
 
+
 class PeriodSubmit(BaseModel):
     start_date: date
     end_date: date
 
+
 class ApprovalAction(BaseModel):
     status: str
     comment: str | None = None
+
 
 def get_period_dates(ref_date: date, period_type: str):
     if period_type == "weekly":
@@ -28,24 +31,25 @@ def get_period_dates(ref_date: date, period_type: str):
     elif period_type == "monthly":
         start_date = ref_date.replace(day=1)
         import calendar
+
         _, last_day = calendar.monthrange(ref_date.year, ref_date.month)
         end_date = ref_date.replace(day=last_day)
-    else: # bi-weekly
+    else:  # bi-weekly
         if ref_date.day <= 15:
             start_date = ref_date.replace(day=1)
             end_date = ref_date.replace(day=15)
         else:
             start_date = ref_date.replace(day=16)
             import calendar
+
             _, last_day = calendar.monthrange(ref_date.year, ref_date.month)
             end_date = ref_date.replace(day=last_day)
     return start_date, end_date
 
+
 @router.get("/my-period")
 async def get_my_period(
-    target_date: date | None = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    target_date: date | None = None, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Fetch period status for the current user and target date."""
     if not target_date:
@@ -53,10 +57,9 @@ async def get_my_period(
 
     period_type = "weekly"
     from sqlalchemy.orm import joinedload
+
     result = await db.execute(
-        select(User)
-        .where(User.id == current_user.id)
-        .options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
+        select(User).where(User.id == current_user.id).options(joinedload(User.jira_user).joinedload(JiraUser.org_unit))
     )
     user_with_team = result.scalar_one()
 
@@ -66,12 +69,11 @@ async def get_my_period(
     start_date, end_date = get_period_dates(target_date, period_type)
 
     result = await db.execute(
-        select(TimesheetPeriod)
-        .where(
+        select(TimesheetPeriod).where(
             and_(
                 TimesheetPeriod.user_id == current_user.id,
                 TimesheetPeriod.start_date == start_date,
-                TimesheetPeriod.end_date == end_date
+                TimesheetPeriod.end_date == end_date,
             )
         )
     )
@@ -83,25 +85,23 @@ async def get_my_period(
             "start_date": start_date,
             "end_date": end_date,
             "user_id": current_user.id,
-            "current_step_order": 1
+            "current_step_order": 1,
         }
 
     return period
 
+
 @router.post("/submit")
 async def submit_period(
-    payload: PeriodSubmit,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    payload: PeriodSubmit, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Submit a timesheet period for approval."""
     result = await db.execute(
-        select(TimesheetPeriod)
-        .where(
+        select(TimesheetPeriod).where(
             and_(
                 TimesheetPeriod.user_id == current_user.id,
                 TimesheetPeriod.start_date == payload.start_date,
-                TimesheetPeriod.end_date == payload.end_date
+                TimesheetPeriod.end_date == payload.end_date,
             )
         )
     )
@@ -114,7 +114,7 @@ async def submit_period(
             end_date=payload.end_date,
             status="SUBMITTED",
             submitted_at=datetime.utcnow(),
-            current_step_order=1
+            current_step_order=1,
         )
         db.add(period)
     else:
@@ -128,13 +128,14 @@ async def submit_period(
     await db.refresh(period)
     return period
 
+
 @router.get("/team-periods")
 async def get_team_periods(
     start_date: date,
     end_date: date,
     org_unit_id: int | None = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"]))  # noqa: B008
+    current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"])),  # noqa: B008
 ):
     """Fetch all period statuses for a team in a specific date range."""
     user_query = select(User).join(JiraUser)
@@ -167,11 +168,12 @@ async def get_team_periods(
         and_(
             TimesheetPeriod.user_id.in_(user_ids),
             TimesheetPeriod.start_date == start_date,
-            TimesheetPeriod.end_date == end_date
+            TimesheetPeriod.end_date == end_date,
         )
     )
     result = await db.execute(period_query)
     return result.scalars().all()
+
 
 async def _check_approval_permission(
     db: AsyncSession, user: User, period: TimesheetPeriod, org_unit_id: int | None
@@ -183,12 +185,7 @@ async def _check_approval_permission(
 
     stmt_routes = (
         select(ApprovalRoute)
-        .where(
-            and_(
-                ApprovalRoute.org_unit_id == org_unit_id,
-                ApprovalRoute.target_type == 'timesheet'
-            )
-        )
+        .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == "timesheet"))
         .order_by(ApprovalRoute.step_order)
     )
     routes_res = await db.execute(stmt_routes)
@@ -197,41 +194,34 @@ async def _check_approval_permission(
     if routes:
         current_route = next((r for r in routes if r.step_order == period.current_step_order), None)
         if current_route:
-            stmt_uor = (
-                select(UserOrgRole)
-                .where(
-                    and_(
-                        UserOrgRole.user_id == user.id,
-                        UserOrgRole.org_unit_id == org_unit_id,
-                        UserOrgRole.role_id == current_route.role_id
-                    )
+            stmt_uor = select(UserOrgRole).where(
+                and_(
+                    UserOrgRole.user_id == user.id,
+                    UserOrgRole.org_unit_id == org_unit_id,
+                    UserOrgRole.role_id == current_route.role_id,
                 )
             )
             uor_res = await db.execute(stmt_uor)
             return uor_res.scalar_one_or_none() is not None
     else:
-        stmt_uor_simple = (
-            select(UserOrgRole)
-            .where(
-                and_(
-                    UserOrgRole.user_id == user.id,
-                    UserOrgRole.org_unit_id == org_unit_id
-                )
-            )
+        stmt_uor_simple = select(UserOrgRole).where(
+            and_(UserOrgRole.user_id == user.id, UserOrgRole.org_unit_id == org_unit_id)
         )
         uor_res = await db.execute(stmt_uor_simple)
         return uor_res.scalar_one_or_none() is not None
     return False
+
 
 @router.post("/{period_id}/approve")
 async def approve_period(
     period_id: int,
     action: ApprovalAction,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Approve or reject a submitted period with routing."""
     from sqlalchemy.orm import joinedload
+
     stmt = (
         select(TimesheetPeriod)
         .where(TimesheetPeriod.id == period_id)
@@ -251,14 +241,11 @@ async def approve_period(
 
     role_id_used = 1
     if org_unit_id:
-        stmt_cr = (
-            select(ApprovalRoute)
-            .where(
-                and_(
-                    ApprovalRoute.org_unit_id == org_unit_id,
-                    ApprovalRoute.target_type == 'timesheet',
-                    ApprovalRoute.step_order == period.current_step_order
-                )
+        stmt_cr = select(ApprovalRoute).where(
+            and_(
+                ApprovalRoute.org_unit_id == org_unit_id,
+                ApprovalRoute.target_type == "timesheet",
+                ApprovalRoute.step_order == period.current_step_order,
             )
         )
         routes_res = await db.execute(stmt_cr)
@@ -273,7 +260,7 @@ async def approve_period(
         status=action.status,
         approver_id=current_user.id,
         comment=action.comment,
-        acted_at=datetime.utcnow()
+        acted_at=datetime.utcnow(),
     )
     db.add(step)
 
@@ -283,12 +270,7 @@ async def approve_period(
         if org_unit_id:
             stmt_routes_check = (
                 select(ApprovalRoute)
-                .where(
-                    and_(
-                        ApprovalRoute.org_unit_id == org_unit_id,
-                        ApprovalRoute.target_type == 'timesheet'
-                    )
-                )
+                .where(and_(ApprovalRoute.org_unit_id == org_unit_id, ApprovalRoute.target_type == "timesheet"))
                 .order_by(ApprovalRoute.step_order)
             )
             routes_res = await db.execute(stmt_routes_check)

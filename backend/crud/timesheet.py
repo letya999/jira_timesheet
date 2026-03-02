@@ -17,19 +17,16 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         self, db: AsyncSession, *, user_id: int, start_date: date, end_date: date
     ) -> list[Worklog]:
         result = await db.execute(
-            select(Worklog)
-            .where(
-                and_(
-                    Worklog.jira_user_id == user_id,
-                    Worklog.date >= start_date,
-                    Worklog.date <= end_date
-                )
+            select(Worklog).where(
+                and_(Worklog.jira_user_id == user_id, Worklog.date >= start_date, Worklog.date <= end_date)
             )
         )
         return result.scalars().all()
 
     async def get_multi_with_filters(
-        self, db: AsyncSession, *,
+        self,
+        db: AsyncSession,
+        *,
         start_date: date | None = None,
         end_date: date | None = None,
         project_id: int | None = None,
@@ -38,12 +35,12 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         org_unit_id: int | None = None,
         sort_order: str = "desc",
         skip: int = 0,
-        limit: int = 50
+        limit: int = 50,
     ) -> (list[Worklog], int):
         query = select(Worklog).options(
             joinedload(Worklog.jira_user).joinedload(JiraUser.org_unit),
             joinedload(Worklog.issue).joinedload(Issue.project),
-            joinedload(Worklog.category)
+            joinedload(Worklog.category),
         )
 
         # Apply filters
@@ -57,9 +54,9 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
             query = query.join(Issue, Worklog.issue_id == Issue.id).where(Issue.project_id == project_id)
         if category:
             from models.category import WorklogCategory
-            query = (
-                query.join(WorklogCategory, Worklog.category_id == WorklogCategory.id)
-                .where(WorklogCategory.name == category)
+
+            query = query.join(WorklogCategory, Worklog.category_id == WorklogCategory.id).where(
+                WorklogCategory.name == category
             )
 
         if org_unit_id:
@@ -83,22 +80,24 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         result = await db.execute(query)
         return result.scalars().unique().all(), total
 
+
 worklog = CRUDWorklog(Worklog)
+
 
 class CRUDTimesheetPeriod(CRUDBase[TimesheetPeriod, TimesheetPeriodBase, Any]):
     async def get_by_user_and_date(
         self, db: AsyncSession, *, user_id: int, start_date: date, end_date: date
     ) -> TimesheetPeriod | None:
         result = await db.execute(
-            select(TimesheetPeriod)
-            .where(
+            select(TimesheetPeriod).where(
                 and_(
                     TimesheetPeriod.user_id == user_id,
                     TimesheetPeriod.start_date == start_date,
-                    TimesheetPeriod.end_date == end_date
+                    TimesheetPeriod.end_date == end_date,
                 )
             )
         )
         return result.scalar_one_or_none()
+
 
 timesheet_period = CRUDTimesheetPeriod(TimesheetPeriod)

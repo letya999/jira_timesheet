@@ -55,7 +55,7 @@ with tab_list:
         with st.spinner(t("common.loading")):
             result = sync_users_from_jira()
             if result and result.get("status") == "success":
-                st.success(t("employees.sync_success", count=result.get('synced', 0)))
+                st.success(t("employees.sync_success", count=result.get("synced", 0)))
                 st.rerun()
             else:
                 error_msg = result.get("message") if result else t("common.error")
@@ -66,7 +66,7 @@ with tab_list:
         page=st.session_state["employees_page"],
         size=page_size,
         search=st.session_state["employees_search"],
-        _headers=headers
+        _headers=headers,
     )
     users_list = data.get("items", [])
     total_count = data.get("total", 0)
@@ -79,9 +79,7 @@ with tab_list:
         df = pd.DataFrame(users_list)
 
         # Map org_unit_id to path for display
-        df["OrgUnit"] = df["org_unit_id"].apply(
-            lambda x: unit_map.get(x, t("common.unassigned"))
-        )
+        df["OrgUnit"] = df["org_unit_id"].apply(lambda x: unit_map.get(x, t("common.unassigned")))
         df[t("employees.system_access")] = df["user_id"].apply(
             lambda x: "✅ " + t("employees.has_access") if x else "❌ " + t("employees.no_access")
         )
@@ -96,16 +94,14 @@ with tab_list:
                 "display_name": st.column_config.TextColumn(t("common.name"), disabled=True),
                 "email": st.column_config.TextColumn(t("common.email"), disabled=True),
                 "OrgUnit": st.column_config.SelectboxColumn(
-                    t("common.department"),
-                    options=list(unit_map.values()),
-                    required=True
+                    t("common.department"), options=list(unit_map.values()), required=True
                 ),
                 "is_active": st.column_config.CheckboxColumn(t("common.active")),
-                t("employees.system_access"): st.column_config.TextColumn(t("employees.system_access"), disabled=True)
+                t("employees.system_access"): st.column_config.TextColumn(t("employees.system_access"), disabled=True),
             },
             width="stretch",
             hide_index=True,
-            key="employees_editor"
+            key="employees_editor",
         )
 
         # Section for creating system users
@@ -118,7 +114,7 @@ with tab_list:
                     t("common.employee"),
                     options=no_access_users,
                     format_func=lambda x: f"{x['display_name']} ({x['email'] or t('common.na')})",
-                    key="promote_select"
+                    key="promote_select",
                 )
                 if col_b.button(t("common.create"), width="stretch", type="primary"):
                     res = promote_user(user_to_promote["id"])
@@ -132,7 +128,7 @@ with tab_list:
         if "last_created_user" in st.session_state:
             new_u = st.session_state["last_created_user"]
             st.success(t("employees.temp_password_title"))
-            st.info(t("employees.temp_password_msg", name=new_u['display_name']))
+            st.info(t("employees.temp_password_msg", name=new_u["display_name"]))
 
             creds = f"Email: {new_u['email']}\nPassword: {new_u['temporary_password']}"
             st.code(creds, language="text")
@@ -146,20 +142,17 @@ with tab_list:
             for i, row in edited_df.iterrows():
                 original_row = df_editor.iloc[i]
                 if row["OrgUnit"] != original_row["OrgUnit"] or row["is_active"] != original_row["is_active"]:
-                    new_org_unit_id = next(
-                        (tid for tid, path in unit_map.items() if path == row["OrgUnit"]),
-                        None
-                    )
+                    new_org_unit_id = next((tid for tid, path in unit_map.items() if path == row["OrgUnit"]), None)
                     success = update_employee(
                         row["id"],
                         org_unit_id=new_org_unit_id if new_org_unit_id != 0 else None,
-                        is_active=row["is_active"]
+                        is_active=row["is_active"],
                     )
                     if success:
                         updated_names.append(row["display_name"])
 
             if updated_names:
-                st.success(t("employees.update_success", names=', '.join(updated_names)))
+                st.success(t("employees.update_success", names=", ".join(updated_names)))
                 st.rerun()
             else:
                 st.info(t("employees.no_changes"))
@@ -179,12 +172,7 @@ with tab_list:
 with tab_hier:
     st.subheader(t("org.hierarchy_view"))
 
-    all_emp_data = get_employees(
-        page=1,
-        size=1000,
-        search=st.session_state["employees_search"],
-        _headers=headers
-    )
+    all_emp_data = get_employees(page=1, size=1000, search=st.session_state["employees_search"], _headers=headers)
     all_emps = all_emp_data.get("items", [])
 
     def render_emps_in_unit(units_list, current_unit_id, level=0):

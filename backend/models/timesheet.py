@@ -11,13 +11,14 @@ class Worklog(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     jira_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
-    type: Mapped[str] = mapped_column(String(50), default="JIRA") # JIRA, MANUAL
+    type: Mapped[str] = mapped_column(String(50), default="JIRA")  # JIRA, MANUAL
 
     date: Mapped[date] = mapped_column(Date, index=True)
     hours: Mapped[float] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
-    status: Mapped[str] = mapped_column(String(50), default="APPROVED", index=True) # DRAFT, SUBMITTED, APPROVED, REJECTED
+    status: Mapped[str] = mapped_column(String(50), default="APPROVED", index=True)
+    # Statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
 
     # Linked to standardized categories
     category_id: Mapped[int | None] = mapped_column(ForeignKey("worklog_categories.id"), nullable=True)
@@ -30,6 +31,7 @@ class Worklog(Base):
     jira_user = relationship("JiraUser", back_populates="worklogs")
     issue = relationship("Issue", back_populates="worklogs")
 
+
 class TimesheetPeriod(Base):
     __tablename__ = "timesheet_periods"
 
@@ -39,7 +41,7 @@ class TimesheetPeriod(Base):
     start_date: Mapped[date] = mapped_column(Date, index=True)
     end_date: Mapped[date] = mapped_column(Date, index=True)
 
-    status: Mapped[str] = mapped_column(String(50), default="OPEN", index=True) # OPEN, SUBMITTED, APPROVED, REJECTED
+    status: Mapped[str] = mapped_column(String(50), default="OPEN", index=True)  # OPEN, SUBMITTED, APPROVED, REJECTED
 
     current_step_order: Mapped[int] = mapped_column(Integer, default=1)
 
@@ -53,7 +55,10 @@ class TimesheetPeriod(Base):
 
     user = relationship("User", foreign_keys=[user_id])
     approved_by = relationship("User", foreign_keys=[approved_by_id])
-    approval_steps = relationship("TimesheetApprovalStep", back_populates="timesheet_period", cascade="all, delete-orphan")
+    approval_steps = relationship(
+        "TimesheetApprovalStep", back_populates="timesheet_period", cascade="all, delete-orphan"
+    )
+
 
 class TimesheetApprovalStep(Base):
     __tablename__ = "timesheet_approval_steps"
@@ -63,7 +68,7 @@ class TimesheetApprovalStep(Base):
     step_order: Mapped[int] = mapped_column(Integer)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
 
-    status: Mapped[str] = mapped_column(String(50), default="PENDING") # PENDING, APPROVED, REJECTED
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")  # PENDING, APPROVED, REJECTED
     approver_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     comment: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     acted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

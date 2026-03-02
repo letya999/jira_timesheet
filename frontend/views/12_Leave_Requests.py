@@ -51,7 +51,7 @@ with tabs[0]:
             leave_type = st.selectbox(
                 t("leaves.type"),
                 options=["VACATION", "SICK_LEAVE", "DAY_OFF", "OTHER"],
-                format_func=lambda x: t(f"leaves.{x.lower()}")
+                format_func=lambda x: t(f"leaves.{x.lower()}"),
             )
             start_date = st.date_input(t("leaves.start_date"), value=date.today())
             end_date = st.date_input(t("leaves.end_date"), value=date.today() + timedelta(days=1))
@@ -67,7 +67,7 @@ with tabs[0]:
                         "type": leave_type,
                         "start_date": start_date.isoformat(),
                         "end_date": end_date.isoformat(),
-                        "reason": reason
+                        "reason": reason,
                     }
                     if submit_leave_request(payload):
                         st.success(t("leaves.request_submitted"))
@@ -84,16 +84,11 @@ with tabs[0]:
             display_cols = ["type", "start_date", "end_date", "status", "comment"]
             df_display = df_my[display_cols].copy()
             df_display.columns = [
-                t(f"leaves.{c}") if c in [
-                    "type", "start_date", "end_date", "status", "comment"
-                ] else c for c in display_cols
+                t(f"leaves.{c}") if c in ["type", "start_date", "end_date", "status", "comment"] else c
+                for c in display_cols
             ]
 
-            st.dataframe(
-                df_display,
-                width="stretch",
-                hide_index=True
-            )
+            st.dataframe(df_display, width="stretch", hide_index=True)
         else:
             st.info(t("leaves.no_requests"))
 
@@ -113,17 +108,14 @@ with tabs[1]:
                 # Employee search (Multi-select)
                 employees = get_all_employees()
                 emp_options = {
-                    (
-                        e.get("display_name") or
-                        e.get("full_name") or
-                        f"User {e.get('user_id', e.get('id'))}"
-                    ): e.get("user_id") or e.get("id")
+                    (e.get("display_name") or e.get("full_name") or f"User {e.get('user_id', e.get('id'))}"): e.get(
+                        "user_id"
+                    )
+                    or e.get("id")
                     for e in employees
                 }
                 selected_emp_names = st.multiselect(
-                    t("common.employees"),
-                    options=sorted(emp_options.keys()),
-                    placeholder=t("common.search")
+                    t("common.employees"), options=sorted(emp_options.keys()), placeholder=t("common.search")
                 )
                 selected_user_ids = [emp_options[name] for name in selected_emp_names]
 
@@ -133,7 +125,7 @@ with tabs[1]:
                 unit_options = {u["name"]: u["id"] for u in org_units}
                 selected_unit_names = st.multiselect(
                     t("common.department") if "department" in t("common.department") else "Org Unit",
-                    options=sorted(unit_options.keys())
+                    options=sorted(unit_options.keys()),
                 )
                 selected_unit_ids = [unit_options[name] for name in selected_unit_names]
 
@@ -144,17 +136,14 @@ with tabs[1]:
                     t("leaves.status"),
                     options=statuses,
                     default=["APPROVED", "PENDING"],
-                    format_func=lambda x: t(f"common.status_{x.lower()}")
+                    format_func=lambda x: t(f"common.status_{x.lower()}"),
                 )
 
             with f_col4:
                 # Type filter
                 types = ["VACATION", "SICK_LEAVE", "DAY_OFF", "OTHER"]
                 selected_types = st.multiselect(
-                    t("leaves.type"),
-                    options=types,
-                    default=types,
-                    format_func=lambda x: t(f"leaves.{x.lower()}")
+                    t("leaves.type"), options=types, default=types, format_func=lambda x: t(f"leaves.{x.lower()}")
                 )
 
         # Apply Filters
@@ -169,9 +158,9 @@ with tabs[1]:
                 # Team leaves usually have team_id or we can match via the employee list
                 leaf_unit_id = leaf.get("team_id")
                 if not leaf_unit_id:
-                     # fallback: find unit from employee list
-                     emp_data = next((e for e in employees if e["user_id"] == leaf["user_id"]), None)
-                     leaf_unit_id = emp_data.get("team_id") if emp_data else None
+                    # fallback: find unit from employee list
+                    emp_data = next((e for e in employees if e["user_id"] == leaf["user_id"]), None)
+                    leaf_unit_id = emp_data.get("team_id") if emp_data else None
 
                 if leaf_unit_id not in selected_unit_ids:
                     continue
@@ -208,13 +197,14 @@ with tabs[1]:
                     with c2:
                         st.write(f"*{leaf['reason'] or t('common.not_found')}*")
                         status_color = (
-                            "orange" if leaf["status"] == "PENDING"
-                            else "green" if leaf["status"] == "APPROVED"
+                            "orange"
+                            if leaf["status"] == "PENDING"
+                            else "green"
+                            if leaf["status"] == "APPROVED"
                             else "red"
                         )
                         st.markdown(
-                            f"{t('common.status')}: "
-                            f"**:{status_color}[{t('common.status_' + leaf['status'].lower())}]**"
+                            f"{t('common.status')}: **:{status_color}[{t('common.status_' + leaf['status'].lower())}]**"
                         )
                     with c3:
                         if leaf["status"] == "PENDING":
@@ -256,7 +246,7 @@ if is_admin:
                                 type_list,
                                 index=idx_type,
                                 format_func=lambda x: t(f"leaves.{x.lower()}"),
-                                key=f"t_{leaf['id']}"
+                                key=f"t_{leaf['id']}",
                             )
 
                             status_list = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"]
@@ -266,7 +256,7 @@ if is_admin:
                                 status_list,
                                 index=idx_status,
                                 format_func=lambda x: t(f"common.status_{x.lower()}"),
-                                key=f"s_{leaf['id']}"
+                                key=f"s_{leaf['id']}",
                             )
                         with c2:
                             try:
@@ -279,15 +269,10 @@ if is_admin:
                             new_end = st.date_input(t("common.to"), value=e_date, key=f"en_{leaf['id']}")
                         with c3:
                             new_reason = st.text_area(
-                                t("leaves.reason"),
-                                value=leaf["reason"] or "",
-                                height=68,
-                                key=f"r_{leaf['id']}"
+                                t("leaves.reason"), value=leaf["reason"] or "", height=68, key=f"r_{leaf['id']}"
                             )
                             new_comment = st.text_input(
-                                t("leaves.comment"),
-                                value=leaf.get("comment") or "",
-                                key=f"c_{leaf['id']}"
+                                t("leaves.comment"), value=leaf.get("comment") or "", key=f"c_{leaf['id']}"
                             )
 
                         if st.form_submit_button(t("common.save"), type="primary", use_container_width=True):
@@ -301,7 +286,7 @@ if is_admin:
                                     type=new_type,
                                     start_date=new_start.isoformat(),
                                     end_date=new_end.isoformat(),
-                                    reason=new_reason
+                                    reason=new_reason,
                                 ):
                                     st.success(t("common.success"))
                                     st.rerun()

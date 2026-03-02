@@ -26,13 +26,12 @@ services:
       - "8000:8000"
     volumes:
       - /app/.venv
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-timesheet}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=supersecretkey
-      - JIRA_URL=https://your-domain.atlassian.net
-      - JIRA_EMAIL=your-email@example.com
-      - JIRA_API_TOKEN=your-jira-token
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
     depends_on:
       db:
         condition: service_healthy
@@ -45,13 +44,12 @@ services:
     build: ./backend
     volumes:
       - /app/.venv
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-timesheet}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=supersecretkey
-      - JIRA_URL=https://your-domain.atlassian.net
-      - JIRA_EMAIL=your-email@example.com
-      - JIRA_API_TOKEN=your-jira-token
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - PYTHONPATH=/app/backend
     depends_on:
       db:

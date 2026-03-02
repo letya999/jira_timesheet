@@ -26,6 +26,7 @@ from api import deps
 
 router = APIRouter()
 
+
 async def _to_period_response(db: AsyncSession, period: TimesheetPeriod) -> dict[str, Any]:
     """Helper to convert TimesheetPeriod model to response with summary info."""
     summary = await timesheet_service.get_period_summary(db, period)
@@ -43,8 +44,9 @@ async def _to_period_response(db: AsyncSession, period: TimesheetPeriod) -> dict
         "updated_at": period.updated_at,
         "total_hours": summary["total_hours"],
         "expected_hours": summary["expected_hours"],
-        "working_days": summary["working_days"]
+        "working_days": summary["working_days"],
     }
+
 
 @router.get("/", response_model=PaginatedResponse[WorklogResponse])
 async def get_all_worklogs(
@@ -58,7 +60,7 @@ async def get_all_worklogs(
     org_unit_id: int | None = None,
     sort_order: str = "desc",
     page: int = 1,
-    size: int = 50
+    size: int = 50,
 ):
     """Get all worklogs with advanced filtering and pagination."""
     # Logic for filtering based on roles and provided parameters
@@ -89,48 +91,45 @@ async def get_all_worklogs(
         org_unit_id=org_unit_id,
         sort_order=sort_order,
         skip=skip,
-        limit=size
+        limit=size,
     )
     pages = math.ceil(total / size) if size > 0 else 1
 
     # Map to response schema
     resp_items = []
     for item in items:
-        resp_items.append({
-            "id": item.id,
-            "date": item.date,
-            "hours": item.hours,
-            "description": item.description,
-            "type": item.type,
-            "status": item.status,
-            "created_at": item.created_at,
-            "updated_at": item.updated_at,
-            "source_created_at": item.source_created_at,
-            "category_id": item.category_id,
-            "user_id": item.jira_user_id,
-            "user_name": item.jira_user.display_name if item.jira_user else "Unknown",
-            "jira_account_id": item.jira_user.jira_account_id if item.jira_user else None,
-            "project_name": item.issue.project.name if item.issue and item.issue.project else "N/A",
-            "issue_key": item.issue.key if item.issue else "N/A",
-            "issue_summary": item.issue.summary if item.issue else None,
-            "category": item.category.name if item.category else "Other",
-            "category_name": item.category.name if item.category else "Other",
-            "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A"
-        })
+        resp_items.append(
+            {
+                "id": item.id,
+                "date": item.date,
+                "hours": item.hours,
+                "description": item.description,
+                "type": item.type,
+                "status": item.status,
+                "created_at": item.created_at,
+                "updated_at": item.updated_at,
+                "source_created_at": item.source_created_at,
+                "category_id": item.category_id,
+                "user_id": item.jira_user_id,
+                "user_name": item.jira_user.display_name if item.jira_user else "Unknown",
+                "jira_account_id": item.jira_user.jira_account_id if item.jira_user else None,
+                "project_name": item.issue.project.name if item.issue and item.issue.project else "N/A",
+                "issue_key": item.issue.key if item.issue else "N/A",
+                "issue_summary": item.issue.summary if item.issue else None,
+                "category": item.category.name if item.category else "Other",
+                "category_name": item.category.name if item.category else "Other",
+                "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A",
+            }
+        )
 
-    return {
-        "items": resp_items,
-        "total": total,
-        "page": page,
-        "size": size,
-        "pages": pages
-    }
+    return {"items": resp_items, "total": total, "page": page, "size": size, "pages": pages}
+
 
 @router.post("/manual", response_model=WorklogResponse)
 async def create_manual_log(
     payload: ManualLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"]))
+    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM", "Employee"])),
 ):
     """Create a manual worklog entry."""
     # Find WorklogCategory by name
@@ -147,6 +146,7 @@ async def create_manual_log(
     jira_user_id = payload.user_id if payload.user_id else current_user.jira_user_id
     if not jira_user_id:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail="User must have a linked Jira account to log time.")
 
     db_log = Worklog(
@@ -157,7 +157,7 @@ async def create_manual_log(
         type="MANUAL",
         jira_user_id=jira_user_id,
         issue_id=payload.issue_id,
-        status="APPROVED"
+        status="APPROVED",
     )
     db.add(db_log)
     await db.commit()
@@ -170,7 +170,7 @@ async def create_manual_log(
         .options(
             joinedload(Worklog.jira_user).joinedload(JiraUser.org_unit),
             joinedload(Worklog.issue).joinedload(Issue.project),
-            joinedload(Worklog.category)
+            joinedload(Worklog.category),
         )
     )
     item = result.scalar_one()
@@ -194,15 +194,16 @@ async def create_manual_log(
         "issue_summary": item.issue.summary if item.issue else None,
         "category": item.category.name if item.category else "Other",
         "category_name": item.category.name if item.category else "Other",
-        "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A"
+        "team_name": item.jira_user.org_unit.name if item.jira_user and item.jira_user.org_unit else "N/A",
     }
+
 
 @router.get("/worklogs", response_model=list[WorklogResponse])
 async def get_my_worklogs(
     start_date: date,
     end_date: date,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """Get current user's worklogs for a period."""
     if not current_user.jira_user_id:
@@ -211,22 +212,20 @@ async def get_my_worklogs(
         db, user_id=current_user.jira_user_id, start_date=start_date, end_date=end_date
     )
 
+
 @router.post("/submit", response_model=TimesheetPeriodResponse)
 async def submit_timesheet(
     payload: TimesheetSubmitRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user),
 ):
     """Submit timesheet for approval."""
     period = await timesheet_service.submit_period(
-        db,
-        user_id=current_user.id,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        request=request
+        db, user_id=current_user.id, start_date=payload.start_date, end_date=payload.end_date, request=request
     )
     return await _to_period_response(db, period)
+
 
 @router.post("/approve/{period_id}", response_model=TimesheetPeriodResponse)
 async def approve_timesheet(
@@ -234,7 +233,7 @@ async def approve_timesheet(
     payload: TimesheetApprovalRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"]))
+    current_user: User = Depends(deps.require_role(["Admin", "CEO", "PM"])),
 ):
     """Approve or reject a timesheet period."""
     period = await timesheet_service.approve_period(
@@ -243,6 +242,6 @@ async def approve_timesheet(
         approver_id=current_user.id,
         status=payload.status,
         comment=payload.comment,
-        request=request
+        request=request,
     )
     return await _to_period_response(db, period)

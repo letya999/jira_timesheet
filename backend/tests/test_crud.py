@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 async def test_crud_user(db: AsyncSession):
     user_in = UserCreate(email="crud@example.com", password="testpassword", full_name="CRUD User")
     from models.user import User
+
     user = User(email=user_in.email, hashed_password=get_password_hash(user_in.password), full_name=user_in.full_name)
     db.add(user)
     await db.commit()
@@ -35,6 +36,7 @@ async def test_crud_user(db: AsyncSession):
     # Update
     updated_user = await crud_user.update(db, db_obj=db_user, obj_in={"full_name": "Updated Name"})
     assert updated_user.full_name == "Updated Name"
+
 
 @pytest.mark.asyncio
 async def test_crud_org(db: AsyncSession):
@@ -50,6 +52,7 @@ async def test_crud_org(db: AsyncSession):
     depts = await crud_org.get_multi(db)
     assert len(depts) >= 1
 
+
 @pytest.mark.asyncio
 async def test_crud_project(db: AsyncSession):
     project = await crud_project.create(db, obj_in=ProjectCreate(jira_id="J-1", key="KEY", name="Proj"))
@@ -61,6 +64,7 @@ async def test_crud_project(db: AsyncSession):
     count = await crud_project.count(db)
     assert count >= 1
 
+
 @pytest.mark.asyncio
 async def test_crud_category(db: AsyncSession):
     cat = await crud_category.create(db, obj_in=CategoryCreate(name="Meetings"))
@@ -68,6 +72,7 @@ async def test_crud_category(db: AsyncSession):
 
     active_cats = await crud_category.get_active(db)
     assert len(active_cats) >= 1
+
 
 @pytest.mark.asyncio
 async def test_crud_settings(db: AsyncSession):
@@ -78,6 +83,7 @@ async def test_crud_settings(db: AsyncSession):
     await crud_settings.set(db, "key1", {"val": 2})
     setting = await crud_settings.get(db, "key1")
     assert setting.value["val"] == 2
+
 
 @pytest.mark.asyncio
 async def test_crud_timesheet_advanced(db: AsyncSession):
@@ -95,6 +101,7 @@ async def test_crud_timesheet_advanced(db: AsyncSession):
     await db.flush()
 
     from models.timesheet import Worklog
+
     worklog = Worklog(date=date.today(), hours=1.0, jira_user_id=jira_user.id, issue_id=issue.id)
     db.add(worklog)
     await db.commit()
@@ -111,10 +118,10 @@ async def test_crud_timesheet_advanced(db: AsyncSession):
     user = User(email="u@ex.com", hashed_password="p", full_name="U")
     db.add(user)
     await db.flush()
-    period = await crud_period.create(db, obj_in=TimesheetPeriodBase(
-        user_id=user.id,
-        start_date=date(2024,1,1),
-        end_date=date(2024,1,7)
-    ))
-    db_period = await crud_period.get_by_user_and_date(db, user_id=user.id, start_date=date(2024,1,1), end_date=date(2024,1,7))
+    period = await crud_period.create(
+        db, obj_in=TimesheetPeriodBase(user_id=user.id, start_date=date(2024, 1, 1), end_date=date(2024, 1, 7))
+    )
+    db_period = await crud_period.get_by_user_and_date(
+        db, user_id=user.id, start_date=date(2024, 1, 1), end_date=date(2024, 1, 7)
+    )
     assert db_period.id == period.id

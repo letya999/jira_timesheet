@@ -31,7 +31,7 @@ async def test_auth_login(client: AsyncClient, db: AsyncSession):
         hashed_password=get_password_hash("testpass"),
         full_name="Login User",
         role="Admin",
-        is_active=True
+        is_active=True,
     )
     db.add(user)
     await db.commit()
@@ -39,6 +39,7 @@ async def test_auth_login(client: AsyncClient, db: AsyncSession):
     response = await client.post("/api/v1/auth/login", data={"username": "login@example.com", "password": "testpass"})
     assert response.status_code == 200
     assert "access_token" in response.json()
+
 
 @pytest.mark.asyncio
 async def test_auth_login_fail(client: AsyncClient, db: AsyncSession):
@@ -52,14 +53,17 @@ async def test_auth_login_fail(client: AsyncClient, db: AsyncSession):
         hashed_password=get_password_hash("testpass"),
         full_name="Inactive User",
         role="Admin",
-        is_active=False
+        is_active=False,
     )
     db.add(user)
     await db.commit()
 
-    response = await client.post("/api/v1/auth/login", data={"username": "inactive@example.com", "password": "testpass"})
+    response = await client.post(
+        "/api/v1/auth/login", data={"username": "inactive@example.com", "password": "testpass"}
+    )
     assert response.status_code == 400
     assert response.json()["detail"] == "Inactive user"
+
 
 @pytest.mark.asyncio
 async def test_get_users(client: AsyncClient, auth_headers: dict):
@@ -69,11 +73,13 @@ async def test_get_users(client: AsyncClient, auth_headers: dict):
     assert "items" in data
     assert len(data["items"]) >= 1
 
+
 @pytest.mark.asyncio
 async def test_get_me(client: AsyncClient, auth_headers: dict):
     response = await client.get("/api/v1/users/me", headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["email"] == "testadmin@example.com"
+
 
 @pytest.mark.asyncio
 async def test_sync_users_endpoint(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -81,6 +87,7 @@ async def test_sync_users_endpoint(client: AsyncClient, auth_headers: dict, db: 
         response = await client.post("/api/v1/users/sync", headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["synced"] == 10
+
 
 @pytest.mark.asyncio
 async def test_org_full_workflow(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -122,6 +129,7 @@ async def test_org_full_workflow(client: AsyncClient, auth_headers: dict, db: As
     resp = await client.get("/api/v1/org/units", headers=auth_headers)
     assert resp.status_code == 200
 
+
 @pytest.mark.asyncio
 async def test_employee_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession):
     jira_user = JiraUser(jira_account_id="emp-1", display_name="Emp One", is_active=True)
@@ -137,6 +145,7 @@ async def test_employee_endpoints(client: AsyncClient, auth_headers: dict, db: A
     resp = await client.patch(f"/api/v1/org/employees/{jira_user.id}", json={"weekly_quota": 40}, headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["weekly_quota"] == 40
+
 
 @pytest.mark.asyncio
 async def test_projects_refresh_and_sync(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -165,8 +174,11 @@ async def test_projects_refresh_and_sync(client: AsyncClient, auth_headers: dict
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
 
+
 @pytest.mark.asyncio
-async def test_timesheet_detailed_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
+async def test_timesheet_detailed_endpoints(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User
+):
     jira_user = JiraUser(jira_account_id="admin-jira-detailed", display_name="Admin Jira", email=admin_user.email)
     db.add(jira_user)
     await db.flush()
@@ -185,12 +197,7 @@ async def test_timesheet_detailed_endpoints(client: AsyncClient, auth_headers: d
     await db.flush()
 
     worklog = Worklog(
-        date=date.today(),
-        hours=1.5,
-        jira_user_id=jira_user.id,
-        category_id=cat.id,
-        issue_id=issue.id,
-        type="MANUAL"
+        date=date.today(), hours=1.5, jira_user_id=jira_user.id, category_id=cat.id, issue_id=issue.id, type="MANUAL"
     )
     db.add(worklog)
     await db.commit()
@@ -214,11 +221,14 @@ async def test_timesheet_detailed_endpoints(client: AsyncClient, auth_headers: d
         end_date=today,
         status="SUBMITTED",
         created_at=datetime.now(),
-        updated_at=datetime.now()
+        updated_at=datetime.now(),
     )
     with patch("services.timesheet.timesheet_service.submit_period", return_value=period):
-        resp = await client.post("/api/v1/timesheet/submit", json={"start_date": str(today), "end_date": str(today)}, headers=auth_headers)
+        resp = await client.post(
+            "/api/v1/timesheet/submit", json={"start_date": str(today), "end_date": str(today)}, headers=auth_headers
+        )
         assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_create_manual_log(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -242,13 +252,14 @@ async def test_create_manual_log(client: AsyncClient, auth_headers: dict, db: As
         "hours": 2.5,
         "category": "Meetings",
         "description": "Weekly meeting",
-        "issue_id": issue.id
+        "issue_id": issue.id,
     }
 
     response = await client.post("/api/v1/timesheet/manual", json=payload, headers=auth_headers)
     assert response.status_code == 200
     assert response.json()["hours"] == 2.5
     assert response.json()["category"] == "Meetings"
+
 
 @pytest.mark.asyncio
 async def test_reports_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -257,6 +268,7 @@ async def test_reports_endpoints(client: AsyncClient, auth_headers: dict, db: As
     resp = await client.get(f"/api/v1/reports/dashboard?start_date={start}&end_date={end}", headers=auth_headers)
     assert resp.status_code == 200
     assert "data" in resp.json()
+
 
 @pytest.mark.asyncio
 async def test_sync_endpoint(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -272,10 +284,17 @@ async def test_sync_endpoint(client: AsyncClient, auth_headers: dict, db: AsyncS
         assert resp.status_code == 200
         assert resp.json()["status"] == "sync_enqueued"
 
+
 @pytest.mark.asyncio
 async def test_sync_endpoint_fail(client: AsyncClient, db: AsyncSession):
     # User without jira_user_id
-    user = User(email="nojira@ex.com", hashed_password=get_password_hash("pw"), full_name="No Jira", role="Employee", is_active=True)
+    user = User(
+        email="nojira@ex.com",
+        hashed_password=get_password_hash("pw"),
+        full_name="No Jira",
+        role="Employee",
+        is_active=True,
+    )
     db.add(user)
     await db.commit()
 
@@ -288,6 +307,7 @@ async def test_sync_endpoint_fail(client: AsyncClient, db: AsyncSession):
     assert resp.json()["status"] == "error"
     assert "No Jira account linked" in resp.json()["message"]
 
+
 @pytest.mark.asyncio
 async def test_approvals_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
     # Get my period
@@ -299,14 +319,19 @@ async def test_approvals_endpoints(client: AsyncClient, auth_headers: dict, db: 
     end_date = period_data["end_date"]
 
     # Submit
-    resp = await client.post("/api/v1/approvals/submit", json={"start_date": start_date, "end_date": end_date}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/approvals/submit", json={"start_date": start_date, "end_date": end_date}, headers=auth_headers
+    )
     assert resp.status_code == 200
     period_id = resp.json()["id"]
 
     # Approve
-    resp = await client.post(f"/api/v1/approvals/{period_id}/approve", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers)
+    resp = await client.post(
+        f"/api/v1/approvals/{period_id}/approve", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "APPROVED"
+
 
 @pytest.mark.asyncio
 async def test_approvals_period_types(client: AsyncClient, db: AsyncSession, admin_user: User):
@@ -344,22 +369,22 @@ async def test_approvals_period_types(client: AsyncClient, db: AsyncSession, adm
     assert resp.json()["start_date"] == "2026-03-16"
     assert resp.json()["end_date"] == "2026-03-31"
 
+
 @pytest.mark.asyncio
 async def test_submit_already_approved(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
     today = date.today()
     period = TimesheetPeriod(
-        user_id=admin_user.id,
-        start_date=today,
-        end_date=today,
-        status="APPROVED",
-        current_step_order=1
+        user_id=admin_user.id, start_date=today, end_date=today, status="APPROVED", current_step_order=1
     )
     db.add(period)
     await db.commit()
 
-    resp = await client.post("/api/v1/approvals/submit", json={"start_date": str(today), "end_date": str(today)}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/approvals/submit", json={"start_date": str(today), "end_date": str(today)}, headers=auth_headers
+    )
     assert resp.status_code == 400
     assert "already approved" in resp.json()["detail"]
+
 
 @pytest.mark.asyncio
 async def test_calendar_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -369,7 +394,9 @@ async def test_calendar_endpoints(client: AsyncClient, auth_headers: dict, db: A
         assert resp.status_code == 200
 
     # 2. Add custom holiday
-    resp = await client.post("/api/v1/calendar/holidays", json={"date": "2026-01-01", "name": "New Year"}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/calendar/holidays", json={"date": "2026-01-01", "name": "New Year"}, headers=auth_headers
+    )
     assert resp.status_code == 200
 
     # 3. Get country
@@ -387,7 +414,7 @@ async def test_calendar_endpoints(client: AsyncClient, auth_headers: dict, db: A
         type="VACATION",
         status="APPROVED",
         start_date=date(2026, 3, 1),
-        end_date=date(2026, 3, 5)
+        end_date=date(2026, 3, 5),
     )
     db.add(leave)
     await db.commit()
@@ -401,9 +428,11 @@ async def test_calendar_endpoints(client: AsyncClient, auth_headers: dict, db: A
     resp = await client.delete("/api/v1/calendar/holidays/2026-01-01", headers=auth_headers)
     assert resp.status_code == 200
 
+
 @pytest.mark.asyncio
 async def test_notifications_endpoints(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
     from models.notification import Notification
+
     n = Notification(user_id=admin_user.id, title="Test", message="Test Msg", is_read=False)
     db.add(n)
     await db.commit()
@@ -443,15 +472,12 @@ async def test_notifications_endpoints(client: AsyncClient, auth_headers: dict, 
     resp = await client.patch(f"/api/v1/notifications/{other_n.id}", json={"is_read": True}, headers=auth_headers)
     assert resp.status_code == 403
 
+
 @pytest.mark.asyncio
 async def test_slack_interactive(client: AsyncClient, db: AsyncSession, admin_user: User):
     # Setup leave
     leave = LeaveRequest(
-        user_id=admin_user.id,
-        type="VACATION",
-        status="PENDING",
-        start_date=date(2026, 4, 1),
-        end_date=date(2026, 4, 5)
+        user_id=admin_user.id, type="VACATION", status="PENDING", start_date=date(2026, 4, 1), end_date=date(2026, 4, 5)
     )
     db.add(leave)
     await db.commit()
@@ -460,7 +486,7 @@ async def test_slack_interactive(client: AsyncClient, db: AsyncSession, admin_us
     # 1. Successful approval
     payload = {
         "actions": [{"action_id": "approve_leave", "value": f"approve_{leave.id}"}],
-        "user": {"username": "test_slack_user"}
+        "user": {"username": "test_slack_user"},
     }
     resp = await client.post("/api/v1/slack/interactive", data={"payload": json.dumps(payload)})
     assert resp.status_code == 200
@@ -486,6 +512,7 @@ async def test_slack_interactive(client: AsyncClient, db: AsyncSession, admin_us
     resp = await client.post("/api/v1/slack/interactive", data={"payload": json.dumps(payload)})
     assert resp.json()["ok"] is False
 
+
 @pytest.mark.asyncio
 async def test_reports_advanced(client: AsyncClient, auth_headers: dict, db: AsyncSession):
     # 1. Categories
@@ -508,11 +535,12 @@ async def test_reports_advanced(client: AsyncClient, auth_headers: dict, db: Asy
         "end_date": str(today),
         "group_by_rows": ["user"],
         "format": "days",
-        "hours_per_day": 8.0
+        "hours_per_day": 8.0,
     }
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
     assert resp.status_code == 200
     assert "data" in resp.json()
+
 
 @pytest.mark.asyncio
 async def test_reports_full(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -522,7 +550,9 @@ async def test_reports_full(client: AsyncClient, auth_headers: dict, db: AsyncSe
     assert resp.status_code == 200
 
     # 2. PM Dashboard access
-    pm = User(email="pm_rep@ex.com", full_name="PM Rep", hashed_password=get_password_hash("pw"), role="PM", is_active=True)
+    pm = User(
+        email="pm_rep@ex.com", full_name="PM Rep", hashed_password=get_password_hash("pw"), role="PM", is_active=True
+    )
     db.add(pm)
     await db.commit()
     login_res = await client.post("/api/v1/auth/login", data={"username": "pm_rep@ex.com", "password": "pw"})
@@ -540,10 +570,11 @@ async def test_reports_full(client: AsyncClient, auth_headers: dict, db: AsyncSe
         "project_id": 1,
         "sprint_ids": [1],
         "category_ids": [1],
-        "worklog_types": ["JIRA", "MANUAL"]
+        "worklog_types": ["JIRA", "MANUAL"],
     }
     resp = await client.post("/api/v1/reports/custom", json=payload, headers=auth_headers)
     assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -580,7 +611,11 @@ async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSe
     unit_id = unit.id
     db.expire_all()
 
-    resp = await client.post("/api/v1/org/units/roles", json={"user_id": admin_user_id, "org_unit_id": unit_id, "role_id": role_id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/roles",
+        json={"user_id": admin_user_id, "org_unit_id": unit_id, "role_id": role_id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     assign_id = resp.json()["id"]
 
@@ -588,7 +623,11 @@ async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSe
     assert len(resp.json()) >= 1
 
     # 5. Approval Routes
-    resp = await client.post("/api/v1/org/units/approval-routes", json={"org_unit_id": unit_id, "target_type": "leave", "step_order": 1, "role_id": role_id}, headers=auth_headers)
+    resp = await client.post(
+        "/api/v1/org/units/approval-routes",
+        json={"org_unit_id": unit_id, "target_type": "leave", "step_order": 1, "role_id": role_id},
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
     route_id = resp.json()["id"]
 
@@ -602,6 +641,7 @@ async def test_org_extended(client: AsyncClient, auth_headers: dict, db: AsyncSe
     assert resp.status_code == 204
     resp = await client.delete(f"/api/v1/org/roles/{role_id}", headers=auth_headers)
     assert resp.status_code == 204
+
 
 @pytest.mark.asyncio
 async def test_approvals_extended(client: AsyncClient, auth_headers: dict, db: AsyncSession, admin_user: User):
@@ -618,7 +658,9 @@ async def test_approvals_extended(client: AsyncClient, auth_headers: dict, db: A
     assert resp.json()["status"] == "SUBMITTED"
 
     # 2. Team periods with filter
-    resp = await client.get(f"/api/v1/approvals/team-periods?start_date={start_date}&end_date={end_date}", headers=auth_headers)
+    resp = await client.get(
+        f"/api/v1/approvals/team-periods?start_date={start_date}&end_date={end_date}", headers=auth_headers
+    )
     assert resp.status_code == 200
 
     # 3. Approve multi-step
@@ -630,7 +672,7 @@ async def test_approvals_extended(client: AsyncClient, auth_headers: dict, db: A
     role = Role(name="Step1", is_system=True)
     db.add(role)
     await db.flush()
-    route = ApprovalRoute(org_unit_id=unit.id, target_type='timesheet', step_order=1, role_id=role.id)
+    route = ApprovalRoute(org_unit_id=unit.id, target_type="timesheet", step_order=1, role_id=role.id)
     db.add(route)
     await db.commit()
 
@@ -640,7 +682,13 @@ async def test_approvals_extended(client: AsyncClient, auth_headers: dict, db: A
     await db.commit()
 
     # Add period for another user in this unit
-    other = User(email="other_app@ex.com", full_name="Other App", hashed_password=get_password_hash("pw"), role="Employee", is_active=True)
+    other = User(
+        email="other_app@ex.com",
+        full_name="Other App",
+        hashed_password=get_password_hash("pw"),
+        role="Employee",
+        is_active=True,
+    )
     db.add(other)
     await db.flush()
     ju = JiraUser(jira_account_id="ju-app", display_name="Jura", org_unit_id=unit.id)
@@ -648,20 +696,35 @@ async def test_approvals_extended(client: AsyncClient, auth_headers: dict, db: A
     await db.flush()
     other.jira_user_id = ju.id
 
-    p2 = TimesheetPeriod(user_id=other.id, start_date=date(2026,1,1), end_date=date(2026,1,7), status="SUBMITTED", current_step_order=1)
+    p2 = TimesheetPeriod(
+        user_id=other.id,
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 7),
+        status="SUBMITTED",
+        current_step_order=1,
+    )
     db.add(p2)
     await db.commit()
 
     # Approve as admin (can approve everything)
-    resp = await client.post(f"/api/v1/approvals/{p2.id}/approve", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers)
+    resp = await client.post(
+        f"/api/v1/approvals/{p2.id}/approve", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "APPROVED"
+
 
 @pytest.mark.asyncio
 async def test_approvals_my_period_fail(client: AsyncClient, db: AsyncSession):
     # 1. No Jira linked
     unique_email = f"nojira_{uuid.uuid4()}@ex.com"
-    user = User(email=unique_email, full_name="No Jira", hashed_password=get_password_hash("pw"), role="Employee", is_active=True)
+    user = User(
+        email=unique_email,
+        full_name="No Jira",
+        hashed_password=get_password_hash("pw"),
+        role="Employee",
+        is_active=True,
+    )
     db.add(user)
     await db.commit()
 
@@ -674,10 +737,17 @@ async def test_approvals_my_period_fail(client: AsyncClient, db: AsyncSession):
     assert resp.status_code == 200
     assert resp.json()["status"] == "OPEN"
 
+
 @pytest.mark.asyncio
 async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: AsyncSession):
     # 1. Employee stealth filter
-    user = User(email="emp_stealth@ex.com", full_name="Stealth User", hashed_password=get_password_hash("pw"), role="Employee", is_active=True)
+    user = User(
+        email="emp_stealth@ex.com",
+        full_name="Stealth User",
+        hashed_password=get_password_hash("pw"),
+        role="Employee",
+        is_active=True,
+    )
     db.add(user)
     await db.flush()
     ju = JiraUser(jira_account_id="ju-stealth", display_name="Stealth", org_unit_id=None)
@@ -693,16 +763,22 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
     assert resp.status_code == 200
 
     # 2. My worklogs
-    resp = await client.get(f"/api/v1/timesheet/worklogs?start_date={date.today()}&end_date={date.today()}", headers=headers)
+    resp = await client.get(
+        f"/api/v1/timesheet/worklogs?start_date={date.today()}&end_date={date.today()}", headers=headers
+    )
     assert resp.status_code == 200
 
     # 3. Submit & Approve
-    resp = await client.post("/api/v1/timesheet/submit", json={"start_date": "2026-01-01", "end_date": "2026-01-07"}, headers=headers)
+    resp = await client.post(
+        "/api/v1/timesheet/submit", json={"start_date": "2026-01-01", "end_date": "2026-01-07"}, headers=headers
+    )
     assert resp.status_code == 200
     period_id = resp.json()["id"]
 
     # Login as admin to approve (using auth_headers fixture)
-    resp = await client.post(f"/api/v1/timesheet/approve/{period_id}", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers)
+    resp = await client.post(
+        f"/api/v1/timesheet/approve/{period_id}", json={"status": "APPROVED", "comment": "OK"}, headers=auth_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "APPROVED"
     # 1. Refresh
@@ -713,7 +789,8 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
 
     # 2. Sync All
     with patch("api.endpoints.projects.sync_jira_worklogs_for_projects", return_value={"status": "success"}):
-        # No active projects case (might already have some from previous tests, so we can't easily guarantee 0 without clearing)
+        # No active projects case (might already have some from previous tests,
+        # so we can't easily guarantee 0 without clearing)
         resp = await client.post("/api/v1/projects/sync-all", headers=auth_headers)
         assert resp.status_code == 200
 

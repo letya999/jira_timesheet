@@ -23,6 +23,7 @@ RATE_LIMIT_WINDOW = settings.RATE_LIMIT_WINDOW_SECONDS
 RATE_LIMIT_MAX_REQUESTS = settings.RATE_LIMIT_MAX_REQUESTS
 request_counts = defaultdict(lambda: {"count": 0, "reset_time": time.time() + RATE_LIMIT_WINDOW})
 
+
 class AdvancedMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # 1. Trace ID generation
@@ -46,9 +47,9 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
                     "error": {
                         "code": ErrorCode.RATE_LIMIT_EXCEEDED,
                         "message": "Too many requests. Please try again later.",
-                        "traceId": trace_id
+                        "traceId": trace_id,
                     }
-                }
+                },
             )
 
         # 3. Process Request
@@ -76,6 +77,7 @@ class AdvancedMiddleware(BaseHTTPMiddleware):
             logger.error(f"[{trace_id}] Unhandled Exception: {exc}")
             raise exc
 
+
 def setup_middlewares(app: FastAPI):
     # Security and Utility Middlewares
     app.add_middleware(
@@ -89,6 +91,7 @@ def setup_middlewares(app: FastAPI):
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
     app.add_middleware(AdvancedMiddleware)
 
+
 def setup_exception_handlers(app: FastAPI):
     @app.exception_handler(APIException)
     async def api_exception_handler(request: Request, exc: APIException):
@@ -96,13 +99,8 @@ def setup_exception_handlers(app: FastAPI):
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": {
-                    "code": exc.error_code,
-                    "message": exc.message,
-                    "details": exc.details,
-                    "traceId": trace_id
-                }
-            }
+                "error": {"code": exc.error_code, "message": exc.message, "details": exc.details, "traceId": trace_id}
+            },
         )
 
     @app.exception_handler(RequestValidationError)
@@ -116,9 +114,9 @@ def setup_exception_handlers(app: FastAPI):
                     "code": ErrorCode.VALIDATION_ERROR,
                     "message": "Input validation failed",
                     "details": {"errors": errors},
-                    "traceId": trace_id
+                    "traceId": trace_id,
                 }
-            }
+            },
         )
 
     @app.exception_handler(Exception)
@@ -132,7 +130,7 @@ def setup_exception_handlers(app: FastAPI):
                 "error": {
                     "code": ErrorCode.INTERNAL_SERVER_ERROR,
                     "message": "An unexpected internal server error occurred.",
-                    "traceId": trace_id
+                    "traceId": trace_id,
                 }
-            }
+            },
         )

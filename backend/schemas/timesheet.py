@@ -6,17 +6,19 @@ from pydantic import BaseModel, ConfigDict
 class WorklogBase(BaseModel):
     date: date
     hours: float
-    type: str = "JIRA" # JIRA, MANUAL
+    type: str = "JIRA"  # JIRA, MANUAL
     category_id: int | None = None
     description: str | None = None
+
 
 class ManualLogCreate(BaseModel):
     date: date
     hours: float
-    category: str # "Vacation", "Jira Task", etc.
+    category: str  # "Vacation", "Jira Task", etc.
     description: str | None = None
-    user_id: int | None = None # jira_user_id
+    user_id: int | None = None  # jira_user_id
     issue_id: int | None = None
+
 
 class WorklogResponse(WorklogBase):
     id: int
@@ -31,17 +33,19 @@ class WorklogResponse(WorklogBase):
     issue_key: str | None = None
     issue_summary: str | None = None
     project_name: str | None = None
-    category: str | None = None # Added for compatibility
+    category: str | None = None  # Added for compatibility
     category_name: str | None = None
     team_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class TimesheetPeriodBase(BaseModel):
     user_id: int
     start_date: date
     end_date: date
     status: str = "OPEN"
+
 
 class TimesheetPeriodResponse(TimesheetPeriodBase):
     id: int
@@ -59,10 +63,12 @@ class TimesheetPeriodResponse(TimesheetPeriodBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class TimesheetSubmitRequest(BaseModel):
     start_date: date
     end_date: date
 
+
 class TimesheetApprovalRequest(BaseModel):
-    status: str # APPROVED or REJECTED
+    status: str  # APPROVED or REJECTED
     comment: str | None = None

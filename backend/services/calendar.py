@@ -25,7 +25,7 @@ class CalendarService:
         for h_date, name in list(holiday_list.items()):
             if h_date.month == 1 and h_date.day <= 8:
                 continue
-            if h_date.weekday() >= 5: # Saturday (5) or Sunday (6)
+            if h_date.weekday() >= 5:  # Saturday (5) or Sunday (6)
                 shifted = h_date + timedelta(days=1)
                 while shifted.weekday() >= 5 or shifted in holiday_list or shifted in observed_holidays:
                     shifted += timedelta(days=1)
@@ -55,10 +55,11 @@ class CalendarService:
             existing = result.scalar_one_or_none()
 
             if not existing:
-                db.add(CalendarEvent(
-                    date=holiday_date, name=name, is_holiday=True,
-                    is_custom=False, country_code=country_code
-                ))
+                db.add(
+                    CalendarEvent(
+                        date=holiday_date, name=name, is_holiday=True, is_custom=False, country_code=country_code
+                    )
+                )
             elif not existing.is_custom:
                 existing.name = name
                 existing.country_code = country_code
@@ -67,10 +68,7 @@ class CalendarService:
 
     async def get_holidays(self, db: AsyncSession, start_date: date, end_date: date) -> list[CalendarEvent]:
         """Get all holidays/non-working days in a range."""
-        stmt = select(CalendarEvent).where(
-            CalendarEvent.date >= start_date,
-            CalendarEvent.date <= end_date
-        )
+        stmt = select(CalendarEvent).where(CalendarEvent.date >= start_date, CalendarEvent.date <= end_date)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 
@@ -78,7 +76,8 @@ class CalendarService:
         """Check if a day is a working day (not a weekend and not a holiday)."""
         # Weekend check (0=Monday, 5=Saturday, 6=Sunday)
         if day.weekday() >= 5:
-            # Check if there's a custom override making it a working day (though our model currently only marks non-working)
+            # Check if there's a custom override making it a working day
+            # (though our model currently only marks non-working)
             # In some countries, some Saturdays are working days. For now, assume weekends are non-working.
             return False
 
@@ -115,12 +114,7 @@ class CalendarService:
             existing.is_holiday = is_holiday
             existing.is_custom = True
         else:
-            new_event = CalendarEvent(
-                date=holiday_date,
-                name=name,
-                is_holiday=is_holiday,
-                is_custom=True
-            )
+            new_event = CalendarEvent(date=holiday_date, name=name, is_holiday=is_holiday, is_custom=True)
             db.add(new_event)
         await db.commit()
 
@@ -129,5 +123,6 @@ class CalendarService:
         stmt = delete(CalendarEvent).where(CalendarEvent.date == holiday_date)
         await db.execute(stmt)
         await db.commit()
+
 
 calendar_service = CalendarService()

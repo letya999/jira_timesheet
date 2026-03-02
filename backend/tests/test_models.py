@@ -24,10 +24,7 @@ from sqlalchemy.orm import selectinload
 @pytest.mark.asyncio
 async def test_create_user(db: AsyncSession):
     user = User(
-        email="test@example.com",
-        hashed_password=get_password_hash("password"),
-        full_name="Test User",
-        role="Employee"
+        email="test@example.com", hashed_password=get_password_hash("password"), full_name="Test User", role="Employee"
     )
     db.add(user)
     await db.commit()
@@ -35,18 +32,16 @@ async def test_create_user(db: AsyncSession):
     assert user.id is not None
     assert user.email == "test@example.com"
 
+
 @pytest.mark.asyncio
 async def test_create_jira_user(db: AsyncSession):
-    jira_user = JiraUser(
-        jira_account_id="jira-123",
-        display_name="Jira Name",
-        email="jira@example.com"
-    )
+    jira_user = JiraUser(jira_account_id="jira-123", display_name="Jira Name", email="jira@example.com")
     db.add(jira_user)
     await db.commit()
     await db.refresh(jira_user)
     assert jira_user.id is not None
     assert jira_user.jira_account_id == "jira-123"
+
 
 @pytest.mark.asyncio
 async def test_org_hierarchy(db: AsyncSession):
@@ -71,6 +66,7 @@ async def test_org_hierarchy(db: AsyncSession):
     assert team.id is not None
     assert team.parent.name == "Software"
     assert team.parent.parent.name == "IT"
+
 
 @pytest.mark.asyncio
 async def test_project_models(db: AsyncSession):
@@ -102,6 +98,7 @@ async def test_project_models(db: AsyncSession):
     assert len(issue.sprints) == 1
     assert len(issue.releases) == 1
 
+
 @pytest.mark.asyncio
 async def test_timesheet_models(db: AsyncSession):
     jira_user = JiraUser(jira_account_id="j-1", display_name="J User")
@@ -112,28 +109,20 @@ async def test_timesheet_models(db: AsyncSession):
     db.add(cat)
     await db.flush()
 
-    worklog = Worklog(
-        date=date.today(),
-        hours=8.0,
-        jira_user_id=jira_user.id,
-        category_id=cat.id
-    )
+    worklog = Worklog(date=date.today(), hours=8.0, jira_user_id=jira_user.id, category_id=cat.id)
     db.add(worklog)
 
     user = User(email="u1@ex.com", hashed_password="pw", full_name="U1")
     db.add(user)
     await db.flush()
 
-    period = TimesheetPeriod(
-        user_id=user.id,
-        start_date=date(2024, 1, 1),
-        end_date=date(2024, 1, 7)
-    )
+    period = TimesheetPeriod(user_id=user.id, start_date=date(2024, 1, 1), end_date=date(2024, 1, 7))
     db.add(period)
     await db.commit()
 
     assert worklog.id is not None
     assert period.id is not None
+
 
 @pytest.mark.asyncio
 async def test_system_settings(db: AsyncSession):
@@ -144,13 +133,10 @@ async def test_system_settings(db: AsyncSession):
     assert setting.key == "test_key"
     assert setting.value["enabled"] is True
 
+
 @pytest.mark.asyncio
 async def test_audit_log(db: AsyncSession):
-    log = AuditLog(
-        action="TEST_ACTION",
-        target_type="Test",
-        payload={"data": "test"}
-    )
+    log = AuditLog(action="TEST_ACTION", target_type="Test", payload={"data": "test"})
     db.add(log)
     await db.commit()
     await db.refresh(log)

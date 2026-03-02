@@ -8,16 +8,21 @@ async def test_health_check(client: AsyncClient):
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, admin_user):
-    response = await client.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
+    response = await client.post(
+        "/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"}
+    )
     assert response.status_code == 200
     assert "access_token" in response.json()
+
 
 @pytest.mark.asyncio
 async def test_login_failure(client: AsyncClient):
     response = await client.post("/api/v1/auth/login", data={"username": "wrong@example.com", "password": "pass"})
     assert response.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_get_projects_auth(client: AsyncClient, auth_headers: dict):

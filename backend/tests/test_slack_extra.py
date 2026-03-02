@@ -17,7 +17,7 @@ async def test_slack_extra_endpoints(client: AsyncClient, db: AsyncSession):
 
     payload = {
         "actions": [{"action_id": "reject_leave", "value": f"reject_{leave.id}"}],
-        "user": {"username": "slack_user"}
+        "user": {"username": "slack_user"},
     }
     resp = await client.post("/api/v1/slack/interactive", data={"payload": json.dumps(payload)})
     assert resp.status_code == 200

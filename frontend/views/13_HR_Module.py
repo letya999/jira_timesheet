@@ -37,7 +37,7 @@ with st.expander(t("leaves.hr_filters"), expanded=True):
             t("common.status"),
             options=status_options,
             default=["APPROVED", "PENDING"],
-            format_func=lambda x: t(f"common.status_{x.lower()}")
+            format_func=lambda x: t(f"common.status_{x.lower()}"),
         )
 
 # --- FETCH DATA ---
@@ -60,7 +60,7 @@ if leaves:
         t("common.from"),
         t("common.to"),
         t("common.status"),
-        t("common.comment")
+        t("common.comment"),
     ]
 
     st.subheader(t("leaves.found_records", count=len(display_df)))
@@ -73,8 +73,8 @@ if leaves:
     with col_ex1:
         # Excel Export
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            display_df.to_excel(writer, index=False, sheet_name='Leaves')
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            display_df.to_excel(writer, index=False, sheet_name="Leaves")
         processed_data = output.getvalue()
 
         st.download_button(
@@ -82,7 +82,7 @@ if leaves:
             data=processed_data,
             file_name=f"leaves_report_{start_date}_{end_date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            width="stretch"
+            width="stretch",
         )
 
     with col_ex2:

@@ -13,6 +13,7 @@ def get_cookie_manager():
         st.session_state["cookie_manager"] = stx.CookieManager(key="auth_manager")
     return st.session_state["cookie_manager"]
 
+
 def decode_jwt(token):
     try:
         _, payload_b64, _ = token.split(".")
@@ -24,6 +25,7 @@ def decode_jwt(token):
         return json.loads(payload_json)
     except Exception:
         return {}
+
 
 def ensure_session(allow_wait=False):
     """
@@ -70,9 +72,11 @@ def ensure_session(allow_wait=False):
 
     return None, cookie_manager
 
+
 def js_beacon():
     """Syncs localStorage with URL parameters and also provides global cross-tab sync."""
     import streamlit.components.v1 as components
+
     js_code = """
     <script>
     (function() {
@@ -93,6 +97,7 @@ def js_beacon():
     """
     components.html(js_code, height=0, width=0)
 
+
 def set_token(token, cookie_manager):
     st.session_state["token"] = token
     st.query_params["token"] = token
@@ -103,7 +108,9 @@ def set_token(token, cookie_manager):
 
     # Save to LocalStorage via JS
     import streamlit.components.v1 as components
+
     components.html(f"<script>localStorage.setItem('auth_token', '{token}');</script>", height=0, width=0)
+
 
 def delete_token(cookie_manager):
     st.session_state["token"] = "logged_out"
@@ -118,9 +125,15 @@ def delete_token(cookie_manager):
 
     # Clear LocalStorage
     import streamlit.components.v1 as components
-    components.html("<script>localStorage.setItem('auth_token', 'logged_out'); localStorage.removeItem('auth_token');</script>", height=0, width=0)
+
+    components.html(
+        "<script>localStorage.setItem('auth_token', 'logged_out'); localStorage.removeItem('auth_token');</script>",
+        height=0,
+        width=0,
+    )
 
     st.rerun()
+
 
 def get_user_role():
     token = st.session_state.get("token")
@@ -129,10 +142,11 @@ def get_user_role():
     payload = decode_jwt(token)
     return payload.get("role")
 
+
 def check_access(allowed_roles=None):
     if not allowed_roles:
         return True
     role = get_user_role()
-    if role == "Admin": # Superuser
+    if role == "Admin":  # Superuser
         return True
     return role in allowed_roles

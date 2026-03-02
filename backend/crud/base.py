@@ -26,9 +26,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await db.execute(select(self.model).where(self.model.id == id))
         return result.scalar_one_or_none()
 
-    async def get_multi(
-        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> list[ModelType]:
+    async def get_multi(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
         result = await db.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()
 
@@ -41,11 +39,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db_obj
 
     async def update(
-        self,
-        db: AsyncSession,
-        *,
-        db_obj: ModelType,
-        obj_in: UpdateSchemaType | dict[str, Any]
+        self, db: AsyncSession, *, db_obj: ModelType, obj_in: UpdateSchemaType | dict[str, Any]
     ) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in

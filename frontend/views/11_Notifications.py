@@ -34,7 +34,7 @@ tab1, tab2 = st.tabs([f"🆕 {t('common.unread')}", f"📂 {t('common.all_notifi
 with tab1:
     # Fetch only unread notifications (we can filter in frontend for simplicity or add backend param)
     # For now, we fetch all and filter to show the difference
-    notifications_data = fetch_notifications(page=1, size=100) # Fetch more for filtering
+    notifications_data = fetch_notifications(page=1, size=100)  # Fetch more for filtering
     unread = [n for n in notifications_data.get("items", []) if not n.get("is_read")]
 
     if not unread:
@@ -58,5 +58,5 @@ with tab2:
         pagination_ui(
             current_page=st.session_state.notif_page,
             total_pages=notifications_data.get("pages", 1),
-            on_change=on_page_change
+            on_change=on_page_change,
         )

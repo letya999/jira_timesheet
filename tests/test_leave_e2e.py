@@ -13,6 +13,7 @@ def test_leaves_page_loads(page: Page):
     body_text = page.locator("body").inner_text()
     assert len(body_text) > 0
 
+
 def test_hr_module_loads(page: Page):
     # Navigate directly to HR Module page
     page.goto("http://localhost:8501/HR_Module")

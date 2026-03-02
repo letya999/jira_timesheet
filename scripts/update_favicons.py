@@ -16,9 +16,7 @@ for filename in os.listdir(views_dir):
             if 'page_icon="' not in content and "page_icon='" not in content:
                 # Add page_icon before layout or at the end
                 new_content = re.sub(
-                    r"(st\.set_page_config\([^)]*)(\))",
-                    r'\1, page_icon="' + logo_name + r'"\2',
-                    content
+                    r"(st\.set_page_config\([^)]*)(\))", r'\1, page_icon="' + logo_name + r'"\2', content
                 )
                 if new_content != content:
                     with open(filepath, "w", encoding="utf-8") as f:
@@ -27,11 +25,7 @@ for filename in os.listdir(views_dir):
             else:
                 # Already has page_icon, replace it with logo.png if it's an emoji or something else?
                 # The user asked to use the NEW logo.
-                new_content = re.sub(
-                     r"page_icon\s*=\s*['\"][^'\"]*['\"]",
-                     f'page_icon="{logo_name}"',
-                     content
-                )
+                new_content = re.sub(r"page_icon\s*=\s*['\"][^'\"]*['\"]", f'page_icon="{logo_name}"', content)
                 if new_content != content:
                     with open(filepath, "w", encoding="utf-8") as f:
                         f.write(new_content)

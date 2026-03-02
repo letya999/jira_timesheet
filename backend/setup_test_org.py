@@ -35,13 +35,13 @@ async def setup():
             email="test_pm1@example.com",
             hashed_password=get_password_hash("testpass"),
             full_name="Test PM One",
-            role="PM"
+            role="PM",
         )
         pm2_login = User(
             email="test_pm2@example.com",
             hashed_password=get_password_hash("testpass"),
             full_name="Test PM Two",
-            role="PM"
+            role="PM",
         )
         session.add_all([pm1_login, pm2_login])
         await session.flush()
@@ -57,12 +57,7 @@ async def setup():
         # 5. Employees
         # Helper to create Employee + JiraUser
         async def create_employee(email, name, team_id, jira_id):
-            juser = JiraUser(
-                jira_account_id=jira_id,
-                display_name=name,
-                team_id=team_id,
-                is_active=True
-            )
+            juser = JiraUser(jira_account_id=jira_id, display_name=name, team_id=team_id, is_active=True)
             session.add(juser)
             await session.flush()
 
@@ -71,7 +66,7 @@ async def setup():
                 hashed_password=get_password_hash("testpass"),
                 full_name=name,
                 role="Employee",
-                jira_user_id=juser.id
+                jira_user_id=juser.id,
             )
             session.add(login)
             return login, juser
@@ -90,6 +85,7 @@ async def setup():
         # 6. Some sample Worklogs for them
         # Get or create category
         from sqlalchemy import select
+
         res = await session.execute(select(WorklogCategory).where(WorklogCategory.name == "Development"))
         cat = res.scalar_one_or_none()
         if not cat:
@@ -98,17 +94,16 @@ async def setup():
             await session.flush()
 
         w1 = Worklog(
-            date=date.today(), hours=4.5, jira_user_id=ju1_1.id,
-            category_id=cat.id, description="Test worklog"
+            date=date.today(), hours=4.5, jira_user_id=ju1_1.id, category_id=cat.id, description="Test worklog"
         )
         w2 = Worklog(
-            date=date.today(), hours=8.0, jira_user_id=ju2_1.id,
-            category_id=cat.id, description="Test worklog 2"
+            date=date.today(), hours=8.0, jira_user_id=ju2_1.id, category_id=cat.id, description="Test worklog 2"
         )
         session.add_all([w1, w2])
 
         await session.commit()
         print("--- Setup Complete! ---")
+
 
 if __name__ == "__main__":
     asyncio.run(setup())

@@ -13,11 +13,13 @@ class LeaveType(enum.StrEnum):
     DAY_OFF = "DAY_OFF"
     OTHER = "OTHER"
 
+
 class LeaveStatus(enum.StrEnum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
+
 
 class LeaveRequest(Base):
     __tablename__ = "leave_requests"
@@ -46,6 +48,7 @@ class LeaveRequest(Base):
     user = relationship("User", foreign_keys=[user_id], backref="leave_requests")
     approver = relationship("User", foreign_keys=[approver_id])
     approval_steps = relationship("LeaveApprovalStep", back_populates="leave_request", cascade="all, delete-orphan")
+
 
 class LeaveApprovalStep(Base):
     __tablename__ = "leave_approval_steps"

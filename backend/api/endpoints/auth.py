@@ -9,11 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
+
 @router.post("/login")
-async def login(
-    db: AsyncSession = Depends(get_db),
-    form_data: OAuth2PasswordRequestForm = Depends()
-):
+async def login(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
     user = await auth_service.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(

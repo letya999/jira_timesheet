@@ -13,6 +13,7 @@ class NotificationBase(BaseModel):
     related_entity_id: int | None = None
     related_entity_type: str | None = None
 
+
 class NotificationCreate(BaseModel):
     user_id: int
     sender_id: int | None = None
@@ -22,8 +23,10 @@ class NotificationCreate(BaseModel):
     related_entity_id: int | None = None
     related_entity_type: str | None = None
 
+
 class NotificationUpdate(BaseModel):
     is_read: bool | None = None
+
 
 class NotificationResponse(NotificationBase):
     id: int
@@ -32,6 +35,7 @@ class NotificationResponse(NotificationBase):
     sender_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class NotificationStats(BaseModel):
     unread_count: int

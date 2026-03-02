@@ -9,12 +9,14 @@ def test_print_path():
     for p in sys.path:
         print(f"  {p}")
     try:
-        import core # noqa: F401
+        import core  # noqa: F401
+
         print("Import core: SUCCESS")
     except ImportError as e:
         print(f"Import core: FAILED ({e})")
     try:
-        import main # noqa: F401
+        import main  # noqa: F401
+
         print("Import main: SUCCESS")
     except ImportError as e:
         print(f"Import main: FAILED ({e})")

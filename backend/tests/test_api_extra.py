@@ -15,8 +15,12 @@ async def test_approvals_extreme_branches(client: AsyncClient, auth_headers: dic
     db.add(unit)
     await db.commit()
 
-    resp = await client.get(f"/api/v1/approvals/team-periods?start_date={today}&end_date={today}&org_unit_id={unit.id}", headers=auth_headers)
+    resp = await client.get(
+        f"/api/v1/approvals/team-periods?start_date={today}&end_date={today}&org_unit_id={unit.id}",
+        headers=auth_headers,
+    )
     assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_leave_extreme_branches(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -29,7 +33,9 @@ async def test_leave_extreme_branches(client: AsyncClient, auth_headers: dict, d
     db.add(leave)
     await db.commit()
 
-    resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "REJECTED", "comment": "No"}, headers=auth_headers)
+    resp = await client.patch(
+        f"/api/v1/leaves/{leave.id}", json={"status": "REJECTED", "comment": "No"}, headers=auth_headers
+    )
     assert resp.status_code == 200
 
     # 3. Already acted upon check

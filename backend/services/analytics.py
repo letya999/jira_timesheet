@@ -13,24 +13,25 @@ def generate_pivot_table_data(data: list[dict]) -> pd.DataFrame:
         return df
 
     # Fill NA for categories
-    if 'category' not in df.columns:
-        df['category'] = 'Jira Work'
+    if "category" not in df.columns:
+        df["category"] = "Jira Work"
     else:
-        df['category'] = df['category'].fillna('Jira Work')
+        df["category"] = df["category"].fillna("Jira Work")
 
     # Grouping for CEO: Department -> Division -> OrgUnit -> Employee -> Project/Release
     return df
+
 
 def generate_excel_report(df: pd.DataFrame) -> BytesIO:
     """
     Generates Excel bytes from DataFrame using openpyxl.
     """
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Timesheet Report')
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Timesheet Report")
 
         # Example of formatting
-        worksheet = writer.sheets['Timesheet Report']
+        worksheet = writer.sheets["Timesheet Report"]
         for col in worksheet.columns:
             max_length = 0
             column = col[0].column_letter
@@ -40,7 +41,7 @@ def generate_excel_report(df: pd.DataFrame) -> BytesIO:
                         max_length = len(cell.value)
                 except Exception:
                     pass
-            adjusted_width = (max_length + 2)
+            adjusted_width = max_length + 2
             worksheet.column_dimensions[column].width = adjusted_width
 
     output.seek(0)

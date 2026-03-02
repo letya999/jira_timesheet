@@ -61,5 +61,6 @@ async def seed_hierarchy():
         await db.commit()
         print("Hierarchy created and users assigned.")
 
+
 if __name__ == "__main__":
     asyncio.run(seed_hierarchy())

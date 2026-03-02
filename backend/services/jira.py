@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
+
 async def fetch_issue_details(issue_ids: list[str]):
     """Fetch issue keys and project keys for a list of issue IDs."""
     if not issue_ids:
@@ -26,14 +27,14 @@ async def fetch_issue_details(issue_ids: list[str]):
     try:
         async with httpx.AsyncClient(auth=auth) as client:
             for i in range(0, len(issue_ids), batch_size):
-                batch = issue_ids[i:i + batch_size]
+                batch = issue_ids[i : i + batch_size]
                 ids_str = ",".join(batch)
                 jql = f"id in ({ids_str})"
 
                 payload = {
                     "jql": jql,
                     "fields": ["key", "project", "fixVersions", "status", "issuetype", "summary", "parent"],
-                    "maxResults": batch_size
+                    "maxResults": batch_size,
                 }
 
                 response = await client.post(url, json=payload)
@@ -54,19 +55,22 @@ async def fetch_issue_details(issue_ids: list[str]):
                         "status": fields.get("status", {}).get("name"),
                         "issue_type": fields.get("issuetype", {}).get("name"),
                         "parent_id": fields.get("parent", {}).get("id"),
-                        "releases": [{"id": v["id"], "name": v["name"]} for v in versions]
+                        "releases": [{"id": v["id"], "name": v["name"]} for v in versions],
                     }
         return mapping
     except Exception as e:
         logger.error(f"Failed to fetch issue details: {e}")
         return mapping
 
+
 async def sync_user_worklogs(jira_user, db: AsyncSession, days: int = 30):
     """Sync worklogs for a specific Jira user over the last N days."""
     import time
+
     since_ms = int((time.time() - (days * 24 * 3600)) * 1000)
     logger.info(f"Triggering sync for user {jira_user.display_name} since {days} days ago")
     return await sync_jira_worklogs(db, since=since_ms)
+
 
 async def get_default_category_id(db: AsyncSession) -> int:
     """Gets or creates the default 'Development' category."""
@@ -77,6 +81,7 @@ async def get_default_category_id(db: AsyncSession) -> int:
         db.add(cat)
         await db.flush()
     return cat.id
+
 
 def _extract_jira_comment(raw_comment: Any) -> str:
     """Extract text from Jira ADF or string comment."""
@@ -91,6 +96,7 @@ def _extract_jira_comment(raw_comment: Any) -> str:
             return ""
     return str(raw_comment)
 
+
 async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
     """Ensures JiraUser, Project, and Issue exist in DB."""
     author_id = item.get("author", {}).get("accountId")
@@ -101,8 +107,7 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
     db_jira_user = res_u.scalar_one_or_none()
     if not db_jira_user:
         db_jira_user = JiraUser(
-            jira_account_id=author_id,
-            display_name=item.get("author", {}).get("displayName") or "Unknown"
+            jira_account_id=author_id, display_name=item.get("author", {}).get("displayName") or "Unknown"
         )
         db.add(db_jira_user)
         await db.flush()
@@ -112,9 +117,7 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
     db_project = res_p.scalar_one_or_none()
     if not db_project:
         db_project = Project(
-            jira_id=str(iss_data["project_id"]),
-            key=iss_data["project_key"],
-            name=iss_data["project_name"]
+            jira_id=str(iss_data["project_id"]), key=iss_data["project_key"], name=iss_data["project_name"]
         )
         db.add(db_project)
         await db.flush()
@@ -129,7 +132,7 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
             summary=iss_data["summary"] or "No summary",
             status=iss_data["status"],
             issue_type=iss_data["issue_type"],
-            project_id=db_project.id
+            project_id=db_project.id,
         )
         db.add(db_issue)
         await db.flush()
@@ -138,6 +141,7 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
         db_issue.status = iss_data["status"] or db_issue.status
 
     return db_jira_user, db_project, db_issue
+
 
 async def _update_issue_releases(db: AsyncSession, db_issue: Issue, db_project: Project, iss_data: dict):
     """Updates release mappings for an issue."""
@@ -155,6 +159,7 @@ async def _update_issue_releases(db: AsyncSession, db_issue: Issue, db_project: 
             rel_ids.append(db_rel.id)
         if rel_ids:
             await db.execute(insert(issue_releases), [{"issue_id": db_issue.id, "release_id": rid} for rid in rel_ids])
+
 
 async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
     """Sync worklogs from Jira Cloud API to the new Worklog model."""
@@ -201,11 +206,19 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
                     db_w.hours, db_w.date, db_w.description = hours, l_date, desc[:1024] if desc else None
                     db_w.source_created_at, db_w.category_id = s_created, default_cat_id
                 else:
-                    db.add(Worklog(
-                        jira_id=jw_id, type="JIRA", category_id=default_cat_id, date=l_date, hours=hours,
-                        description=desc[:1024] if desc else None, jira_user_id=db_j_user.id,
-                        issue_id=db_iss.id, source_created_at=s_created
-                    ))
+                    db.add(
+                        Worklog(
+                            jira_id=jw_id,
+                            type="JIRA",
+                            category_id=default_cat_id,
+                            date=l_date,
+                            hours=hours,
+                            description=desc[:1024] if desc else None,
+                            jira_user_id=db_j_user.id,
+                            issue_id=db_iss.id,
+                            source_created_at=s_created,
+                        )
+                    )
                 synced_count += 1
 
             await db.commit()
@@ -213,6 +226,7 @@ async def sync_jira_worklogs(db: AsyncSession, since: int = 0):
     except Exception as e:
         logger.error(f"Failed to sync worklogs: {e}")
         return {"status": "error", "detail": str(e)}
+
 
 async def fetch_jira_projects():
     """Fetch all projects from Jira Cloud API."""
@@ -227,6 +241,7 @@ async def fetch_jira_projects():
         logger.error(f"Failed to fetch Jira projects: {e}")
         return []
 
+
 async def fetch_jira_project_versions(project_key: str):
     """Fetch versions (releases) for a project."""
     url = f"{settings.JIRA_URL}/rest/api/3/project/{project_key}/versions"
@@ -239,6 +254,7 @@ async def fetch_jira_project_versions(project_key: str):
     except Exception as e:
         logger.error(f"Failed to fetch versions for {project_key}: {e}")
         return []
+
 
 async def fetch_jira_project_sprints(project_key: str):
     """Fetch sprints for a project."""
@@ -258,6 +274,7 @@ async def fetch_jira_project_sprints(project_key: str):
         logger.error(f"Failed to fetch sprints for {project_key}: {e}")
     unique_sprints = {s["id"]: s for s in sprints}
     return list(unique_sprints.values())
+
 
 async def sync_jira_projects_to_db(db: AsyncSession):
     """Fetch projects, releases, and sprints from Jira and sync to local DB."""
@@ -287,8 +304,15 @@ async def sync_jira_projects_to_db(db: AsyncSession):
             if db_rel:
                 db_rel.name, db_rel.released, db_rel.release_date = jv.get("name"), jv.get("released", False), r_date
             else:
-                db.add(Release(jira_id=jv_id, name=jv.get("name"), project_id=db_p.id,
-                               released=jv.get("released", False), release_date=r_date))
+                db.add(
+                    Release(
+                        jira_id=jv_id,
+                        name=jv.get("name"),
+                        project_id=db_p.id,
+                        released=jv.get("released", False),
+                        release_date=r_date,
+                    )
+                )
 
         for js in await fetch_jira_project_sprints(key):
             js_id = str(js.get("id"))
@@ -297,21 +321,35 @@ async def sync_jira_projects_to_db(db: AsyncSession):
             st_d = parser.isoparse(js.get("startDate")).date() if js.get("startDate") else None
             en_d = parser.isoparse(js.get("endDate")).date() if js.get("endDate") else None
             if db_s:
-                db_s.name, db_s.state, db_s.start_date, db_s.end_date = js.get("name"), js.get("state"), st_d, en_d
+                db_s.name = js.get("name")
+                db_s.state = js.get("state")
+                db_s.start_date = st_d
+                db_s.end_date = en_d
             else:
-                db.add(Sprint(jira_id=js_id, name=js.get("name"), state=js.get("state"), start_date=st_d, end_date=en_d))
+                db.add(
+                    Sprint(
+                        jira_id=js_id,
+                        name=js.get("name"),
+                        state=js.get("state"),
+                        start_date=st_d,
+                        end_date=en_d,
+                    )
+                )
         synced_count += 1
     await db.commit()
     return synced_count
+
 
 async def sync_jira_worklogs_for_projects(db: AsyncSession, project_keys: list[str] = None, since: int = 0):
     """Sync worklogs for projects (placeholder for targeted sync)."""
     return await sync_jira_worklogs(db, since)
 
+
 async def fetch_jira_users():
     """Fetch all users from Jira Cloud API with pagination."""
     users, start_at, max_results = [], 0, 50
     auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
+    logger.info(f"Using JIRA_URL: {settings.JIRA_URL}")
     try:
         async with httpx.AsyncClient(auth=auth) as client:
             while start_at < 1000:
@@ -330,6 +368,7 @@ async def fetch_jira_users():
         logger.error(f"Failed to fetch Jira users: {e}")
         return []
 
+
 async def sync_jira_users_to_db(db: AsyncSession):
     """Sync users from Jira to local DB and link existing system users."""
     jira_users = await fetch_jira_users()
@@ -342,9 +381,18 @@ async def sync_jira_users_to_db(db: AsyncSession):
         res = await db.execute(select(JiraUser).where(JiraUser.jira_account_id == acc_id))
         db_ju = res.scalar_one_or_none()
         if db_ju:
-            db_ju.display_name, db_ju.email, db_ju.avatar_url, db_ju.is_active = d_name, email, avatar, active
+            db_ju.display_name = d_name
+            db_ju.email = email
+            db_ju.avatar_url = avatar
+            db_ju.is_active = active
         else:
-            db_ju = JiraUser(jira_account_id=acc_id, display_name=d_name, email=email, avatar_url=avatar, is_active=active)
+            db_ju = JiraUser(
+                jira_account_id=acc_id,
+                display_name=d_name,
+                email=email,
+                avatar_url=avatar,
+                is_active=active,
+            )
             db.add(db_ju)
             await db.flush()
         if email:

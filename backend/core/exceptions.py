@@ -12,6 +12,7 @@ class ErrorCode:
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
     BAD_REQUEST = "BAD_REQUEST"
 
+
 class APIException(HTTPException):
     def __init__(
         self,
@@ -25,6 +26,7 @@ class APIException(HTTPException):
         self.message = message
         self.details = details or {}
 
+
 class NotFoundException(APIException):
     def __init__(self, message: str = "Resource not found", details: dict[str, Any] | None = None):
         super().__init__(
@@ -33,6 +35,7 @@ class NotFoundException(APIException):
             message=message,
             details=details,
         )
+
 
 class UnauthorizedException(APIException):
     def __init__(self, message: str = "Unauthorized", details: dict[str, Any] | None = None):
@@ -43,6 +46,7 @@ class UnauthorizedException(APIException):
             details=details,
         )
 
+
 class ForbiddenException(APIException):
     def __init__(self, message: str = "Forbidden", details: dict[str, Any] | None = None):
         super().__init__(
@@ -52,6 +56,7 @@ class ForbiddenException(APIException):
             details=details,
         )
 
+
 class BadRequestException(APIException):
     def __init__(self, message: str = "Bad Request", details: dict[str, Any] | None = None):
         super().__init__(
@@ -60,6 +65,7 @@ class BadRequestException(APIException):
             message=message,
             details=details,
         )
+
 
 class RateLimitException(APIException):
     def __init__(self, message: str = "Rate limit exceeded", details: dict[str, Any] | None = None):

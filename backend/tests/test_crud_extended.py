@@ -30,7 +30,7 @@ async def test_crud_worklog_filters(db: AsyncSession):
     db.add(iss)
     await db.flush()
 
-    w = Worklog(jira_user_id=ju.id, issue_id=iss.id, date=date(2026,1,1), hours=1.0, type="JIRA")
+    w = Worklog(jira_user_id=ju.id, issue_id=iss.id, date=date(2026, 1, 1), hours=1.0, type="JIRA")
     db.add(w)
     await db.commit()
 
@@ -43,7 +43,7 @@ async def test_crud_worklog_filters(db: AsyncSession):
     assert total >= 1
 
     # 3. Test date filter
-    items, total = await crud_worklog.get_multi_with_filters(db, start_date=date(2026,1,1), end_date=date(2026,1,1))
+    items, total = await crud_worklog.get_multi_with_filters(db, start_date=date(2026, 1, 1), end_date=date(2026, 1, 1))
     assert total >= 1
 
 

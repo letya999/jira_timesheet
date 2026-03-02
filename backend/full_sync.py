@@ -18,5 +18,6 @@ async def main():
         await sync_jira_worklogs(db)
         print("Готово!")
 
+
 if __name__ == "__main__":
     asyncio.run(main())

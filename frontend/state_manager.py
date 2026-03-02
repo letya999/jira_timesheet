@@ -65,4 +65,5 @@ class StateManager:
     def report_raw_data(self, value: pd.DataFrame | None):
         st.session_state["report_raw_data"] = value
 
+
 state = StateManager()

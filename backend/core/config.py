@@ -1,4 +1,4 @@
-
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,11 +8,25 @@ class Settings(BaseSettings):
     REDIS_URL: str
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     JIRA_URL: str
     JIRA_EMAIL: str
     JIRA_API_TOKEN: str
+
+    @field_validator("JIRA_URL")
+    @classmethod
+    def validate_jira_url(cls, v: str) -> str:
+        # Strip spaces and trailing slash
+        v = v.strip()
+        if v.endswith("/"):
+            v = v[:-1]
+        return v
+
+    @field_validator("JIRA_EMAIL", "JIRA_API_TOKEN")
+    @classmethod
+    def strip_whitespace(cls, v: str) -> str:
+        return v.strip() if v else v
 
     # Business Logic Settings
     DEFAULT_HOURS_PER_DAY: float = 8.0
@@ -31,6 +45,12 @@ class Settings(BaseSettings):
     SLACK_SIGNING_SECRET: str | None = None
     SLACK_NOTIFICATIONS_CHANNEL: str | None = None
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='ignore')
+    model_config = SettingsConfigDict(
+        env_file=(".env", ".env.dev", "../.env", "../.env.dev"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
 
 settings = Settings()
+print(f"DEBUG: Loaded JIRA_URL='{settings.JIRA_URL}' REDIS_URL='{settings.REDIS_URL}'")

@@ -18,6 +18,7 @@ async def fetch_projects():
         response = await client.get(url)
         return response.json()
 
+
 async def sync_projects():
     print("Fetching projects from Jira...")
     projects_data = await fetch_projects()
@@ -25,6 +26,7 @@ async def sync_projects():
     async with async_session() as db:
         for p_data in projects_data:
             from sqlalchemy import select
+
             res = await db.execute(select(Project).where(Project.jira_id == p_data["id"]))
             project = res.scalar_one_or_none()
 
@@ -36,12 +38,13 @@ async def sync_projects():
                     jira_id=p_data["id"],
                     key=p_data["key"],
                     name=p_data["name"],
-                    is_active=True # Activate by default for testing
+                    is_active=True,  # Activate by default for testing
                 )
                 db.add(project)
 
         await db.commit()
         print(f"Synced {len(projects_data)} projects.")
+
 
 if __name__ == "__main__":
     asyncio.run(sync_projects())

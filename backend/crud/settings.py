@@ -18,4 +18,5 @@ class CRUDSystemSettings:
         await db.flush()
         return db_obj
 
+
 system_settings = CRUDSystemSettings()

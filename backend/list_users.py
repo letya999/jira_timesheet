@@ -12,4 +12,5 @@ async def run():
         for u in users:
             print(f"User: {u.email}, Hash: {u.hashed_password}")
 
+
 asyncio.run(run())

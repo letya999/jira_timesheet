@@ -1,4 +1,3 @@
-
 import pytest
 from httpx import AsyncClient
 from models import Notification, User
@@ -21,11 +20,13 @@ async def test_notifications_mark_all(client: AsyncClient, auth_headers: dict, d
     resp = await client.get("/api/v1/notifications/stats", headers=auth_headers)
     assert resp.json()["unread_count"] == 0
 
+
 @pytest.mark.asyncio
 async def test_slack_missing_payload(client: AsyncClient):
     # 1. No payload
     resp = await client.post("/api/v1/slack/interactive", data={})
     assert resp.json()["ok"] is False
+
 
 @pytest.mark.asyncio
 async def test_crud_project_extra(db: AsyncSession):

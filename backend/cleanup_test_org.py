@@ -17,9 +17,12 @@ async def cleanup():
 
         # 1. Identify users to delete
         test_emails = [
-            "test_pm1@example.com", "test_pm2@example.com",
-            "test_emp1_1@example.com", "test_emp1_2@example.com",
-            "test_emp2_1@example.com", "test_emp2_2@example.com"
+            "test_pm1@example.com",
+            "test_pm2@example.com",
+            "test_emp1_1@example.com",
+            "test_emp1_2@example.com",
+            "test_emp2_1@example.com",
+            "test_emp2_2@example.com",
         ]
 
         res = await session.execute(select(User).where(User.email.in_(test_emails)))
@@ -77,6 +80,7 @@ async def cleanup():
 
         await session.commit()
         print("--- Cleanup Complete! ---")
+
 
 if __name__ == "__main__":
     asyncio.run(cleanup())

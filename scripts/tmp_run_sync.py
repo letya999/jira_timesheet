@@ -1,4 +1,3 @@
-
 import asyncio
 
 from backend.core.database import async_session
@@ -18,6 +17,7 @@ async def run_sync():
         # Actually Jira API 'since' is a unix timestamp. 0 means all available?
         res = await sync_jira_worklogs(session, since=0)
         print(f"Sync result: {res}")
+
 
 if __name__ == "__main__":
     asyncio.run(run_sync())

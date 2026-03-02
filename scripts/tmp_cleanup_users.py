@@ -1,4 +1,3 @@
-
 import asyncio
 
 from core.database import async_session
@@ -13,6 +12,7 @@ async def cleanup():
         result = await session.execute(stmt)
         await session.commit()
         print(f"Deleted {result.rowcount} accidental users.")
+
 
 if __name__ == "__main__":
     asyncio.run(cleanup())

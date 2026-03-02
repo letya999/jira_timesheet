@@ -13,10 +13,12 @@ def test_password_hashing():
     assert verify_password(pw, h) is True
     assert verify_password("wrong", h) is False
 
+
 def test_create_access_token():
     data = {"sub": "test@ex.com"}
     token = create_access_token(data)
     assert token is not None
+
 
 @pytest.mark.asyncio
 async def test_rate_limit_middleware():
@@ -30,10 +32,12 @@ async def test_rate_limit_middleware():
     from collections import defaultdict
 
     from httpx import ASGITransport, AsyncClient
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        with patch("core.middleware.RATE_LIMIT_MAX_REQUESTS", 2), \
-             patch("core.middleware.request_counts", defaultdict(lambda: {"count": 0, "reset_time": time.time() + 60})):
 
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        with (
+            patch("core.middleware.RATE_LIMIT_MAX_REQUESTS", 2),
+            patch("core.middleware.request_counts", defaultdict(lambda: {"count": 0, "reset_time": time.time() + 60})),
+        ):
             resp = await ac.get("/")
             assert resp.status_code == 200
 

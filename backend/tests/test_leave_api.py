@@ -18,7 +18,7 @@ async def setup_leave_data(db: AsyncSession, admin_user: User):
         hashed_password=get_password_hash("testpass"),
         full_name="Employee Leave",
         role="Employee",
-        is_active=True
+        is_active=True,
     )
     db.add(employee)
     await db.flush()
@@ -29,7 +29,7 @@ async def setup_leave_data(db: AsyncSession, admin_user: User):
         hashed_password=get_password_hash("testpass"),
         full_name="PM Leave",
         role="PM",
-        is_active=True
+        is_active=True,
     )
     db.add(pm)
     await db.flush()
@@ -62,17 +62,14 @@ async def setup_leave_data(db: AsyncSession, admin_user: User):
 @pytest.mark.asyncio
 async def test_create_leave_request(client: AsyncClient, setup_leave_data):
     # Login as employee
-    login_res = await client.post("/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"}
+    )
     assert login_res.status_code == 200, f"Login failed: {login_res.json()}"
     emp_token = login_res.json()["access_token"]
     emp_headers = {"Authorization": f"Bearer {emp_token}"}
 
-    payload = {
-        "type": "VACATION",
-        "start_date": "2026-07-01",
-        "end_date": "2026-07-14",
-        "reason": "Summer Vacation"
-    }
+    payload = {"type": "VACATION", "start_date": "2026-07-01", "end_date": "2026-07-14", "reason": "Summer Vacation"}
 
     response = await client.post("/api/v1/leaves/", json=payload, headers=emp_headers)
     assert response.status_code == 200
@@ -82,39 +79,27 @@ async def test_create_leave_request(client: AsyncClient, setup_leave_data):
     assert data["status"] == "PENDING"
     assert "id" in data
 
+
 @pytest.mark.asyncio
 async def test_create_leave_request_fail(client: AsyncClient, setup_leave_data):
     # Login as employee
-    login_res = await client.post("/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"}
+    )
     emp_token = login_res.json()["access_token"]
     emp_headers = {"Authorization": f"Bearer {emp_token}"}
 
     # End date < Start date
-    payload = {
-        "type": "VACATION",
-        "start_date": "2026-07-14",
-        "end_date": "2026-07-01",
-        "reason": "Bad dates"
-    }
+    payload = {"type": "VACATION", "start_date": "2026-07-14", "end_date": "2026-07-01", "reason": "Bad dates"}
     response = await client.post("/api/v1/leaves/", json=payload, headers=emp_headers)
     assert response.status_code == 400
     assert "End date" in response.json()["detail"]
 
     # Overlapping
-    payload1 = {
-        "type": "VACATION",
-        "start_date": "2026-07-01",
-        "end_date": "2026-07-10",
-        "reason": "First"
-    }
+    payload1 = {"type": "VACATION", "start_date": "2026-07-01", "end_date": "2026-07-10", "reason": "First"}
     await client.post("/api/v1/leaves/", json=payload1, headers=emp_headers)
 
-    payload2 = {
-        "type": "SICK_LEAVE",
-        "start_date": "2026-07-05",
-        "end_date": "2026-07-15",
-        "reason": "Overlapping"
-    }
+    payload2 = {"type": "SICK_LEAVE", "start_date": "2026-07-05", "end_date": "2026-07-15", "reason": "Overlapping"}
     response = await client.post("/api/v1/leaves/", json=payload2, headers=emp_headers)
     assert response.status_code == 400
     assert "overlapping" in response.json()["detail"]
@@ -123,7 +108,9 @@ async def test_create_leave_request_fail(client: AsyncClient, setup_leave_data):
 @pytest.mark.asyncio
 async def test_get_my_leave_requests(client: AsyncClient, setup_leave_data, db: AsyncSession):
     # Login as employee
-    login_res = await client.post("/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "emp_leave@example.com", "password": "testpass"}
+    )
     emp_token = login_res.json()["access_token"]
     emp_headers = {"Authorization": f"Bearer {emp_token}"}
 
@@ -133,7 +120,7 @@ async def test_get_my_leave_requests(client: AsyncClient, setup_leave_data, db: 
         type=LeaveType.SICK_LEAVE,
         status=LeaveStatus.PENDING,
         start_date=date(2026, 8, 1),
-        end_date=date(2026, 8, 5)
+        end_date=date(2026, 8, 5),
     )
     db.add(leave)
     await db.commit()
@@ -154,13 +141,15 @@ async def test_get_team_leave_requests(client: AsyncClient, setup_leave_data, db
         status=LeaveStatus.PENDING,
         start_date=date(2026, 9, 1),
         end_date=date(2026, 9, 2),
-        approver_id=setup_leave_data["pm"].id
+        approver_id=setup_leave_data["pm"].id,
     )
     db.add(leave)
     await db.commit()
 
     # Login as PM
-    login_res = await client.post("/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"}
+    )
     pm_token = login_res.json()["access_token"]
     pm_headers = {"Authorization": f"Bearer {pm_token}"}
 
@@ -178,21 +167,20 @@ async def test_update_leave_status(client: AsyncClient, setup_leave_data, db: As
         type=LeaveType.VACATION,
         status=LeaveStatus.PENDING,
         start_date=date(2026, 10, 1),
-        end_date=date(2026, 10, 5)
+        end_date=date(2026, 10, 5),
     )
     db.add(leave)
     await db.commit()
     await db.refresh(leave)
 
     # Login as PM
-    login_res = await client.post("/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"}
+    )
     pm_token = login_res.json()["access_token"]
     pm_headers = {"Authorization": f"Bearer {pm_token}"}
 
-    payload = {
-        "status": "APPROVED",
-        "comment": "Have a good trip"
-    }
+    payload = {"status": "APPROVED", "comment": "Have a good trip"}
 
     response = await client.patch(f"/api/v1/leaves/{leave.id}", json=payload, headers=pm_headers)
     assert response.status_code == 200
@@ -209,7 +197,7 @@ async def test_get_all_leaves_hr(client: AsyncClient, setup_leave_data, db: Asyn
         type=LeaveType.VACATION,
         status=LeaveStatus.APPROVED,
         start_date=date(2026, 11, 1),
-        end_date=date(2026, 11, 5)
+        end_date=date(2026, 11, 5),
     )
     db.add(leave)
     await db.commit()
@@ -221,10 +209,17 @@ async def test_get_all_leaves_hr(client: AsyncClient, setup_leave_data, db: Asyn
     # Check that at least one is returned
     assert len(data) >= 1
 
+
 @pytest.mark.asyncio
 async def test_get_team_leaves_no_units(client: AsyncClient, db: AsyncSession):
     # User with no org units
-    user = User(email="nounits@ex.com", hashed_password=get_password_hash("pw"), full_name="No Units", role="Employee", is_active=True)
+    user = User(
+        email="nounits@ex.com",
+        hashed_password=get_password_hash("pw"),
+        full_name="No Units",
+        role="Employee",
+        is_active=True,
+    )
     db.add(user)
     await db.commit()
 
@@ -236,6 +231,7 @@ async def test_get_team_leaves_no_units(client: AsyncClient, db: AsyncSession):
     assert resp.status_code == 200
     assert resp.json() == []
 
+
 @pytest.mark.asyncio
 async def test_update_leave_unauthorized(client: AsyncClient, setup_leave_data, db: AsyncSession):
     leave = LeaveRequest(
@@ -243,13 +239,19 @@ async def test_update_leave_unauthorized(client: AsyncClient, setup_leave_data, 
         type=LeaveType.VACATION,
         status=LeaveStatus.PENDING,
         start_date=date(2026, 12, 1),
-        end_date=date(2026, 12, 5)
+        end_date=date(2026, 12, 5),
     )
     db.add(leave)
     await db.commit()
 
     # Another employee tries to approve
-    other = User(email="other@ex.com", hashed_password=get_password_hash("pw"), full_name="Other", role="Employee", is_active=True)
+    other = User(
+        email="other@ex.com",
+        hashed_password=get_password_hash("pw"),
+        full_name="Other",
+        role="Employee",
+        is_active=True,
+    )
     db.add(other)
     await db.commit()
 
@@ -259,6 +261,7 @@ async def test_update_leave_unauthorized(client: AsyncClient, setup_leave_data, 
 
     resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED"}, headers=headers)
     assert resp.status_code == 403
+
 
 @pytest.mark.asyncio
 async def test_update_leave_not_found_or_not_pending(client: AsyncClient, auth_headers: dict, db: AsyncSession):
@@ -272,6 +275,7 @@ async def test_update_leave_not_found_or_not_pending(client: AsyncClient, auth_h
     await db.commit()
     resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED"}, headers=auth_headers)
     assert resp.status_code == 400
+
 
 @pytest.mark.asyncio
 async def test_leave_approval_routing(client: AsyncClient, setup_leave_data, db: AsyncSession):
@@ -296,8 +300,12 @@ async def test_leave_approval_routing(client: AsyncClient, setup_leave_data, db:
 
     await db.execute(delete(ApprovalRoute).where(ApprovalRoute.org_unit_id == setup_leave_data["team"].id))
 
-    route1 = ApprovalRoute(org_unit_id=setup_leave_data["team"].id, target_type='leave', step_order=1, role_id=pm_role.id)
-    route2 = ApprovalRoute(org_unit_id=setup_leave_data["team"].id, target_type='leave', step_order=2, role_id=admin_role.id)
+    route1 = ApprovalRoute(
+        org_unit_id=setup_leave_data["team"].id, target_type="leave", step_order=1, role_id=pm_role.id
+    )
+    route2 = ApprovalRoute(
+        org_unit_id=setup_leave_data["team"].id, target_type="leave", step_order=2, role_id=admin_role.id
+    )
     db.add_all([route1, route2])
     await db.commit()
 
@@ -307,28 +315,37 @@ async def test_leave_approval_routing(client: AsyncClient, setup_leave_data, db:
         status=LeaveStatus.PENDING,
         start_date=date(2026, 11, 1),
         end_date=date(2026, 11, 5),
-        current_step_order=1
+        current_step_order=1,
     )
     db.add(leave)
     await db.commit()
     await db.refresh(leave)
 
-    login_res = await client.post("/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"})
+    login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "pm_leave@example.com", "password": "testpass"}
+    )
     pm_token = login_res.json()["access_token"]
     pm_headers = {"Authorization": f"Bearer {pm_token}"}
 
-    resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED", "comment": "PM ok"}, headers=pm_headers)
+    resp = await client.patch(
+        f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED", "comment": "PM ok"}, headers=pm_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "PENDING"
     assert resp.json()["current_step_order"] == 2
 
-    admin_login_res = await client.post("/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"})
+    admin_login_res = await client.post(
+        "/api/v1/auth/login", data={"username": "testadmin@example.com", "password": "testpass"}
+    )
     admin_token = admin_login_res.json()["access_token"]
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
-    resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED", "comment": "Admin ok"}, headers=admin_headers)
+    resp = await client.patch(
+        f"/api/v1/leaves/{leave.id}", json={"status": "APPROVED", "comment": "Admin ok"}, headers=admin_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "APPROVED"
+
 
 @pytest.mark.asyncio
 async def test_get_all_leaves_comprehensive(client: AsyncClient, setup_leave_data, db: AsyncSession, auth_headers):
@@ -346,13 +363,16 @@ async def test_get_all_leaves_comprehensive(client: AsyncClient, setup_leave_dat
     assert resp.status_code == 200
 
     # 4. HR role access
-    hr_user = User(email="hr@ex.com", full_name="HR User", hashed_password=get_password_hash("testpass"), role="HR", is_active=True)
+    hr_user = User(
+        email="hr@ex.com", full_name="HR User", hashed_password=get_password_hash("testpass"), role="HR", is_active=True
+    )
     db.add(hr_user)
     await db.commit()
     login_res = await client.post("/api/v1/auth/login", data={"username": "hr@ex.com", "password": "testpass"})
     hr_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
     resp = await client.get("/api/v1/leaves/all", headers=hr_headers)
     assert resp.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_update_leave_reject(client: AsyncClient, setup_leave_data, db: AsyncSession, auth_headers):
@@ -361,19 +381,28 @@ async def test_update_leave_reject(client: AsyncClient, setup_leave_data, db: As
         type=LeaveType.VACATION,
         status=LeaveStatus.PENDING,
         start_date=date(2026, 12, 10),
-        end_date=date(2026, 12, 15)
+        end_date=date(2026, 12, 15),
     )
     db.add(leave)
     await db.commit()
 
-    resp = await client.patch(f"/api/v1/leaves/{leave.id}", json={"status": "REJECTED", "comment": "No"}, headers=auth_headers)
+    resp = await client.patch(
+        f"/api/v1/leaves/{leave.id}", json={"status": "REJECTED", "comment": "No"}, headers=auth_headers
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "REJECTED"
+
 
 @pytest.mark.asyncio
 async def test_create_leave_no_team(client: AsyncClient, db: AsyncSession):
     # User with no team
-    user = User(email="noteam@ex.com", hashed_password=get_password_hash("pw"), full_name="No Team", role="Employee", is_active=True)
+    user = User(
+        email="noteam@ex.com",
+        hashed_password=get_password_hash("pw"),
+        full_name="No Team",
+        role="Employee",
+        is_active=True,
+    )
     db.add(user)
     await db.commit()
 

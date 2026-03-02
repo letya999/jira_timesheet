@@ -14,7 +14,7 @@ async def test_create_leave_request(db: AsyncSession):
         email="leave_user@example.com",
         hashed_password=get_password_hash("password"),
         full_name="Leave User",
-        role="Employee"
+        role="Employee",
     )
     db.add(user)
     await db.flush()
@@ -23,7 +23,7 @@ async def test_create_leave_request(db: AsyncSession):
         email="leave_approver@example.com",
         hashed_password=get_password_hash("password"),
         full_name="Leave Approver",
-        role="PM"
+        role="PM",
     )
     db.add(approver)
     await db.flush()
@@ -36,7 +36,7 @@ async def test_create_leave_request(db: AsyncSession):
         start_date=date(2026, 6, 1),
         end_date=date(2026, 6, 14),
         reason="Summer vacation",
-        approver_id=approver.id
+        approver_id=approver.id,
     )
     db.add(leave_req)
     await db.commit()

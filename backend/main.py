@@ -15,7 +15,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/api/v1/openapi.json"
+    openapi_url="/api/v1/openapi.json",
 )
 
 # Apply middlewares and exception handlers
@@ -28,6 +28,7 @@ app.include_router(api_router, prefix="/api/v1")
 # Mount SAQ Web UI
 app.mount("/saq", saq_web("/saq", [queue]))
 
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -38,18 +39,19 @@ def custom_openapi():
         routes=app.routes,
     )
     # Add custom extension or logo if needed
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
-    }
+    openapi_schema["info"]["x-logo"] = {"url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"}
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
+
 app.openapi = custom_openapi
+
 
 @app.on_event("startup")
 async def startup():
     redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+
 
 @app.get("/health", tags=["System"])
 async def health_check():

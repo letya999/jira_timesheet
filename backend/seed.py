@@ -40,7 +40,7 @@ async def seed():
                 email="admin@example.com",
                 hashed_password=get_password_hash("admin123"),
                 full_name="System Admin",
-                role="Admin"
+                role="Admin",
             )
             session.add(admin)
             await session.commit()
@@ -49,6 +49,7 @@ async def seed():
             print("Admin user already exists.")
             admin.role = "Admin"
             await session.commit()
+
 
 if __name__ == "__main__":
     asyncio.run(seed())
