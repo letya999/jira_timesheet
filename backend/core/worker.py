@@ -30,14 +30,42 @@ async def task_sync_user_worklogs(ctx, *, jira_user_id: int, days: int = 30):
 
 
 async def task_sync_all_projects(ctx):
-    """Background task to sync all projects and their worklogs."""
-    logger.info("Starting global projects and worklogs sync")
+    """Background task to sync all ACTIVE projects and their worklogs."""
+    logger.info("Starting global projects and worklogs sync (active only)")
     async with async_session() as db:
-        # 1. Sync projects, sprints, releases
-        await sync_jira_projects_to_db(db)
-        # 2. Sync worklogs for all projects
-        await sync_jira_worklogs(db)
-        return {"status": "success"}
+        from models.project import Project
+        from sqlalchemy import select
+        # 0. Fetch active projects keys
+        res = await db.execute(select(Project.key).where(Project.is_active == True))
+        active_keys = [r for r in res.scalars().all()]
+        
+        if not active_keys:
+            logger.info("No active projects found for sync")
+            return {"status": "success", "synced": 0, "message": "No active projects"}
+
+        # 1. Sync metadata ONLY for active projects
+        # We pass active_keys to sync_jira_projects_to_db if possible, or filter inside
+        await sync_jira_projects_to_db(db, only_keys=active_keys)
+        
+        # 2. Sync worklogs for all projects (already uses internal filters or just syncs everything)
+        result = await sync_jira_worklogs(db)
+        return result
+
+
+async def task_sync_project(ctx, *, project_id: int):
+    """Background task to sync worklogs for a specific project."""
+    logger.info(f"Starting worklog sync for project ID: {project_id}")
+    async with async_session() as db:
+        from models.project import Project
+        from sqlalchemy import select
+        res = await db.execute(select(Project).where(Project.id == project_id))
+        project = res.scalar_one_or_none()
+        if not project:
+            return {"status": "error", "message": "Project not found"}
+
+        from services.jira import sync_jira_worklogs_for_projects
+        result = await sync_jira_worklogs_for_projects(db, project_keys=[project.key])
+        return result
 
 
 # Function to run the worker (for CLI usage)
@@ -48,7 +76,7 @@ async def run_worker():
     # Sync all projects and worklogs every hour
     cron_jobs = [CronJob(task_sync_all_projects, cron="0 * * * *")]
 
-    worker = Worker(queue, functions=[task_sync_user_worklogs, task_sync_all_projects], cron_jobs=cron_jobs)
+    worker = Worker(queue, functions=[task_sync_user_worklogs, task_sync_all_projects, task_sync_project], cron_jobs=cron_jobs)
     logger.info("Worker started with periodic task (every hour)")
     await worker.start()
 

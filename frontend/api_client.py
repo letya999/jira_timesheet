@@ -159,6 +159,11 @@ def sync_project_worklogs(project_id):
     return response.json() if response.status_code == 200 else None
 
 
+def get_job_status(job_id):
+    response = requests.get(f"{BACKEND_URL}/sync/jobs/{job_id}", headers=get_headers())
+    return response.json() if response.status_code == 200 else None
+
+
 @st.cache_data(ttl=3600)
 def get_all_users(page=1, size=50, _headers=None):
     """Fetch user list from DB with pagination."""

@@ -276,12 +276,18 @@ async def fetch_jira_project_sprints(project_key: str):
     return list(unique_sprints.values())
 
 
-async def sync_jira_projects_to_db(db: AsyncSession):
+async def sync_jira_projects_to_db(db: AsyncSession, only_keys: list[str] = None):
     """Fetch projects, releases, and sprints from Jira and sync to local DB."""
     jira_projects = await fetch_jira_projects()
     synced_count = 0
     for jp in jira_projects:
-        j_id, key, name = str(jp.get("id")), jp.get("key"), jp.get("name")
+        key = jp.get("key")
+        
+        # If filtering is enabled, skip projects not in the active list
+        if only_keys is not None and key not in only_keys:
+            continue
+
+        j_id, name = str(jp.get("id")), jp.get("name")
         res = await db.execute(select(Project).where(Project.jira_id == j_id))
         db_p = res.scalar_one_or_none()
         if db_p:

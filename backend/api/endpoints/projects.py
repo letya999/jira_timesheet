@@ -4,6 +4,7 @@ from core.database import get_db
 from crud.project import project as crud_project
 from crud.project import release as crud_release
 from crud.project import sprint as crud_sprint
+from core.worker import queue
 from fastapi import APIRouter, Depends, HTTPException
 from models.project import Project
 from schemas.pagination import PaginatedResponse
@@ -26,30 +27,29 @@ async def refresh_projects(db: AsyncSession = Depends(get_db), current_user=Depe
 
 @router.post("/sync-all")
 async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)):
-    """Sync worklogs for all active projects."""
-    # Fetch active projects
+    """Sync worklogs for all active projects via background queue."""
+    # Fetch active projects just to count them or show they exist if needed
     result = await db.execute(select(Project).where(Project.is_active))
     active_projects = result.scalars().all()
 
     if not active_projects:
         return {"status": "success", "synced": 0, "message": "No active projects to sync"}
 
-    project_keys = [p.key for p in active_projects]
-    result = await sync_jira_worklogs_for_projects(db, project_keys=project_keys)
-    return result
+    job = await queue.enqueue("task_sync_all_projects", retries=3, timeout=3600)
+    return {"status": "success", "message": "Sync enqueued in background", "job_id": job.id}
 
 
 @router.post("/{project_id}/sync")
 async def sync_single_project(
     project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
 ):
-    """Sync worklogs for a specific project."""
+    """Sync worklogs for a specific project via background queue."""
     project = await crud_project.get(db, id=project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    result = await sync_jira_worklogs_for_projects(db, project_keys=[project.key])
-    return result
+    job = await queue.enqueue("task_sync_project", project_id=project.id, retries=3, timeout=1800)
+    return {"status": "success", "message": "Sync enqueued in background", "job_id": job.id}
 
 
 @router.get("/", response_model=PaginatedResponse[ProjectResponse])

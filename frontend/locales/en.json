@@ -305,7 +305,8 @@
         "sync_success": "Synced {count} worklogs.",
         "search_hint": "Search Projects (Name or Key)",
         "no_projects_hint": "No projects found in DB. Click 'Refresh Projects from Jira' to fetch them.",
-        "sync_now": "Sync Now"
+        "sync_now": "Sync Now",
+        "sync_enqueued": "Sync enqueued in background (Job ID: {job_id})"
     },
     "approvals": {
         "title": "Team Approvals",

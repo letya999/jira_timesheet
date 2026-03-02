@@ -2,11 +2,13 @@ import streamlit as st
 from api_client import (
     fetch_db_projects,
     get_headers,
+    get_job_status,
     refresh_projects_from_jira,
     sync_all_projects_worklogs,
     sync_project_worklogs,
     update_project_status,
 )
+import time
 from auth_utils import ensure_session
 from i18n import t
 
@@ -35,10 +37,21 @@ with col1:
 
 with col2:
     if st.button(f"🚀 {t('projects.sync_all_active')}"):
-        with st.spinner(t("common.loading")):
+        with st.spinner(t("projects.sync_pending")):
             result = sync_all_projects_worklogs()
-            if result and result.get("status") == "success":
-                st.success(t("projects.sync_success", count=result.get("synced")))
+            if result and result.get("status") == "success" and "job_id" in result:
+                job_id = result["job_id"]
+                # Poll for job completion
+                while True:
+                    job_info = get_job_status(job_id)
+                    if not job_info or job_info.get("status") in ["complete", "aborted", "not_found"]:
+                        if job_info and job_info.get("status") == "complete":
+                            res_data = job_info.get("result", {})
+                            st.success(t("projects.sync_success", count=res_data.get("synced", 0)))
+                        else:
+                            st.error(t("common.error"))
+                        break
+                    time.sleep(1)
             else:
                 st.error(f"{t('common.error')}: {result.get('detail') if result else t('common.error')}")
 
@@ -92,10 +105,21 @@ else:
             # Manual Sync Button
             if project["is_active"]:
                 if p_col4.button(t("projects.sync_now"), key=f"sync_{project['id']}"):
-                    with st.spinner(f"{t('common.sync')} {project['key']}..."):
+                    with st.spinner(t("projects.sync_pending")):
                         result = sync_project_worklogs(project["id"])
-                        if result and result.get("status") == "success":
-                            st.success(t("projects.sync_success", count=result.get("synced")))
+                        if result and result.get("status") == "success" and "job_id" in result:
+                            job_id = result["job_id"]
+                            # Poll for job completion
+                            while True:
+                                job_info = get_job_status(job_id)
+                                if not job_info or job_info.get("status") in ["complete", "aborted", "not_found"]:
+                                    if job_info and job_info.get("status") == "complete":
+                                        res_data = job_info.get("result", {})
+                                        st.success(t("projects.sync_success", count=res_data.get("synced", 0)))
+                                    else:
+                                        st.error(f"{t('common.error')} {project['key']}")
+                                    break
+                                time.sleep(1)
                         else:
                             st.error(f"{t('common.error')} {project['key']}")
         st.divider()
