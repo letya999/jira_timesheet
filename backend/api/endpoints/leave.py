@@ -220,11 +220,16 @@ async def get_team_leave_requests(
             .where(JiraUser.org_unit_id.in_(unit_ids))
         )
 
-    result = await db.execute(query.options(joinedload(LeaveRequest.user)).order_by(LeaveRequest.start_date.desc()))
+    result = await db.execute(
+        query.options(joinedload(LeaveRequest.user).joinedload(User.jira_user))
+        .order_by(LeaveRequest.start_date.desc())
+    )
     leaves = result.scalars().all()
 
     for leaf in leaves:
         leaf.user_full_name = leaf.user.full_name
+        if leaf.user.jira_user:
+            leaf.user_avatar_url = leaf.user.jira_user.avatar_url
 
     return leaves
 
@@ -243,11 +248,16 @@ async def get_all_leave_requests(
     if end_date:
         query = query.where(LeaveRequest.end_date <= end_date)
 
-    result = await db.execute(query.options(joinedload(LeaveRequest.user)).order_by(LeaveRequest.start_date.desc()))
+    result = await db.execute(
+        query.options(joinedload(LeaveRequest.user).joinedload(User.jira_user))
+        .order_by(LeaveRequest.start_date.desc())
+    )
     leaves = result.scalars().all()
 
     for leaf in leaves:
         leaf.user_full_name = leaf.user.full_name
+        if leaf.user.jira_user:
+            leaf.user_avatar_url = leaf.user.jira_user.avatar_url
 
     return leaves
 

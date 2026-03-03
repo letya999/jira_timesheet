@@ -11,4 +11,7 @@ dependencies = [
     "extra-streamlit-components",
     "plotly",
     "openpyxl",
+    "vanna[openai,chromadb]",
+    "openai",
+    "psycopg2-binary",
 ]

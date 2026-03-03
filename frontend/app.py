@@ -28,6 +28,7 @@ login_page = st.Page("views/9_Login.py", title=t("common.login"), icon="🔐", u
 notifications_page = st.Page("views/11_Notifications.py", title=t("common.notifications"), icon="🔔")
 leaves_page = st.Page("views/12_Leave_Requests.py", title=t("leaves.title"), icon="📅")
 hr_module_page = st.Page("views/13_HR_Module.py", title=t("leaves.hr_module"), icon="🏢")
+ai_chat_page = st.Page("views/14_AI_Chat.py", title=t("common.ai_chat"), icon="🤖")
 
 # 3. Handle Navigation and Role-based Access (RBAC)
 if not token:
@@ -57,7 +58,7 @@ else:
                 dashboard_page,
                 notifications_page,
             ],
-            t("common.nav_analytics"): [reports_builder_page],
+            t("common.nav_analytics"): [reports_builder_page, ai_chat_page],
             t("common.nav_admin"): [
                 org_page,
                 employees_page,

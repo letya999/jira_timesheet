@@ -83,6 +83,13 @@ def show_home():
             "roles": ["Employee", "PM", "CEO", "Admin"],
         },
         {
+            "title": t("common.ai_chat"),
+            "icon": "🤖",
+            "desc": t("home.ai_chat_desc"),
+            "page": "views/14_AI_Chat.py",
+            "roles": ["PM", "CEO", "Admin"],
+        },
+        {
             "title": t("leaves.title"),
             "icon": "📅",
             "desc": t("leaves.title"),

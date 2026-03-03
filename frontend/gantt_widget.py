@@ -205,7 +205,10 @@ def _generate_user_row(u_name, user_leaves, days, start_date, end_date, holiday_
     row_cells = "".join(row_cells_list)
 
     bars_html = ""
+    u_avatar_url = None
     for leaf in user_leaves:
+        if not u_avatar_url and leaf.get("user_avatar_url"):
+            u_avatar_url = leaf.get("user_avatar_url")
         try:
             l_s = datetime.strptime(leaf["start_date"], "%Y-%m-%d").date()
             l_e = datetime.strptime(leaf["end_date"], "%Y-%m-%d").date()
@@ -226,10 +229,16 @@ def _generate_user_row(u_name, user_leaves, days, start_date, end_date, holiday_
                 f"<div class='gantt-bar {l_status.lower()}' style='background: {u_color};'>{tip}</div></div>"
             )
 
+    avatar_html = ""
+    if u_avatar_url:
+        avatar_html = f"<img src='{u_avatar_url}' class='user-avatar' style='border: 2px solid {u_color}; object-fit: cover;' />"
+    else:
+        avatar_html = f"<div class='user-avatar' style='background: {u_color};'>{u_name[0].upper()}</div>"
+
     return f"""
     <div class="gantt-row">
         <div class="gantt-user-info">
-            <div class="user-avatar" style="background: {u_color};">{u_name[0].upper()}</div>
+            {avatar_html}
             <div class="user-name" title="{u_name}">{u_name}</div>
         </div>
         <div class="gantt-grid-container" style="grid-template-columns: repeat({total_days}, minmax(25px, 1fr));">

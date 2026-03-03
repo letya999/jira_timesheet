@@ -96,6 +96,8 @@
         "nav_admin": "Administration",
         "nav_workspace": "User Workspace",
         "nav_reporting": "Reporting",
+        "nav_ai": "AI Assistant",
+        "ai_chat": "AI Chat",
         "view_more": "View More",
         "view_less": "View Less",
         "today": "Today"
@@ -132,6 +134,7 @@
         "settings_desc": "System-wide configurations and integration preferences.",
         "leaves_desc": "Manage leave requests, sick leaves, and view team calendar.",
         "approvals_desc": "Approve timesheets for your teams and monitor reporting periods.",
+        "ai_chat_desc": "Ask questions about your data using natural language.",
         "open_btn": "Open {title}"
     },
     "journal": {

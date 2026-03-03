@@ -68,10 +68,17 @@ services:
       dockerfile: frontend/Dockerfile
     volumes:
       - /app/.venv
+      - vanna_data:/vanna_storage
     ports:
       - "8501:8501"
     environment:
       - BACKEND_URL=http://backend:8000/api/v1
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-timesheet}
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-timesheet}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
     depends_on:
       - backend
 
@@ -92,3 +99,4 @@ volumes:
   db_data:
   caddy_data:
   caddy_config:
+  vanna_data:

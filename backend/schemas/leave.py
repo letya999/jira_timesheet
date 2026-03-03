@@ -51,6 +51,7 @@ class LeaveResponse(LeaveBase):
 
     # Simple versions of related entities if needed
     user_full_name: str | None = None
+    user_avatar_url: str | None = None
     approver_full_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

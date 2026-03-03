@@ -11,6 +11,7 @@ COPY frontend/pyproject.toml ./frontend/
 
 # Install dependencies
 RUN uv sync --no-dev --no-install-project
+RUN uv pip install "vanna[openai,chromadb]"
 
 # Copy the rest of the frontend
 COPY frontend/ ./frontend/

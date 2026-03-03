@@ -1,0 +1,40 @@
+# =============================================================================
+# Caddy Configuration for Production
+# Using nip.io for secure HTTPS access via IP
+# =============================================================================
+
+# Frontend (Streamlit App)
+# Users will access the app at https://app.{$DOMAIN_IP}.nip.io
+app.{$DOMAIN_IP}.nip.io {
+    # Basic Auth for security
+    # Username: admin
+    # Password: adminprod123 (change hash using `caddy hash-password`)
+    basicauth * {
+        admin $2a$14$BYm0Qt780tLX5EMfMpmHt.JJIFtO4/kids0F1WSJgQWXCNx0.fMIu
+    }
+
+    reverse_proxy frontend:8501
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+# Backend API
+# Allows the frontend to make API calls if necessary, or for direct secure API access.
+# Ensure Streamlit is communicating directly via internal docker network rather than this external URL if possible, for performance.
+api.{$DOMAIN_IP}.nip.io {
+    # If API needs protection too from public access, we add basic auth or rely on App's internal tokens
+    # basicauth * {
+    #    admin $2a$14$BYm0Qt780tLX5EMfMpmHt.JJIFtO4/kids0F1WSJgQWXCNx0.fMIu
+    # }
+
+    reverse_proxy backend:8000
+
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+    }
+}
