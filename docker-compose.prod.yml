@@ -73,6 +73,33 @@ services:
           memory: 1G
 
   # ===========================================================================
+  # Worker
+  # ===========================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: jira_timesheet_worker_prod
+    env_file:
+      - .env.production
+    environment:
+      - PYTHONPATH=/app/backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app_network
+    restart: always
+    command: uv run python -m core.worker
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ===========================================================================
   # Frontend
   # ===========================================================================
   frontend:
