@@ -110,8 +110,7 @@ services:
     image: caddy:2-alpine
     container_name: jira_timesheet_caddy_prod
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:8080"
     environment:
       - DOMAIN_IP=${DOMAIN_IP}
     volumes:
