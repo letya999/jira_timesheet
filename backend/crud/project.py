@@ -23,6 +23,9 @@ class CRUDProject(CRUDBase[Project, ProjectCreate, ProjectUpdate]):
             from sqlalchemy import or_
 
             query = query.where(or_(Project.name.ilike(f"%{search}%"), Project.key.ilike(f"%{search}%")))
+        
+        query = query.order_by(Project.is_active.desc(), Project.name.asc())
+        
         result = await db.execute(query.offset(skip).limit(limit))
         return result.scalars().all()
 
