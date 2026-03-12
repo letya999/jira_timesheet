@@ -18,7 +18,7 @@ from auth_utils import ensure_session
 from i18n import t
 from state_manager import state
 
-st.set_page_config(page_title=t("reports.report_builder_pro", page_icon="logo.png"), layout="wide")
+st.set_page_config(page_title=t("reports.report_builder_pro"), page_icon="logo.png", layout="wide")
 
 token, _ = ensure_session()
 if not token:
@@ -49,6 +49,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             t("reports.categories"),
             options=list(cat_options.keys()),
             format_func=lambda x: cat_options[x],
+            placeholder=t("common.choose_options"),
             key="api_cats",
         )
 
@@ -85,6 +86,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             t("common.sprint"),
             options=list(sprint_options.keys()),
             format_func=lambda x: sprint_options[x],
+            placeholder=t("common.choose_options"),
             key="api_sprints",
         )
 
@@ -103,7 +105,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
             st.info(t("reports.employee_restricted_info"))
 
         # New Worklog Type Filter
-        sel_types = st.multiselect(t("reports.worklog_types"), options=["JIRA", "MANUAL"], key="api_types")
+        sel_types = st.multiselect(t("reports.worklog_types"), options=["JIRA", "MANUAL"], placeholder=t("common.choose_options"), key="api_types")
 
     with f_col4:
         if user_role in ["Admin", "CEO", "PM"]:
@@ -114,6 +116,7 @@ with st.expander(f"🌐 {t('reports.data_source_filters')}", expanded=True):
                 t("common.employees"),
                 options=list(emp_options.keys()),
                 format_func=lambda x: emp_options[x],
+                placeholder=t("common.choose_options"),
                 key="api_users",
             )
         else:
@@ -144,6 +147,7 @@ with c1:
         options=pivot_options,
         default=["user", "project"],
         format_func=lambda x: t(f"common.{x}") if x in pivot_options else x,
+        placeholder=t("common.choose_options"),
         key="pivot_rows",
     )
 
@@ -152,11 +156,12 @@ with c1:
         options=pivot_options,
         default=["date"],
         format_func=lambda x: t(f"common.{x}") if x in pivot_options else x,
+        placeholder=t("common.choose_options"),
         key="pivot_cols",
     )
 
 with c2:
-    val_format = st.radio(t("reports.value_unit"), options=["hours", "days"], horizontal=True, key="pivot_unit")
+    val_format = st.radio(t("reports.value_unit"), options=["hours", "days"], format_func=lambda x: t(f"common.{x}"), horizontal=True, key="pivot_unit")
     h_per_day = st.number_input(t("reports.hours_per_day"), min_value=1.0, max_value=24.0, value=8.0, key="pivot_hpd")
 
     granularity = "day"
@@ -235,7 +240,7 @@ if state.report_raw_data is not None:
 
     for col in final_rows + final_cols:
         if col not in df.columns:
-            df[col] = "N/A"
+            df[col] = t("common.na")
 
     # Filter out empty dimensions or overlaps
     overlap = set(final_rows).intersection(set(final_cols))
@@ -248,10 +253,10 @@ if state.report_raw_data is not None:
         l_col1, l_col2 = st.columns(2)
         with l_col1:
             all_users = sorted([str(u) for u in df["user"].unique() if u is not None])
-            sel_users = st.multiselect(t("reports.filter_employees"), all_users, default=all_users, key="loc_users")
+            sel_users = st.multiselect(t("reports.filter_employees"), all_users, default=all_users, placeholder=t("common.choose_options"), key="loc_users")
         with l_col2:
             all_projs = sorted([str(p) for p in df["project"].unique() if p is not None])
-            sel_projs = st.multiselect(t("reports.filter_projects"), all_projs, default=all_projs, key="loc_projs")
+            sel_projs = st.multiselect(t("reports.filter_projects"), all_projs, default=all_projs, placeholder=t("common.choose_options"), key="loc_projs")
 
         df = df[df["user"].isin(sel_users) & df["project"].isin(sel_projs)]
 
@@ -259,21 +264,21 @@ if state.report_raw_data is not None:
         st.info(t("reports.empty_dataset"))
     else:
         # Fill NA for used dimensions
-        df[final_rows + final_cols] = df[final_rows + final_cols].fillna("N/A")
+        df[final_rows + final_cols] = df[final_rows + final_cols].fillna(t("common.na"))
 
         # Aggregation
         if final_cols:
             pivot_df = df.pivot_table(index=final_rows, columns=final_cols, values="value", aggfunc="sum", fill_value=0)
         else:
             pivot_df = df.groupby(final_rows)["value"].sum().to_frame()
-            pivot_df.columns = [f"{t('common.total')} ({val_format})"]
+            pivot_df.columns = [f"{t('common.total')} ({t(f'common.{val_format}')})"]
 
         # --- Dashboard Metrics ---
         st.divider()
         total_val = df["value"].sum()
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric(t("reports.grand_total"), f"{total_val:,.1f} {val_format}")
-        m2.metric(t("reports.total_hours"), f"{df['hours'].sum():,.1f} h")
+        m1.metric(t("reports.grand_total"), f"{total_val:,.1f} {t(f'common.{val_format}')}")
+        m2.metric(t("reports.total_hours"), f"{df['hours'].sum():,.1f} {t('common.hours_short')}")
         m3.metric(t("common.employees"), df["user"].nunique())
         m4.metric(t("common.task"), df["task"].nunique())
 

@@ -51,15 +51,18 @@ tab_list, tab_hier = st.tabs([f"📋 {t('employees.list_view')}", f"🗂️ {t('
 
 with tab_list:
     # Actions
-    if st.button(f"🔄 {t('employees.sync_jira')}"):
-        with st.spinner(t("common.loading")):
-            result = sync_users_from_jira()
-            if result and result.get("status") == "success":
-                st.success(t("employees.sync_success", count=result.get("synced", 0)))
-                st.rerun()
-            else:
-                error_msg = result.get("message") if result else t("common.error")
-                st.error(t("employees.sync_failed", error=error_msg))
+    col_sync, col_spacer, col_save = st.columns([0.3, 0.5, 0.2])
+    
+    with col_sync:
+        if st.button(f"🔄 {t('employees.sync_jira')}"):
+            with st.spinner(t("common.loading")):
+                result = sync_users_from_jira()
+                if result and result.get("status") == "success":
+                    st.success(t("employees.sync_success", count=result.get("synced", 0)))
+                    st.rerun()
+                else:
+                    error_msg = result.get("message") if result else t("common.error")
+                    st.error(t("employees.sync_failed", error=error_msg))
 
     page_size = 20
     data = get_employees(
@@ -85,62 +88,66 @@ with tab_list:
         )
 
         # Prepare for editor
-        df_editor = df[["id", "display_name", "email", "OrgUnit", "is_active", t("employees.system_access")]].copy()
+        create_col = t("employees.create_system_user")
+        df[create_col] = False
+
+        columns_to_show = ["id", "display_name", "email", "OrgUnit", "is_active", t("employees.system_access")]
+        if user_info.get("role") == "Admin":
+            columns_to_show.append(create_col)
+
+        df_editor = df[columns_to_show].copy()
+
+        col_config = {
+            "id": st.column_config.NumberColumn("ID", disabled=True),
+            "display_name": st.column_config.TextColumn(t("common.name"), disabled=True),
+            "email": st.column_config.TextColumn(t("common.email"), disabled=True),
+            "OrgUnit": st.column_config.SelectboxColumn(
+                t("common.department"), options=list(unit_map.values()), required=True
+            ),
+            "is_active": st.column_config.CheckboxColumn(t("common.active")),
+            t("employees.system_access"): st.column_config.TextColumn(t("employees.system_access"), disabled=True),
+        }
+
+        if user_info.get("role") == "Admin":
+            col_config[create_col] = st.column_config.CheckboxColumn(create_col, default=False)
 
         edited_df = st.data_editor(
             df_editor,
-            column_config={
-                "id": st.column_config.NumberColumn("ID", disabled=True),
-                "display_name": st.column_config.TextColumn(t("common.name"), disabled=True),
-                "email": st.column_config.TextColumn(t("common.email"), disabled=True),
-                "OrgUnit": st.column_config.SelectboxColumn(
-                    t("common.department"), options=list(unit_map.values()), required=True
-                ),
-                "is_active": st.column_config.CheckboxColumn(t("common.active")),
-                t("employees.system_access"): st.column_config.TextColumn(t("employees.system_access"), disabled=True),
-            },
+            column_config=col_config,
             width="stretch",
             hide_index=True,
             key="employees_editor",
         )
 
-        # Section for creating system users
-        if user_info.get("role") == "Admin":
-            st.subheader(t("employees.create_system_user"))
-            no_access_users = [u for u in users_list if not u.get("user_id")]
-            if no_access_users:
-                col_u, col_b = st.columns([0.7, 0.3])
-                user_to_promote = col_u.selectbox(
-                    t("common.employee"),
-                    options=no_access_users,
-                    format_func=lambda x: f"{x['display_name']} ({x['email'] or t('common.na')})",
-                    key="promote_select",
-                )
-                if col_b.button(t("common.create"), width="stretch", type="primary"):
-                    res = promote_user(user_to_promote["id"])
-                    if res:
-                        st.session_state["last_created_user"] = res
-                        st.rerun()
-            else:
-                st.info(t("common.all_have_access"))
+        st.write("") # Spacer
 
-        # Modal-like display for new user
-        if "last_created_user" in st.session_state:
-            new_u = st.session_state["last_created_user"]
+        # Modal-like display for new system users
+        if "last_created_users" in st.session_state:
             st.success(t("employees.temp_password_title"))
-            st.info(t("employees.temp_password_msg", name=new_u["display_name"]))
-
-            creds = f"Email: {new_u['email']}\nPassword: {new_u['temporary_password']}"
-            st.code(creds, language="text")
+            
+            creds_text = ""
+            for new_u in st.session_state["last_created_users"]:
+                creds_text += f"👤 {new_u['display_name']} ({new_u['email']})\n"
+                creds_text += f"   Пароль: {new_u['temporary_password']}\n\n"
+            
+            st.code(creds_text, language="text")
 
             if st.button(t("common.close")):
-                del st.session_state["last_created_user"]
+                del st.session_state["last_created_users"]
                 st.rerun()
 
-        if st.button(t("employees.save_changes"), type="secondary"):
+        with col_save:
+            save_clicked = st.button(t("employees.save_changes"), type="primary", use_container_width=True)
+
+        if save_clicked:
             updated_names = []
+            created_users = []
+
             for i, row in edited_df.iterrows():
                 original_row = df_editor.iloc[i]
+                original_user = df.iloc[i]
+                
+                # Update employee details
                 if row["OrgUnit"] != original_row["OrgUnit"] or row["is_active"] != original_row["is_active"]:
                     new_org_unit_id = next((tid for tid, path in unit_map.items() if path == row["OrgUnit"]), None)
                     success = update_employee(
@@ -151,11 +158,24 @@ with tab_list:
                     if success:
                         updated_names.append(row["display_name"])
 
-            if updated_names:
+                # Create system account
+                if user_info.get("role") == "Admin" and row.get(create_col) and not original_row.get(create_col):
+                    if not original_user["user_id"]: # Only if they don't have access already
+                        res = promote_user(row["id"])
+                        if res:
+                            created_users.append(res)
+                            updated_names.append(row["display_name"] + " (Аккаунт)")
+
+            if created_users:
+                st.session_state["last_created_users"] = created_users
+
+            if updated_names or created_users:
                 st.success(t("employees.update_success", names=", ".join(updated_names)))
                 st.rerun()
             else:
                 st.info(t("employees.no_changes"))
+
+        st.divider()
 
         # Pagination
         if total_pages > 1:
