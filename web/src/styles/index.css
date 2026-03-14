@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif";
+}
+
+:root {
+  --primary: #0052cc;
+  --secondary: #0747a6;
+  --success: #36b37e;
+  --warning: #ffab00;
+  --error: #bf2600;
+  --info: #00b8d9;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+  }
+}

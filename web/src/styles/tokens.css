@@ -1,0 +1,52 @@
+:root {
+  /* Colors - Atlassian-inspired enterprise palette */
+  --primary: #0052cc;
+  --primary-hover: #0747a6;
+  --primary-foreground: #ffffff;
+
+  --neutral: #091e42;
+  --neutral-subtle: #44546f;
+  --neutral-border: #dcdfe4;
+  --neutral-background: #f7f8f9;
+
+  --success: #36b37e;
+  --warning: #ffab00;
+  --error: #bf2600;
+  --info: #00b8d9;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Scales */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+[data-theme="dark"] {
+  --primary: #4c9aff;
+  --primary-hover: #2684ff;
+  --primary-foreground: #091e42;
+
+  --neutral: #ffffff;
+  --neutral-subtle: #b3bac5;
+  --neutral-border: #2c3e50;
+  --neutral-background: #091e42;
+
+  --success: #57d9a3;
+  --warning: #ffc400;
+  --error: #ff5630;
+  --info: #00c7e6;
+}

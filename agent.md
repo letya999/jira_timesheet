@@ -20,11 +20,11 @@ The project is migrating from Streamlit to a modern React SPA architecture.
 | Category | Tool / Library | Version | Type | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **Core & Build** | Bun | 1.3.x | Runtime | Ultra-fast package manager and runtime. |
-| | Vite | 8.x | dev | Next-gen build tool (Rolldown-based). |
-| | TypeScript | 6.x | dev | Strict typing and error detection. |
+| | Vite | 6.x | dev | Modern build tool (React 19 & Tailwind 4 support). |
+| | TypeScript | 6.x | dev | Strict typing (v6.0+ RC verified). |
 | | React / React DOM | 19.x | dep | Core UI library (React 19 stable). |
 | **Routing & API** | @tanstack/react-router | 1.x | dep | 100% type-safe SPA routing. |
-| | @hey-api/openapi-ts | 0.94.x (pinned) | dev | Generating TS types/hooks from backend OpenAPI. Pre-1.0 — pin exact version. |
+| | @hey-api/openapi-ts | 0.94.x (pinned) | dev | Generating TS types/hooks from backend OpenAPI. |
 | | @hey-api/client-fetch | latest | dep | Lightweight type-safe client for FastAPI requests. |
 | **State & Data** | @tanstack/react-query | 5.x | dep | Server state management (v5 stable). |
 | | Zustand | 5.x | dep | Client UI state management. |
@@ -32,15 +32,15 @@ The project is migrating from Streamlit to a modern React SPA architecture.
 | | shadcn/ui (CLI) | latest | dev | Component generation and management. |
 | | Radix UI | 1.x+ | dep | Headless primitives for accessible UI. |
 | | lucide-react | 0.x | dep | Modern SVG icon library. |
-| **Interactive** | @tanstack/react-table | 9.x | dep | Headless engine for complex tables. |
+| **Interactive** | @tanstack/react-table | 8.x | dep | Headless engine for complex tables. |
 | | dhtmlx-gantt | 9.x+ | dep | Industrial-grade interactive Gantt charts. |
 | | @dnd-kit/core | 6.x+ | dep | Modern Drag-and-Drop functionality. |
 | **Forms & Validation**| React Hook Form | 7.x | dep | High-performance form management. |
 | | Zod | 3.x | dep | Strict schema-based data validation. |
 | | date-fns & date-fns-tz | 4.x+ | dep | Precise date and timezone manipulation. |
-| **QA & Quality** | ESLint | 10.x | dev | Next-gen linting. |
+| **QA & Quality** | ESLint | 9.x | dev | Modern linting (Flat Config). |
 | | Vitest | 3.x | dev | Native-Vite unit testing. |
-| | Storybook | 10.x | dev | UI component development environment + Vitest integration. |
+| | Storybook | 8.x | dev | UI component development environment + Vitest integration. |
 
 ### Legacy Frontend (To be Deprecated)
 - **Framework:** Streamlit (Python-based UI)
