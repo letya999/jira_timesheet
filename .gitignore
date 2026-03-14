@@ -156,3 +156,4 @@ web/.env.*.local
 # Bun
 bun.lockb
 .bun-cache/
+plans/

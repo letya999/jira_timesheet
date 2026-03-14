@@ -47,15 +47,17 @@
 ### 2e — Domain Specific Components
 *Tailored for Jira Timesheet specific logic.*
 
-- [ ] **GanttChartWrapper**: React wrapper for `dhtmlx-gantt`.
-- [ ] **JiraKeyLink**: Themed link with Jira task icon and key.
-- [ ] **TimeGrid**: Weekly grid for fast time entry.
-- [ ] **ChatMessage**: Bubbles for AI Chat with Markdown support.
-- [ ] **SyncIndicator**: Animation for Jira background sync status.
-- [ ] **LanguageSwitcher**: Compact/Full toggle for i18next.
+- [x] **GanttChartWrapper**: React wrapper for `dhtmlx-gantt`.
+- [x] **JiraKeyLink**: Themed link with Jira task icon and key.
+- [x] **TimeGrid**: Weekly grid for fast time entry.
+- [x] **ChatMessage**: Bubbles for AI Chat with Markdown support.
+- [x] **SyncIndicator**: Animation for Jira background sync status.
+- [x] **LanguageSwitcher**: Compact/Full toggle for i18next.
+- [x] **LeaveTimeline**: Grid/List view for absences (day to year).
+- [x] **LeaveAbsenceBadge**: Detailed card for absence events.
 
 ### 4. Quality Control & Completion
 - [ ] **Accessibility (a11y)**: Ensure all components pass a11y checks in Storybook.
-- [ ] **Testing**: `bun test` passes for all components (Vitest).
+- [x] **Testing**: `bun test` passes for all components (Vitest).
 - [ ] **Controls**: Verify all variants and states are adjustable via Storybook Controls panel.
 - [ ] **Dark Mode**: Verify `[data-theme="dark"]` support for all components.
