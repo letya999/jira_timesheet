@@ -19,12 +19,12 @@
 ### 2b — Form Elements & Complex Input
 *Controlled/Uncontrolled components integrated with React Hook Form & Zod.*
 
-- [ ] **Select / MultiSelect**: Single/multiple choice with Tag-chips and search.
-- [ ] **DatePicker / DateRangePicker**: Calendar-based selection for reporting.
-- [ ] **Stepper**: Numeric input with +/- buttons for time logging.
-- [ ] **Slider**: Discrete steps for pagination and granularity.
-- [ ] **Combobox**: Async search for large lists (Employees/Projects).
-- [ ] **Textarea**: Auto-resize, max length support.
+- [x] **Select / MultiSelect**: Single/multiple choice with Tag-chips and search.
+- [x] **DatePicker / DateRangePicker**: Calendar-based selection for reporting.
+- [x] **Stepper**: Numeric input with +/- buttons for time logging.
+- [x] **Slider**: Discrete steps for pagination and granularity.
+- [x] **Combobox**: Async search for large lists (Employees/Projects).
+- [x] **Textarea**: Auto-resize, max length support.
 
 ### 2c — Data Display
 *Components for structured information layout.*
