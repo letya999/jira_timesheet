@@ -1,0 +1,108 @@
+import { Meta, ColorPalette, ColorItem, Typeset, Unstyled } from '@storybook/blocks';
+
+<Meta title="Design System/Tokens" />
+
+# Design Tokens
+
+This page documents the visual foundation of the Jira Timesheet design system. These tokens are defined in `tokens.css` and mapped to Tailwind 4 in `index.css`.
+
+## Colors
+
+### Brand & Semantic
+<ColorPalette>
+  <ColorItem
+    title="Primary"
+    subtitle="Main brand color"
+    colors={{ 
+      '500 (Default)': 'var(--color-primary-500)',
+      '600 (Hover)': 'var(--color-primary-600)',
+      '200 (Dark Mode)': 'var(--color-primary-200)' 
+    }}
+  />
+  <ColorItem
+    title="Neutral"
+    subtitle="Text, borders, and backgrounds"
+    colors={{ 
+      '1100 (Text)': 'var(--color-neutral-1100)',
+      '600 (Subtle)': 'var(--color-neutral-600)',
+      '200 (Border)': 'var(--color-neutral-200)',
+      '50 (Background)': 'var(--color-neutral-50)'
+    }}
+  />
+  <ColorItem
+    title="Success"
+    subtitle="Positive actions and states"
+    colors={{ 
+      '400 (Default)': 'var(--color-success-400)',
+      '300 (Dark Mode)': 'var(--color-success-300)'
+    }}
+  />
+  <ColorItem
+    title="Warning"
+    subtitle="Cautionary states"
+    colors={{ 
+      '400 (Default)': 'var(--color-warning-400)',
+      '300 (Dark Mode)': 'var(--color-warning-300)'
+    }}
+  />
+  <ColorItem
+    title="Error"
+    subtitle="Destructive actions and errors"
+    colors={{ 
+      '600 (Default)': 'var(--color-error-600)',
+      '300 (Dark Mode)': 'var(--color-error-300)'
+    }}
+  />
+</ColorPalette>
+
+## Typography
+
+**Font Family:** Inter, system-ui, sans-serif
+
+<Typeset
+  fontFamily="Inter, system-ui, sans-serif"
+  fontSizes={[
+    '0.75rem',
+    '0.875rem',
+    '1rem',
+    '1.125rem',
+    '1.25rem',
+    '1.5rem',
+    '1.875rem',
+    '2.25rem',
+  ]}
+  fontWeight={600}
+  sampleText="The quick brown fox jumps over the lazy dog"
+/>
+
+## Spacing Scale
+<Unstyled>
+  <div className="flex flex-col gap-4 mt-8">
+    {[1, 2, 3, 4, 6, 8, 10, 12, 16].map((space) => (
+      <div key={space} className="flex items-center gap-4">
+        <div className="w-12 text-sm font-mono text-neutral-subtle">s-{space}</div>
+        <div 
+          className="bg-primary h-4 rounded-sm" 
+          style={{ width: `var(--spacing-${space})` }}
+        />
+        <div className="text-xs text-neutral-subtle">{space * 0.25}rem</div>
+      </div>
+    ))}
+  </div>
+</Unstyled>
+
+## Shadows
+<Unstyled>
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mt-8">
+    {['xs', 'sm', 'md', 'lg', 'xl'].map((size) => (
+      <div key={size} className="flex flex-col items-center gap-2">
+        <div 
+          className="w-20 h-20 bg-white rounded-lg flex items-center justify-center text-xs font-medium"
+          style={{ boxShadow: `var(--shadow-${size})` }}
+        >
+          {size.toUpperCase()}
+        </div>
+      </div>
+    ))}
+  </div>
+</Unstyled>
