@@ -5,6 +5,18 @@
 
 @custom-variant dark (&:is([data-theme="dark"] *));
 
+/* Radix & Shadcn UI v4 Custom Variants */
+@custom-variant data-checked (&:is([data-state="checked"]));
+@custom-variant data-unchecked (&:is([data-state="unchecked"]));
+@custom-variant data-horizontal (&:is([data-orientation="horizontal"]));
+@custom-variant data-vertical (&:is([data-orientation="vertical"]));
+@custom-variant data-open (&:is([data-state="open"]));
+@custom-variant data-closed (&:is([data-state="closed"]));
+@custom-variant data-disabled (&:is([data-disabled], [disabled]));
+@custom-variant aria-invalid (&:is([aria-invalid="true"]));
+@custom-variant has-data-icon-start (&:has([data-icon="inline-start"]));
+@custom-variant has-data-icon-end (&:has([data-icon="inline-end"]));
+
 @theme {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
