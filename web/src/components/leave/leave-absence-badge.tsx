@@ -1,12 +1,18 @@
-import * as React from "react"
 import { format } from "date-fns"
-import { Calendar, User, Clock, Tag } from "lucide-react"
+import { Calendar, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import type { LeaveType } from "@/api/generated/types.gen"
+export type { LeaveType } from "@/api/generated/types.gen"
 
-export type LeaveType = "vacation" | "sick" | "personal" | "other"
+export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  VACATION: "Vacation",
+  SICK_LEAVE: "Sick Leave",
+  DAY_OFF: "Day Off",
+  OTHER: "Other"
+}
 
 export interface LeaveAbsenceBadgeProps {
   userName: string
@@ -19,11 +25,12 @@ export interface LeaveAbsenceBadgeProps {
 }
 
 const typeConfig: Record<LeaveType, { label: string; color: string }> = {
-  vacation: { label: "Vacation", color: "bg-blue-500" },
-  sick: { label: "Sick Leave", color: "bg-red-500" },
-  personal: { label: "Personal", color: "bg-amber-500" },
-  other: { label: "Other", color: "bg-slate-500" },
+  VACATION: { label: "Vacation", color: "bg-blue-500" },
+  SICK_LEAVE: { label: "Sick Leave", color: "bg-red-500" },
+  DAY_OFF: { label: "Day Off", color: "bg-amber-500" },
+  OTHER: { label: "Other", color: "bg-slate-500" }
 }
+
 
 export function LeaveAbsenceBadge({
   userName,
@@ -34,7 +41,7 @@ export function LeaveAbsenceBadge({
   reason,
   className,
 }: LeaveAbsenceBadgeProps) {
-  const config = typeConfig[type]
+  const config = typeConfig[type] || typeConfig.OTHER
 
   return (
     <Card className={cn("w-72 shadow-lg border-muted", className)}>

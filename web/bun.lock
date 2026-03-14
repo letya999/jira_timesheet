@@ -8,6 +8,7 @@
         "@dnd-kit/core": "^6.3.1",
         "@fontsource-variable/geist": "^5.2.8",
         "@hey-api/client-fetch": "^0.8.0",
+        "@hookform/resolvers": "3.9.1",
         "@tailwindcss/typography": "^0.5.19",
         "@tanstack/react-query": "^5.66.11",
         "@tanstack/react-router": "^1.31.29",
@@ -21,6 +22,7 @@
         "dhtmlx-gantt": "^9.0.5",
         "i18next": "^24.2.2",
         "lucide-react": "^0.577.0",
+        "msw-storybook-addon": "^2.0.6",
         "radix-ui": "^1.4.3",
         "react": "^19.0.0",
         "react-day-picker": "^9.14.0",
@@ -276,6 +278,8 @@
     "@hey-api/types": ["@hey-api/types@0.1.3", "", { "peerDependencies": { "typescript": ">=5.5.3" } }, "sha512-mZaiPOWH761yD4GjDQvtjS2ZYLu5o5pI1TVSvV/u7cmbybv51/FVtinFBeaE1kFQCKZ8OQpn2ezjLBJrKsGATw=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.11", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g=="],
+
+    "@hookform/resolvers": ["@hookform/resolvers@3.9.1", "", { "peerDependencies": { "react-hook-form": "^7.0.0" } }, "sha512-ud2HqmGBM0P0IABqoskKWI6PEf6ZDDBZkFqe2Vnl+mTHCEHzr3ISjjZyCwTjC/qpL25JC9aIDkloQejvMeq0ug=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
@@ -1506,6 +1510,8 @@
     "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 
     "msw": ["msw@2.7.3", "", { "dependencies": { "@bundled-es-modules/cookie": "^2.0.1", "@bundled-es-modules/statuses": "^1.0.1", "@bundled-es-modules/tough-cookie": "^0.1.6", "@inquirer/confirm": "^5.0.0", "@mswjs/interceptors": "^0.37.0", "@open-draft/deferred-promise": "^2.2.0", "@open-draft/until": "^2.1.0", "@types/cookie": "^0.6.0", "@types/statuses": "^2.0.4", "graphql": "^16.8.1", "headers-polyfill": "^4.0.2", "is-node-process": "^1.2.0", "outvariant": "^1.4.3", "path-to-regexp": "^6.3.0", "picocolors": "^1.1.1", "strict-event-emitter": "^0.5.1", "type-fest": "^4.26.1", "yargs": "^17.7.2" }, "peerDependencies": { "typescript": ">= 4.8.x" }, "optionalPeers": ["typescript"], "bin": { "msw": "cli/index.js" } }, "sha512-+mycXv8l2fEAjFZ5sjrtjJDmm2ceKGjrNbBr1durRg6VkU9fNUE/gsmQ51hWbHqs+l35W1iM+ZsmOD9Fd6lspw=="],
+
+    "msw-storybook-addon": ["msw-storybook-addon@2.0.6", "", { "dependencies": { "is-node-process": "^1.0.1" }, "peerDependencies": { "msw": "^2.0.0" } }, "sha512-ExCwDbcJoM2V3iQU+fZNp+axVfNc7DWMRh4lyTXebDO8IbpUNYKGFUrA8UqaeWiRGKVuS7+fU+KXEa9b0OP6uA=="],
 
     "mute-stream": ["mute-stream@2.0.0", "", {}, "sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA=="],
 

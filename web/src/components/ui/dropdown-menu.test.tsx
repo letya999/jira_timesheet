@@ -14,7 +14,7 @@ describe("DropdownMenu", () => {
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-        <DropdownMenuContent portal={false}>
+        <DropdownMenuContent>
           <DropdownMenuItem>Item 1</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

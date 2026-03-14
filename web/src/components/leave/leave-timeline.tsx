@@ -1,7 +1,5 @@
-import * as React from "react"
 import {
   format,
-  addDays,
   startOfWeek,
   eachDayOfInterval,
   endOfWeek,
@@ -9,15 +7,11 @@ import {
   endOfMonth,
   isWeekend,
   isSameDay,
-  addMonths,
-  addQuarters,
-  addYears,
   isWithinInterval,
   startOfQuarter,
   endOfQuarter,
   startOfYear,
   endOfYear,
-  eachWeekOfInterval,
 } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,11 +38,12 @@ export interface LeaveTimelineUser {
   avatarUrl?: string
 }
 
-export interface LeaveTimelineProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface LeaveTimelineProps {
   view: TimelineView
   startDate: Date
   users: LeaveTimelineUser[]
   entries: LeaveTimelineEntry[]
+  className?: string
 }
 
 export function LeaveTimeline({
@@ -57,7 +52,6 @@ export function LeaveTimeline({
   users,
   entries,
   className,
-  ...props
 }: LeaveTimelineProps) {
   const getInterval = () => {
     switch (view) {
@@ -83,7 +77,7 @@ export function LeaveTimeline({
     )
 
     return (
-      <div className={cn("space-y-4", className)} {...props}>
+      <div className={cn("space-y-4", className)}>
         <Typography variant="h4">{format(startDate, "MMMM d, yyyy")}</Typography>
         {awayToday.length === 0 ? (
           <Typography className="text-muted-foreground">Everyone is present today.</Typography>
@@ -111,10 +105,9 @@ export function LeaveTimeline({
   
   // Custom grouping for quarter/year to keep it readable
   // For quarter we show 2-week blocks or weeks. Let's do weeks for simplicity in render.
-  const isLargeView = view === "quarter" || view === "year"
 
   return (
-    <div className={cn("w-full overflow-x-auto border rounded-lg", className)} {...props}>
+    <div className={cn("w-full overflow-x-auto border rounded-lg", className)}>
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b bg-muted/50">
@@ -172,9 +165,9 @@ export function LeaveTimeline({
                           <div
                             className={cn(
                               "absolute inset-y-1 left-0 z-20 rounded-md cursor-pointer hover:brightness-90 transition-all shadow-sm",
-                              entry.type === "vacation" ? "bg-blue-500" : 
-                              entry.type === "sick" ? "bg-red-500" : 
-                              entry.type === "personal" ? "bg-amber-500" : "bg-slate-500"
+                              entry.type === "VACATION" ? "bg-blue-500" : 
+                              entry.type === "SICK_LEAVE" ? "bg-red-500" : 
+                              entry.type === "DAY_OFF" ? "bg-amber-500" : "bg-slate-500"
                             )}
                             style={{
                               width: `calc(${eachDayOfInterval({ 

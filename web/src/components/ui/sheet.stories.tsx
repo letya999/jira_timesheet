@@ -37,11 +37,11 @@ export const Default: Story = {
         </SheetHeader>
         <div className="flex flex-col gap-4 py-4">
           <div className="flex flex-col gap-2">
-            <Typography variant="body" className="font-medium">Name</Typography>
+            <Typography variant="p" className="font-medium">Name</Typography>
             <Input defaultValue="Pedro Duarte" />
           </div>
           <div className="flex flex-col gap-2">
-            <Typography variant="body" className="font-medium">Username</Typography>
+            <Typography variant="p" className="font-medium">Username</Typography>
             <Input defaultValue="@peduarte" />
           </div>
         </div>

@@ -30,7 +30,9 @@ describe("TimeGrid", () => {
     
     // Find input for the first day
     const inputs = screen.getAllByRole("spinbutton")
-    fireEvent.change(inputs[0], { target: { value: "6" } })
+    if (inputs[0]) {
+      fireEvent.change(inputs[0], { target: { value: "6" } })
+    }
     
     expect(handleChange).toHaveBeenCalledWith("TASK-123", "2024-03-11", 6)
   })

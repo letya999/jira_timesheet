@@ -132,8 +132,8 @@ docker-compose.override.yml
 *storybook.log
 
 # Web (React)
-web/src/stories/
-web/src/api/generated/
+# web/src/stories/ -- unignored: stories are source files that must be committed
+# web/src/api/generated/ -- unignored: generated types committed for CI/CD type checking
 web/node_modules/
 web/dist/
 web/dist-ssr/
