@@ -30,6 +30,6 @@ sync       → /sync/status, /sync/trigger
 - Form schemas derived from the same Zod definitions (single source of truth)
 
 ### Completion Criteria
-- [ ] `bun run api:generate` runs without errors
-- [ ] All endpoints produce typed response shapes
-- [ ] Client interceptors handle auth errors globally
+- [x] `bun run api:generate` runs without errors
+- [x] All endpoints produce typed response shapes
+- [x] Client interceptors handle auth errors globally
