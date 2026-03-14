@@ -150,8 +150,8 @@ web/.cache/
 web/*.log
 web/.env.local
 web/.env.*.local
-web/src/stories/
-web/.storybook/
+# web/src/stories/ - unignored as per plan
+# web/.storybook/ - unignored
 
 # Bun
 bun.lockb

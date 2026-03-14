@@ -1,20 +1,82 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
 @theme {
-  --font-sans: "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif";
-}
+  /* Brand Colors */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
 
-:root {
-  --primary: #0052cc;
-  --secondary: #0747a6;
-  --success: #36b37e;
-  --warning: #ffab00;
-  --error: #bf2600;
-  --info: #00b8d9;
+  --color-neutral: var(--neutral);
+  --color-neutral-subtle: var(--neutral-subtle);
+  --color-neutral-border: var(--neutral-border);
+  --color-neutral-background: var(--neutral-background);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-md: var(--text-md);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+
+  --leading-none: var(--leading-none);
+  --leading-tight: var(--leading-tight);
+  --leading-snug: var(--leading-snug);
+  --leading-normal: var(--leading-normal);
+  --leading-relaxed: var(--leading-relaxed);
+  --leading-loose: var(--leading-loose);
+
+  --font-weight-light: var(--font-light);
+  --font-weight-normal: var(--font-normal);
+  --font-weight-medium: var(--font-medium);
+  --font-weight-semibold: var(--font-semibold);
+  --font-weight-bold: var(--font-bold);
+
+  /* Spacing */
+  --spacing-1: var(--spacing-1);
+  --spacing-2: var(--spacing-2);
+  --spacing-3: var(--spacing-3);
+  --spacing-4: var(--spacing-4);
+  --spacing-5: var(--spacing-5);
+  --spacing-6: var(--spacing-6);
+  --spacing-8: var(--spacing-8);
+  --spacing-10: var(--spacing-10);
+  --spacing-12: var(--spacing-12);
+  --spacing-16: var(--spacing-16);
+
+  /* Radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+
+  /* Shadows */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
 }
 
 @layer base {
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-neutral-background text-neutral font-sans antialiased;
+  }
+
+  /* Support for [data-theme="dark"] on html */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
   }
 }
