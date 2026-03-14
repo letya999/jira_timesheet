@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, userEvent, within } from "@storybook/test"
 import { Input } from "./input"
 
 const meta: Meta<typeof Input> = {
@@ -25,6 +26,18 @@ type Story = StoryObj<typeof Input>
 export const Default: Story = {
   args: {
     placeholder: "Type something...",
+  },
+}
+
+export const Interactive: Story = {
+  args: {
+    placeholder: "Type here...",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByPlaceholderText("Type here...")
+    await userEvent.type(input, "Hello World")
+    await expect(input).toHaveValue("Hello World")
   },
 }
 

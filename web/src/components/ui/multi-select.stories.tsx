@@ -48,3 +48,18 @@ export const Preselected: Story = {
     )
   },
 }
+
+export const Disabled: Story = {
+  render: () => {
+    return (
+      <div className="w-[300px]">
+        <MultiSelect
+          options={options}
+          selected={["react"]}
+          onChange={() => {}}
+          disabled
+        />
+      </div>
+    )
+  },
+}

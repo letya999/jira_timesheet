@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, userEvent, within } from "@storybook/test"
 import { Button } from "./button"
 import { SearchIcon } from "lucide-react"
 
@@ -29,6 +30,18 @@ export const Default: Story = {
     children: "Button",
     variant: "default",
     size: "default",
+  },
+}
+
+export const Interactive: Story = {
+  args: {
+    children: "Click me",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const button = canvas.getByRole("button")
+    await userEvent.click(button)
+    await expect(button).toBeInTheDocument()
   },
 }
 

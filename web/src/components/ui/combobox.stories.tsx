@@ -23,6 +23,13 @@ export const Default: Story = {
   },
 }
 
+export const Preselected: Story = {
+  render: () => {
+    const [value, setValue] = React.useState("opt2")
+    return <Combobox options={options} value={value} onChange={setValue} />
+  },
+}
+
 export const Disabled: Story = {
   render: () => {
     return <Combobox options={options} disabled />

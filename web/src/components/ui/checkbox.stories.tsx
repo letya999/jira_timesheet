@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { expect, userEvent, within } from "@storybook/test"
 import { Checkbox } from "./checkbox"
 
 const meta: Meta<typeof Checkbox> = {
@@ -21,6 +22,20 @@ type Story = StoryObj<typeof Checkbox>
 export const Default: Story = {
   args: {
     id: "terms",
+  },
+}
+
+export const Interactive: Story = {
+  args: {
+    id: "interactive-checkbox",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const checkbox = canvas.getByRole("checkbox")
+    await userEvent.click(checkbox)
+    await expect(checkbox).toBeChecked()
+    await userEvent.click(checkbox)
+    await expect(checkbox).not.toBeChecked()
   },
 }
 

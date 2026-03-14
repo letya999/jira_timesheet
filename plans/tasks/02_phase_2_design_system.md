@@ -29,20 +29,20 @@
 ### 2c — Data Display
 *Components for structured information layout.*
 
-- [ ] **Card**: Various styles for Dashboard and Navigation.
-- [ ] **DataTable**: Base component using TanStack Table (sort, filter, virtualized).
-- [ ] **StatItem**: Large metrics with labels (Vacation/Sick leave stats).
-- [ ] **Accordion**: Animated collapsible sections for Org Units.
-- [ ] **Alert / Callout**: Info, Success, Warning, Error variants.
+- [x] **Card**: Various styles for Dashboard and Navigation.
+- [x] **DataTable**: Base component using TanStack Table (sort, filter, virtualized).
+- [x] **StatItem**: Large metrics with labels (Vacation/Sick leave stats).
+- [x] **Accordion**: Animated collapsible sections for Org Units.
+- [x] **Alert / Callout**: Info, Success, Warning, Error variants.
 
 ### 2d — Layout & Navigation
 *Application shell and structural components.*
 
-- [ ] **Sidebar**: Collapsible, active state handling (TanStack Router).
-- [ ] **AppHeader**: Breadcrumbs, Logo, User profile trigger.
-- [ ] **Tabs**: Underline and Pill variants for view switching.
-- [ ] **DropdownMenu**: Trigger-based menus for actions.
-- [ ] **Sheet (Drawer)**: Side panels for quick editing.
+- [x] **Sidebar**: Collapsible, active state handling (TanStack Router).
+- [x] **AppHeader**: Breadcrumbs, Logo, User profile trigger.
+- [x] **Tabs**: Underline and Pill variants for view switching.
+- [x] **DropdownMenu**: Trigger-based menus for actions.
+- [x] **Sheet (Drawer)**: Side panels for quick editing.
 
 ### 2e — Domain Specific Components
 *Tailored for Jira Timesheet specific logic.*
