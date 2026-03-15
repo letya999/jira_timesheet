@@ -9,7 +9,7 @@ describe("LeaveTimeline", () => {
       id: "e1",
       userId: "1",
       userName: "Alice Johnson",
-      type: "vacation" as const,
+      type: "VACATION" as const,
       startDate: new Date("2024-03-12"),
       endDate: new Date("2024-03-12"),
     },
@@ -53,8 +53,9 @@ describe("LeaveTimeline", () => {
         entries={[]}
       />
     )
-    const headers = container.querySelectorAll("th.bg-muted\\/30")
+    // New CSS Grid layout uses data-weekend attribute on role="columnheader" divs
+    const weekendHeaders = container.querySelectorAll('[role="columnheader"][data-weekend="true"]')
     // Sat and Sun
-    expect(headers.length).toBe(2)
+    expect(weekendHeaders.length).toBe(2)
   })
 })

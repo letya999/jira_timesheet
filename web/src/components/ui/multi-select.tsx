@@ -31,6 +31,7 @@ interface MultiSelectProps {
   onChange: (selected: string[]) => void
   placeholder?: string
   className?: string
+  disabled?: boolean
 }
 
 export function MultiSelect({
@@ -39,10 +40,12 @@ export function MultiSelect({
   onChange,
   placeholder = "Select options...",
   className,
+  disabled,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
 
   const handleUnselect = (value: string) => {
+    if (disabled) return
     onChange(selected.filter((s) => s !== value))
   }
 
@@ -53,6 +56,7 @@ export function MultiSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn(
             "w-full justify-between h-auto min-h-10 px-3 py-2",
             className

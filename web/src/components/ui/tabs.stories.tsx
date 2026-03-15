@@ -34,7 +34,7 @@ export const Default: Story = {
 
 export const Pill: Story = {
   render: () => (
-    <Tabs defaultValue="all" className="w-[400px]" variant="pills">
+    <Tabs defaultValue="all" className="w-[400px]">
       <TabsList>
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="active">Active</TabsTrigger>

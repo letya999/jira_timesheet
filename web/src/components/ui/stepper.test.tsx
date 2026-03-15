@@ -13,7 +13,9 @@ describe("Stepper", () => {
     render(<Stepper value={5} onValueChange={onValueChange} />)
     
     const incrementBtn = screen.getAllByRole("button")[1] // Second button is Plus
-    fireEvent.click(incrementBtn)
+    if (incrementBtn) {
+      fireEvent.click(incrementBtn)
+    }
 
     expect(onValueChange).toHaveBeenCalledWith(6)
   })
@@ -23,7 +25,9 @@ describe("Stepper", () => {
     render(<Stepper value={5} onValueChange={onValueChange} />)
     
     const decrementBtn = screen.getAllByRole("button")[0] // First button is Minus
-    fireEvent.click(decrementBtn)
+    if (decrementBtn) {
+      fireEvent.click(decrementBtn)
+    }
 
     expect(onValueChange).toHaveBeenCalledWith(4)
   })
