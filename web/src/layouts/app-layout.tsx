@@ -1,12 +1,32 @@
-import { Outlet } from '@tanstack/react-router'
+import { useRouter, Outlet } from '@tanstack/react-router'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useUIStore } from '@/stores/ui-store'
+import { useInactivityTimer, useLogout } from '@/features/auth/hooks'
+import { toast } from '@/lib/toast'
 import { AppSidebar } from './components/sidebar'
 import { Topbar } from './components/topbar'
+
+const WARN_MS = 25 * 60 * 1000
+const TIMEOUT_MS = 30 * 60 * 1000
 
 export function AppLayout() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
+  const { mutate: logout } = useLogout()
+  const router = useRouter()
+
+  useInactivityTimer({
+    timeoutMs: TIMEOUT_MS,
+    warnMs: WARN_MS,
+    onWarn: () => {
+      toast.warning('You will be logged out in 5 minutes due to inactivity.')
+    },
+    onTimeout: () => {
+      logout(undefined, {
+        onSuccess: () => router.navigate({ to: '/login' }),
+      })
+    },
+  })
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
