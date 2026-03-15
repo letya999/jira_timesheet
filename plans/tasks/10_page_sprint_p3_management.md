@@ -20,5 +20,5 @@
 ### Completion Criteria
 - [ ] Employees page assembled
 - [ ] Org Structure page assembled
-- [ ] Projects page assembled with Gantt integration
+- [ ] Projects page assembled
 - [ ] E2E tests pass

@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jira Timesheet - Modern UI</title>
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('jira-timesheet-theme') || 'system';
+          var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+          if (theme === 'dark' || (theme === 'system' && supportDarkMode)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

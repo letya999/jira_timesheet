@@ -134,17 +134,35 @@
 }
 
 [data-theme="dark"] {
-  --primary: var(--color-primary-200);
-  --primary-hover: var(--color-primary-300);
+  /* Semantic UI tokens for Dark Mode */
+  --primary: var(--color-primary-300);
+  --primary-hover: var(--color-primary-200);
   --primary-foreground: var(--color-neutral-1100);
 
   --neutral: #ffffff;
-  --neutral-subtle: var(--color-neutral-300);
+  --neutral-subtle: var(--color-neutral-400);
   --neutral-border: var(--color-neutral-800);
-  --neutral-background: #1d2125; /* Dark surface */
+  --neutral-background: #1d2125; /* Atlassian Dark surface */
 
   --success: var(--color-success-300);
   --warning: var(--color-warning-300);
   --error: var(--color-error-300);
   --info: var(--color-info-300);
+
+  /* shadcn/ui compatible mappings for dark mode */
+  --background: var(--neutral-background);
+  --foreground: var(--neutral);
+  --card: #22272b;
+  --card-foreground: var(--neutral);
+  --popover: #22272b;
+  --popover-foreground: var(--neutral);
+  --border: var(--neutral-border);
+  --input: var(--neutral-border);
+  --ring: var(--primary);
+  --secondary: 240 3.7% 15.9%; /* Generic dark secondary */
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: var(--neutral-subtle);
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
 }

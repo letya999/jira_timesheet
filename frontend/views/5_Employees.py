@@ -1,3 +1,4 @@
+# DEPRECATED: migrated to React /app/employees
 import pandas as pd
 import streamlit as st
 from api_client import (

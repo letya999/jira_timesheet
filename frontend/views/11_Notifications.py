@@ -15,6 +15,7 @@ if not token:
     st.stop()
 
 st.title(f"🔔 {t('notifications.title')}")
+st.warning("Deprecated: this Streamlit page is superseded by /app/notifications in the web client.")
 
 col1, col2 = st.columns([0.8, 0.2])
 with col1:

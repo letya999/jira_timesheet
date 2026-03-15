@@ -23,6 +23,7 @@ if not user_info or user_info["role"] not in ["Admin", "CEO"]:
     st.stop()
 
 st.title(f"🏢 {t('leaves.hr_module')}")
+st.warning("Deprecated: this Streamlit page is superseded by /app/hr in the web client.")
 
 # --- FILTERS ---
 with st.expander(t("leaves.hr_filters"), expanded=True):

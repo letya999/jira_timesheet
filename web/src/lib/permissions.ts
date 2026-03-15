@@ -8,7 +8,9 @@ export type Permission =
   | 'settings.manage'
   | 'sync.manage'
   | 'org.view'
-  | 'timesheet.manage';
+  | 'timesheet.manage'
+  | 'ai-chat:read'
+  | 'ai-chat:train';
 
 export type Role = 'admin' | 'manager' | 'employee' | 'hr';
 
@@ -24,6 +26,8 @@ export const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     'sync.manage',
     'org.view',
     'timesheet.manage',
+    'ai-chat:read',
+    'ai-chat:train',
   ]),
   manager: new Set([
     'reports.view',
@@ -33,6 +37,7 @@ export const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     'approvals.manage',
     'org.view',
     'timesheet.manage',
+    'ai-chat:read',
   ]),
   hr: new Set([
     'hr:read',

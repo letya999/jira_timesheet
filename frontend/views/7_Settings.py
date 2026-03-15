@@ -22,6 +22,7 @@ token, _ = ensure_session()
 
 st.title(f"⚙️ {t('settings.title')}")
 st.markdown(t("settings.subtitle"))
+st.warning("Deprecated: this Streamlit page is superseded by /app/settings in the web client.")
 
 if not token:
     st.warning(t("auth.please_login"))

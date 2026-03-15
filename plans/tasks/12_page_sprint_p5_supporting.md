@@ -18,7 +18,9 @@
 5. Streamlit equivalent page marked for deprecation
 
 ### Completion Criteria
-- [ ] Notifications page assembled
-- [ ] Settings page assembled
-- [ ] HR Module page assembled
+- [x] Notifications page assembled
+- [x] Settings page assembled
+- [x] HR Module page assembled
 - [ ] E2E tests pass
+
+_Note: E2E specs for P5 were added (`tests/e2e/supporting-pages.spec.ts`), but full pass is currently blocked by existing project-level frontend build issues outside Task 12 scope._

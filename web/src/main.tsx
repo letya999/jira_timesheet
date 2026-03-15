@@ -7,6 +7,7 @@ import './i18n';
 import { createQueryClient } from './lib/query-client';
 import { router } from './router';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ThemeProvider } from '@/components/shared/theme-provider';
 
 const ReactQueryDevtools =
   import.meta.env.DEV
@@ -22,14 +23,16 @@ const queryClient = createQueryClient();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <RouterProvider router={router} />
-        {ReactQueryDevtools && (
-          <React.Suspense fallback={null}>
-            <ReactQueryDevtools initialIsOpen={false} />
-          </React.Suspense>
-        )}
-      </TooltipProvider>
+      <ThemeProvider defaultTheme="system" storageKey="jira-timesheet-theme">
+        <TooltipProvider>
+          <RouterProvider router={router} />
+          {ReactQueryDevtools && (
+            <React.Suspense fallback={null}>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </React.Suspense>
+          )}
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

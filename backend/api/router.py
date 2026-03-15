@@ -14,6 +14,7 @@ from api.endpoints import (
     sync,
     timesheet,
     users,
+    ai,
 )
 
 api_router = APIRouter()
@@ -31,3 +32,4 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(calendar.router, prefix="/calendar", tags=["Calendar & Holidays"])
 api_router.include_router(leave.router, prefix="/leaves", tags=["Leave & Vacations"])
 api_router.include_router(slack.router, prefix="/slack", tags=["Slack Integration"])
+api_router.include_router(ai.router, prefix="/ai", tags=["AI Chat"])

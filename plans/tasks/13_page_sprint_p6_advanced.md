@@ -16,6 +16,6 @@
 5. Streamlit equivalent page marked for deprecation
 
 ### Completion Criteria
-- [ ] AI Chat page assembled and functional
-- [ ] SSE/WebSocket integration working
-- [ ] E2E tests pass
+- [x] AI Chat page assembled and functional
+- [x] SSE/WebSocket integration working
+- [x] E2E tests pass

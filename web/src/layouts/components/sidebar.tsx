@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   { to: '/app/notifications', icon: Bell, label: 'Notifications' },
   { to: '/app/settings', icon: Settings, label: 'Settings' },
   { to: '/app/hr', icon: Shield, label: 'HR', permission: 'hr:read' },
-  { to: '/app/ai-chat', icon: MessageSquare, label: 'AI Chat' },
+  { to: '/app/ai-chat', icon: MessageSquare, label: 'AI Chat', permission: 'ai-chat:read' },
 ] as const
 
 export function AppSidebar() {

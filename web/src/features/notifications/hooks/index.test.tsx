@@ -4,16 +4,24 @@ import { renderHookWithQuery, createTestQueryClient } from '../../../test/render
 
 vi.mock('../../../api/generated/sdk.gen', () => ({
   getMyNotificationsApiV1NotificationsGet: vi.fn(),
+  getNotificationStatsApiV1NotificationsStatsGet: vi.fn(),
   updateNotificationApiV1NotificationsNotificationIdPatch: vi.fn(),
   markAllNotificationsReadApiV1NotificationsMarkAllReadPost: vi.fn(),
 }));
 
 import {
   getMyNotificationsApiV1NotificationsGet,
+  getNotificationStatsApiV1NotificationsStatsGet,
   updateNotificationApiV1NotificationsNotificationIdPatch,
   markAllNotificationsReadApiV1NotificationsMarkAllReadPost,
 } from '../../../api/generated/sdk.gen';
-import { useNotifications, useMarkAsRead, useMarkAllRead, notificationsKeys } from './index';
+import {
+  useNotifications,
+  useNotificationStats,
+  useMarkAsRead,
+  useMarkAllRead,
+  notificationsKeys,
+} from './index';
 
 const mockNotifications = [
   { id: 1, is_read: false, message: 'Timesheet approved' },
@@ -44,6 +52,18 @@ describe('useNotifications', () => {
     const { result } = renderHookWithQuery(() => useNotifications());
     // The query config itself is what we verify — staleTime on the hook overrides the global 60s
     expect(result.current.isLoading || result.current.isSuccess || result.current.isPending).toBe(true);
+  });
+});
+
+describe('useNotificationStats', () => {
+  it('fetches unread count from stats endpoint', async () => {
+    vi.mocked(getNotificationStatsApiV1NotificationsStatsGet).mockResolvedValue({
+      data: { unread_count: 7 },
+    } as never);
+
+    const { result } = renderHookWithQuery(() => useNotificationStats());
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.unread_count).toBe(7);
   });
 });
 

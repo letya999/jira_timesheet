@@ -1,3 +1,4 @@
+# DEPRECATED: migrated to React /app/projects
 import time
 
 import streamlit as st

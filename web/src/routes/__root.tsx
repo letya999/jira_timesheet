@@ -1,4 +1,5 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { Toaster } from 'sonner'
 import { ErrorFallback } from '@/components/shared/error-fallback'
 
 function NotFoundPage() {
@@ -28,7 +29,12 @@ function RootErrorComponent({ error, reset }: { error: Error; reset: () => void 
 }
 
 export const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: () => (
+    <>
+      <Outlet />
+      <Toaster position="top-right" richColors closeButton />
+    </>
+  ),
   notFoundComponent: NotFoundPage,
   errorComponent: ({ error, reset }) => (
     <RootErrorComponent error={error as Error} reset={reset} />
