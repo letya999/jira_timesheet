@@ -1,3 +1,7 @@
+# DEPRECATED: This Streamlit page is superseded by the React web app.
+# React routes: /app/reports/capex and /app/reports/opex
+# Kept for reference during transition. Remove after React app is fully deployed.
+
 from datetime import datetime, timedelta
 
 import pandas as pd

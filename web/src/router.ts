@@ -13,6 +13,7 @@ import { employeeDetailRoute } from './routes/_app.employees.$id'
 import { projectsRoute } from './routes/_app.projects'
 import { projectDetailRoute } from './routes/_app.projects.$id'
 import { reportsRoute } from './routes/_app.reports'
+import { reportsIndexRoute } from './routes/_app.reports.index'
 import { reportsCapexRoute } from './routes/_app.reports.capex'
 import { reportsOpexRoute } from './routes/_app.reports.opex'
 import { approvalsRoute } from './routes/_app.approvals'
@@ -34,7 +35,7 @@ const routeTree = rootRoute.addChildren([
     employeeDetailRoute,
     projectsRoute,
     projectDetailRoute,
-    reportsRoute.addChildren([reportsCapexRoute, reportsOpexRoute]),
+    reportsRoute.addChildren([reportsIndexRoute, reportsCapexRoute, reportsOpexRoute]),
     approvalsRoute,
     controlSheetRoute,
     leaveRoute,
