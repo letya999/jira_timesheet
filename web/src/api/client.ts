@@ -1,7 +1,7 @@
 import { createClient } from '@hey-api/client-fetch';
 import { client as generatedClient } from './generated/client.gen';
 
-// Token storage key - matches what the auth store will use
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TOKEN_KEY = 'auth_token';
 
 export function getStoredToken(): string | null {
@@ -16,18 +16,64 @@ export function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-export const client = createClient({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-});
+function redirectToLogin() {
+  clearStoredToken();
+  // Lazy-import to avoid circular dep with auth store
+  import('../stores/auth-store').then(({ useAuthStore }) => {
+    useAuthStore.getState().clearAuth();
+  });
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
+}
 
-// Configure the generated client to use the same settings
-generatedClient.setConfig({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-});
+// Prevents concurrent refresh storms — only one refresh in flight at a time.
+let isRefreshing = false;
+let pendingResolvers: Array<(token: string | null) => void> = [];
 
-// Helper to attach interceptors to any client
+async function attemptTokenRefresh(): Promise<string | null> {
+  if (isRefreshing) {
+    return new Promise((resolve) => {
+      pendingResolvers.push(resolve);
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include', // sends httpOnly refresh cookie
+    });
+
+    if (!res.ok) {
+      pendingResolvers.forEach((r) => r(null));
+      pendingResolvers = [];
+      return null;
+    }
+
+    const body = (await res.json()) as { access_token?: string };
+    const newToken = body.access_token ?? null;
+
+    if (newToken) {
+      setStoredToken(newToken);
+      import('../stores/auth-store').then(({ useAuthStore }) => {
+        useAuthStore.getState().setToken(newToken);
+      });
+    }
+
+    pendingResolvers.forEach((r) => r(newToken));
+    pendingResolvers = [];
+    return newToken;
+  } catch {
+    pendingResolvers.forEach((r) => r(null));
+    pendingResolvers = [];
+    return null;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
 const setupInterceptors = (c: ReturnType<typeof createClient>) => {
-  // Attach Bearer token to every request
   c.interceptors.request.use((request) => {
     const token = getStoredToken();
     if (token) {
@@ -36,21 +82,42 @@ const setupInterceptors = (c: ReturnType<typeof createClient>) => {
     return request;
   });
 
-  // Global response error handler
-  c.interceptors.response.use((response) => {
+  c.interceptors.response.use(async (response, request) => {
     if (response.status === 401) {
-      clearStoredToken();
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+      // Don't attempt refresh if this request IS the refresh call (loop guard)
+      const url = typeof request === 'string' ? request : request?.url ?? '';
+      if (url.includes('/auth/refresh') || url.includes('/auth/login')) {
+        redirectToLogin();
+        return response;
       }
-    } else if (response.status === 403) {
+
+      const newToken = await attemptTokenRefresh();
+      if (!newToken) {
+        redirectToLogin();
+        return response;
+      }
+
+      // Retry the original request with the fresh token
+      const retried = new Request(request as RequestInfo, {
+        headers: new Headers(request instanceof Request ? request.headers : {}),
+      });
+      retried.headers.set('Authorization', `Bearer ${newToken}`);
+      return fetch(retried);
+    }
+
+    if (response.status === 403) {
       console.error('[API] Forbidden:', response.url);
     } else if (response.status >= 500) {
       console.error('[API] Server error:', response.status, response.url);
     }
+
     return response;
   });
 };
 
+export const client = createClient({ baseUrl: BASE_URL });
+
+generatedClient.setConfig({ baseUrl: BASE_URL });
+
 setupInterceptors(client);
-setupInterceptors(generatedClient as any);
+setupInterceptors(generatedClient as ReturnType<typeof createClient>);
