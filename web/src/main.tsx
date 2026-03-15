@@ -6,6 +6,7 @@ import './styles/index.css';
 import './i18n';
 import { createQueryClient } from './lib/query-client';
 import { router } from './router';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const ReactQueryDevtools =
   import.meta.env.DEV
@@ -21,12 +22,14 @@ const queryClient = createQueryClient();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      {ReactQueryDevtools && (
-        <React.Suspense fallback={null}>
-          <ReactQueryDevtools initialIsOpen={false} />
-        </React.Suspense>
-      )}
+      <TooltipProvider>
+        <RouterProvider router={router} />
+        {ReactQueryDevtools && (
+          <React.Suspense fallback={null}>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </React.Suspense>
+        )}
+      </TooltipProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );
