@@ -22,9 +22,9 @@ interface NotificationItemProps {
 }
 
 const typeConfig = {
-  INFO: { icon: Info, color: "text-blue-500", bg: "bg-blue-500/10" },
+  INFO: { icon: Info, color: "text-blue-700", bg: "bg-blue-500/10" },
   SUCCESS: { icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
-  WARNING: { icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-500/10" },
+  WARNING: { icon: AlertCircle, color: "text-amber-700", bg: "bg-amber-500/10" },
   ERROR: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10" },
   SYSTEM: { icon: Bell, color: "text-primary", bg: "bg-primary/10" },
 }
@@ -59,7 +59,7 @@ export function NotificationItem({
         <p className={cn("text-sm leading-snug", !isRead ? "font-semibold" : "text-muted-foreground")}>
           {message}
         </p>
-        <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
           <Clock className="size-3" />
           <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
         </div>

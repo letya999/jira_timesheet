@@ -53,8 +53,9 @@ describe("LeaveTimeline", () => {
         entries={[]}
       />
     )
-    const headers = container.querySelectorAll("th.bg-muted\\/30")
+    // New CSS Grid layout uses data-weekend attribute on role="columnheader" divs
+    const weekendHeaders = container.querySelectorAll('[role="columnheader"][data-weekend="true"]')
     // Sat and Sun
-    expect(headers.length).toBe(2)
+    expect(weekendHeaders.length).toBe(2)
   })
 })

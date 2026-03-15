@@ -26,7 +26,7 @@ export function EmployeeCard({
 
   const syncConfig = {
     synced: { icon: CheckCircle2, color: "text-success", label: "Synced" },
-    pending: { icon: Clock, color: "text-amber-500", label: "Pending" },
+    pending: { icon: Clock, color: "text-amber-700", label: "Pending" },
     failed: { icon: AlertCircle, color: "text-destructive", label: "Failed" },
   }
 
@@ -64,7 +64,7 @@ export function EmployeeCard({
           </Badge>
           <Badge 
             variant={user.is_active ? "default" : "secondary"}
-            className={cn("rounded-full uppercase text-[9px]", user.is_active ? "bg-success hover:bg-success/90" : "")}
+            className={cn("rounded-full uppercase text-xs", user.is_active ? "bg-success hover:bg-success/90" : "")}
           >
             {user.is_active ? "Active" : "Inactive"}
           </Badge>

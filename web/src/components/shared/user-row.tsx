@@ -36,7 +36,7 @@ export function UserRow({
           </span>
           {user.org_unit_id && (
             <>
-              <span className="text-muted-foreground text-[10px]">•</span>
+              <span className="text-muted-foreground text-xs">•</span>
               <span className="text-xs text-muted-foreground truncate">
                 Dept #{user.org_unit_id}
               </span>
@@ -47,7 +47,7 @@ export function UserRow({
       {showStatus && (
         <Badge 
           variant={user.is_active ? "default" : "secondary"}
-          className={cn("text-[10px] h-5 px-1.5 uppercase", user.is_active ? "bg-success hover:bg-success/90" : "")}
+          className={cn("text-xs h-5 px-1.5 uppercase", user.is_active ? "bg-success hover:bg-success/90" : "")}
         >
           {user.is_active ? "Active" : "Inactive"}
         </Badge>

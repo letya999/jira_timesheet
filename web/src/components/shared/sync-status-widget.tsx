@@ -41,7 +41,7 @@ export function SyncStatusWidget({
           />
           <div>
             <h4 className="text-sm font-semibold">Jira Data Sync</h4>
-            <p className="text-[10px] text-muted-foreground uppercase">
+            <p className="text-xs text-muted-foreground uppercase">
               {status === 'syncing' ? 'Syncing in progress...' : `Last sync: ${lastSyncAt ? formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true }) : 'Never'}`}
             </p>
           </div>
@@ -60,7 +60,7 @@ export function SyncStatusWidget({
 
       {status === 'syncing' && (
         <div className="space-y-1.5">
-          <div className="flex justify-between text-[10px] text-muted-foreground">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Syncing projects and worklogs...</span>
             <span>{Math.round(progress)}%</span>
           </div>

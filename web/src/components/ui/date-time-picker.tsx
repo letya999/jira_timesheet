@@ -47,13 +47,13 @@ export function DateTimePicker({ date, setDate, className }: DateTimePickerProps
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex flex-col gap-2 w-full", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
             className={cn(
-              "w-[240px] justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
@@ -76,7 +76,8 @@ export function DateTimePicker({ date, setDate, className }: DateTimePickerProps
           type="time"
           value={timeValue}
           onChange={handleTimeChange}
-          className="w-[120px] pl-9"
+          aria-label="Time"
+          className="w-full pl-9"
         />
       </div>
     </div>

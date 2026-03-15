@@ -68,7 +68,7 @@ export function OrgTreeNode({
         )} />
         <span className="flex-1 truncate text-sm">{node.name}</span>
         {node.memberCount !== undefined && (
-          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
             {node.memberCount} members
           </span>
         )}

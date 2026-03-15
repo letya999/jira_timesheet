@@ -30,7 +30,7 @@ export function ProjectRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-sm truncate">{project.name}</h3>
-          <Badge variant="outline" className="text-[10px] font-mono uppercase h-4 px-1">
+          <Badge variant="outline" className="text-xs font-mono uppercase h-4 px-1">
             {project.key}
           </Badge>
         </div>
@@ -44,7 +44,7 @@ export function ProjectRow({
       <div className="flex items-center gap-3">
         <Badge 
           variant={project.is_active ? "default" : "secondary"}
-          className={cn("text-[10px] uppercase", project.is_active ? "bg-success hover:bg-success/90" : "")}
+          className={cn("text-xs uppercase", project.is_active ? "bg-success hover:bg-success/90" : "")}
         >
           {project.is_active ? "Active" : "Inactive"}
         </Badge>

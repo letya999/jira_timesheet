@@ -26,10 +26,10 @@ interface LeaveRequestCardProps {
 }
 
 const statusConfig: Record<LeaveStatus, { label: string; color: string }> = {
-  PENDING: { label: "Pending", color: "bg-amber-500" },
+  PENDING: { label: "Pending", color: "bg-amber-700" },
   APPROVED: { label: "Approved", color: "bg-success" },
   REJECTED: { label: "Rejected", color: "bg-destructive" },
-  CANCELLED: { label: "Cancelled", color: "bg-muted-foreground" },
+  CANCELLED: { label: "Cancelled", color: "bg-neutral-600" },
 }
 
 export function LeaveRequestCard({
@@ -71,10 +71,10 @@ export function LeaveRequestCard({
         <div className="flex flex-col flex-1 min-w-0">
           <CardTitle className="text-sm font-bold">{userName}</CardTitle>
           <div className="flex items-center gap-2 mt-0.5">
-            <Badge variant="secondary" className="text-[10px] h-4 px-1 uppercase">
+            <Badge variant="secondary" className="text-xs h-4 px-1 uppercase">
               {LEAVE_TYPE_LABELS[type]}
             </Badge>
-            <Badge className={cn("text-[10px] h-4 px-1 uppercase border-none text-white", statusColor)}>
+            <Badge className={cn("text-xs h-4 px-1 uppercase border-none text-white", statusColor)}>
               {statusLabel}
             </Badge>
           </div>

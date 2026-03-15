@@ -63,7 +63,7 @@ export function ApprovalCard({
           <CardTitle className="text-sm font-bold">{userName}</CardTitle>
           <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
         </div>
-        <Badge variant="outline" className="uppercase text-[10px]">
+        <Badge variant="outline" className="uppercase text-xs">
           {status}
         </Badge>
       </CardHeader>

@@ -82,7 +82,7 @@ export function TimesheetGrid({
                 <Typography variant="small" className="font-bold leading-none">
                   {format(day, "EEE")}
                 </Typography>
-                <Typography variant="small" className="text-[10px] text-muted-foreground mt-1">
+                <Typography variant="small" className="text-xs text-muted-foreground mt-1">
                   {format(day, "MMM d")}
                 </Typography>
               </div>
@@ -121,7 +121,7 @@ export function TimesheetGrid({
                       <Typography variant="small" className="font-medium truncate" title={entry.taskName}>
                         {entry.taskName}
                       </Typography>
-                      <Typography variant="small" className="text-[10px] text-muted-foreground font-mono">
+                      <Typography variant="small" className="text-xs text-muted-foreground font-mono">
                         {entry.projectKey}
                       </Typography>
                     </div>

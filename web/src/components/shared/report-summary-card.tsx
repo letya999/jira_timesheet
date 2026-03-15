@@ -32,7 +32,7 @@ export function ReportSummaryCard({
           </div>
           <div className="text-right">
             <Typography variant="h3" className="font-bold">{totalHours}h</Typography>
-            <p className="text-[10px] text-muted-foreground uppercase font-medium">Total logged</p>
+            <p className="text-xs text-muted-foreground uppercase font-medium">Total logged</p>
           </div>
         </div>
       </CardHeader>

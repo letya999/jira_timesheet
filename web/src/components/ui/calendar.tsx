@@ -38,6 +38,10 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       locale={locale}
+      labels={{
+        labelPrevious: () => "Go to previous month",
+        labelNext: () => "Go to next month",
+      }}
       formatters={{
         formatMonthDropdown: (date) =>
           date.toLocaleString(locale?.code, { month: "short" }),
