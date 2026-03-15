@@ -1,0 +1,13 @@
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Copy dependency files first for better layer caching
+COPY package.json bun.lock* ./
+
+RUN bun install --frozen-lockfile
+
+# Source files are mounted at runtime via volume, not copied here
+EXPOSE 5173
+
+CMD ["bun", "run", "dev", "--host", "0.0.0.0"]

@@ -78,6 +78,21 @@ services:
     working_dir: /app/frontend
     command: uv run streamlit run app.py --server.port 8501 --server.address 0.0.0.0
 
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PROXY_TARGET=http://backend:8000
+      - VITE_API_URL=
+    depends_on:
+      - backend
+
 volumes:
   db_data_dev:
   vanna_data_dev:
