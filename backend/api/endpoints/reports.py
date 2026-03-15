@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from hashlib import md5
 from io import BytesIO
 from typing import Any
 
@@ -142,6 +144,10 @@ async def get_report_sprints(db: AsyncSession = Depends(get_db), current_user=De
 
 async def _apply_custom_filters(query, payload: CustomReportRequest, current_user: User, db: AsyncSession):
     """Applies complex filters for custom reports based on roles and payload."""
+    # Track which joins have been applied to prevent duplicate joins causing SQL errors
+    joined_issue = False
+    joined_jira_user = False
+
     if current_user.role == "Employee":
         payload.user_ids = [current_user.jira_user_id] if current_user.jira_user_id else [-1]
         payload.org_unit_id = None
@@ -151,28 +157,52 @@ async def _apply_custom_filters(query, payload: CustomReportRequest, current_use
         if not my_unit_ids:
             payload.user_ids = [current_user.jira_user_id] if current_user.jira_user_id else [-1]
         else:
-            query = query.join(Worklog.jira_user).where(JiraUser.org_unit_id.in_(my_unit_ids))
+            query = query.join(Worklog.jira_user)
+            joined_jira_user = True
+            query = query.where(JiraUser.org_unit_id.in_(my_unit_ids))
 
     if payload.project_id:
-        query = query.join(Worklog.issue).where(Issue.project_id == payload.project_id)
-    if hasattr(payload, "org_unit_id") and payload.org_unit_id:
-        query = query.join(Worklog.jira_user).where(JiraUser.org_unit_id == payload.org_unit_id)
+        query = query.join(Worklog.issue)
+        joined_issue = True
+        query = query.where(Issue.project_id == payload.project_id)
+
+    if payload.org_unit_id:
+        if not joined_jira_user:
+            query = query.join(Worklog.jira_user)
+            joined_jira_user = True
+        query = query.where(JiraUser.org_unit_id == payload.org_unit_id)
+
     if payload.user_ids:
         query = query.where(Worklog.jira_user_id.in_(payload.user_ids))
+
     if payload.sprint_ids:
         from models.project import issue_sprints
 
-        query = query.join(Worklog.issue).join(issue_sprints).where(issue_sprints.c.sprint_id.in_(payload.sprint_ids))
+        if not joined_issue:
+            query = query.join(Worklog.issue)
+            joined_issue = True
+        query = query.join(issue_sprints).where(issue_sprints.c.sprint_id.in_(payload.sprint_ids))
+
     if payload.worklog_types:
         query = query.where(Worklog.type.in_(payload.worklog_types))
+
     if payload.category_ids:
         query = query.where(Worklog.category_id.in_(payload.category_ids))
 
     return query
 
 
+def _custom_report_cache_key(func, namespace: str, *args, **kwargs) -> str:
+    """Cache key for POST /custom that includes request body hash to prevent collisions."""
+    payload: CustomReportRequest | None = kwargs.get("payload")
+    if payload is None and args:
+        payload = args[0]
+    body_hash = md5(json.dumps(payload.model_dump(mode="json") if payload else {}, sort_keys=True).encode()).hexdigest()
+    return f"{namespace}:{func.__name__}:{body_hash}"
+
+
 @router.post("/custom", response_model=dict[str, Any])
-@cache(expire=300, namespace="reports")
+@cache(expire=300, namespace="reports", key_builder=_custom_report_cache_key)
 async def get_custom_report(
     payload: CustomReportRequest,
     db: AsyncSession = Depends(get_db),
@@ -198,9 +228,7 @@ async def get_custom_report(
 
     report_data = []
     for w in worklogs:
-        h_val = w.hours
-        if hasattr(payload, "format") and payload.format == "days" and hasattr(payload, "hours_per_day"):
-            h_val = w.hours / payload.hours_per_day
+        h_val = w.hours if payload.format != "days" else w.hours / payload.hours_per_day
 
         unit_name = w.jira_user.org_unit.name if w.jira_user and w.jira_user.org_unit else "N/A"
         parent_name = "N/A"

@@ -1,28 +1,16 @@
-import { createRoute, redirect } from '@tanstack/react-router'
-import { reportsRoute } from './_app.reports'
-import { useAuthStore } from '@/stores/auth-store'
-import { queryClient } from '@/lib/query-client'
-import { reportsKeys } from '@/features/reports/hooks'
-import { getDashboardDataApiV1ReportsDashboardGet } from '@/api/generated/sdk.gen'
+import { createRoute, redirect } from '@tanstack/react-router';
+import { reportsRoute } from './_app.reports';
+import { useAuthStore } from '@/stores/auth-store';
+import { OpexReportPage } from '@/features/reports/pages/opex-report-page';
 
 export const reportsOpexRoute = createRoute({
   path: 'opex',
   getParentRoute: () => reportsRoute,
   beforeLoad: () => {
-    const { permissions } = useAuthStore.getState()
+    const { permissions } = useAuthStore.getState();
     if (!permissions.includes('reports.view')) {
-      throw redirect({ to: '/app/dashboard' })
+      throw redirect({ to: '/app/dashboard' });
     }
   },
-  loader: () =>
-    queryClient.prefetchQuery({
-      queryKey: reportsKeys.opex(),
-      queryFn: () => getDashboardDataApiV1ReportsDashboardGet().then((r) => r.data),
-    }).catch(() => null),
-  component: () => (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">OpEx Report</h2>
-      <p className="text-muted-foreground">Operating expenditure report placeholder — Phase 6</p>
-    </div>
-  ),
-})
+  component: OpexReportPage,
+});
