@@ -22,8 +22,10 @@ function retryDelay(attemptIndex: number): number {
   return Math.min(1_000 * 2 ** attemptIndex, 30_000);
 }
 
+export let queryClient: QueryClient
+
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     queryCache: new QueryCache({
       onError(error) {
         const status = getErrorStatus(error);
@@ -54,4 +56,6 @@ export function createQueryClient(): QueryClient {
       },
     },
   });
+  queryClient = client;
+  return client;
 }
