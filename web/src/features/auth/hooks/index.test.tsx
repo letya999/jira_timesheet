@@ -33,6 +33,7 @@ const mockProfile = {
   display_name: 'Alice',
   is_active: true,
   is_admin: false,
+  timezone: 'UTC',
   jira_account_id: null,
 };
 

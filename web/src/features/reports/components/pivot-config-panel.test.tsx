@@ -15,6 +15,8 @@ const defaultFilters: ReportFilters = {
   category_ids: [],
   group_by_rows: ['user', 'project'],
   group_by_cols: ['date'],
+  group_horizontally_by: null,
+  group_vertically_by: null,
   date_granularity: 'week',
   format: 'hours',
   hours_per_day: 8,
@@ -31,6 +33,8 @@ describe('PivotConfigPanel', () => {
     );
     expect(screen.getByText('Row dimensions')).toBeDefined();
     expect(screen.getByText('Column dimensions')).toBeDefined();
+    expect(screen.getByText('Group horizontally by')).toBeDefined();
+    expect(screen.getByText('Group vertically by')).toBeDefined();
   });
 
   it('renders "Run report" button', () => {
@@ -80,6 +84,32 @@ describe('PivotConfigPanel', () => {
     );
     expect(screen.getByText('Date granularity')).toBeDefined();
     expect(screen.getByText('Week')).toBeDefined();
+  });
+
+  it('does not block run when horizontal grouping overlaps rows', () => {
+    const filters = { ...defaultFilters, group_horizontally_by: 'user' };
+    render(
+      <PivotConfigPanel
+        filters={filters}
+        onFilter={vi.fn()}
+        onRun={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/horizontal group dimension cannot overlap/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /run report/i })).not.toBeDisabled();
+  });
+
+  it('blocks run when same dimension selected for horizontal and vertical grouping', () => {
+    const filters = { ...defaultFilters, group_horizontally_by: 'task', group_vertically_by: 'task' };
+    render(
+      <PivotConfigPanel
+        filters={filters}
+        onFilter={vi.fn()}
+        onRun={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/horizontal and vertical grouping cannot use the same dimension/i)).toBeDefined();
+    expect(screen.getByRole('button', { name: /run report/i })).toBeDisabled();
   });
 
   it('hides date granularity controls when "date" is not in rows or cols', () => {

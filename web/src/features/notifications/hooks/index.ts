@@ -1,23 +1,38 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMyNotificationsApiV1NotificationsGet,
+  getNotificationStatsApiV1NotificationsStatsGet,
   updateNotificationApiV1NotificationsNotificationIdPatch,
   markAllNotificationsReadApiV1NotificationsMarkAllReadPost,
 } from '../../../api/generated/sdk.gen';
+import type { NotificationResponse, NotificationStats } from '../../../api/generated/types.gen';
 import { toast } from '../../../lib/toast';
 
 export const notificationsKeys = {
   all: () => ['notifications'] as const,
   list: (params?: object) => ['notifications', 'list', params] as const,
+  stats: () => ['notifications', 'stats'] as const,
 };
 
-type Notification = {
+type Notification = NotificationResponse;
+
+type NotificationsResponse = {
+  items?: NotificationResponse[];
+};
+
+function normalizeNotifications(data: Notification[] | NotificationsResponse | null | undefined): Notification[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.items)) return data.items;
+  return [];
+}
+
+type OptimisticNotification = {
   id: number;
   is_read: boolean;
-  [key: string]: unknown;
 };
 
-export function useNotifications(params?: { unread_only?: boolean; limit?: number }) {
+export function useNotifications(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: notificationsKeys.list(params),
     queryFn: async () => {
@@ -25,11 +40,23 @@ export function useNotifications(params?: { unread_only?: boolean; limit?: numbe
         throwOnError: true,
         query: params,
       });
-      return res.data;
+      return normalizeNotifications(res.data);
     },
     // Poll every 30s per spec requirement
     refetchInterval: 30_000,
     // No stale time — notifications should be fresh
+    staleTime: 0,
+  });
+}
+
+export function useNotificationStats() {
+  return useQuery({
+    queryKey: notificationsKeys.stats(),
+    queryFn: async (): Promise<NotificationStats> => {
+      const res = await getNotificationStatsApiV1NotificationsStatsGet({ throwOnError: true });
+      return res.data;
+    },
+    refetchInterval: 30_000,
     staleTime: 0,
   });
 }
@@ -49,11 +76,11 @@ export function useMarkAsRead() {
     onMutate: async (notificationId) => {
       await queryClient.cancelQueries({ queryKey: notificationsKeys.all() });
 
-      const previousData = queryClient.getQueriesData<Notification[]>({
+      const previousData = queryClient.getQueriesData<OptimisticNotification[]>({
         queryKey: notificationsKeys.all(),
       });
 
-      queryClient.setQueriesData<Notification[]>(
+      queryClient.setQueriesData<OptimisticNotification[]>(
         { queryKey: notificationsKeys.all() },
         (old) => {
           if (!Array.isArray(old)) return old;
@@ -73,6 +100,7 @@ export function useMarkAsRead() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: notificationsKeys.all() });
+      queryClient.invalidateQueries({ queryKey: notificationsKeys.stats() });
     },
   });
 }
@@ -86,6 +114,7 @@ export function useMarkAllRead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationsKeys.all() });
+      queryClient.invalidateQueries({ queryKey: notificationsKeys.stats() });
     },
   });
 }

@@ -12,7 +12,7 @@ export const approvalsKeys = {
   myPeriod: (params?: object) => ['approvals', 'my-period', params] as const,
 };
 
-export function useApprovals(params?: { start_date?: string; end_date?: string; status?: string }) {
+export function useApprovals(params: { start_date: string; end_date: string; status?: string; org_unit_id?: number }) {
   return useQuery({
     queryKey: approvalsKeys.teamPeriods(params),
     queryFn: async () => {
@@ -25,13 +25,15 @@ export function useApprovals(params?: { start_date?: string; end_date?: string; 
   });
 }
 
-export function useMyApprovalPeriod(params?: { start_date?: string; end_date?: string }) {
+export function useMyApprovalPeriod(params: { start_date: string; end_date: string }) {
   return useQuery({
     queryKey: approvalsKeys.myPeriod(params),
     queryFn: async () => {
       const res = await getMyPeriodApiV1ApprovalsMyPeriodGet({
         throwOnError: true,
-        query: params,
+        query: {
+          target_date: params.start_date, // Based on TSC error, it might expect target_date
+        },
       });
       return res.data;
     },

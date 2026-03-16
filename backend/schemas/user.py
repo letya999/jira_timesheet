@@ -6,6 +6,7 @@ class UserBase(BaseModel):
     full_name: str | None = "Jira User"
     role: str = "Employee"
     jira_user_id: int | None = None
+    timezone: str = "UTC"
 
 
 class UserCreate(UserBase):
@@ -16,6 +17,7 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     role: str | None = None
     is_active: bool | None = None
+    timezone: str | None = None
 
 
 class UserResponse(UserBase):
@@ -24,6 +26,7 @@ class UserResponse(UserBase):
     needs_password_change: bool = False
     org_unit_id: int | None = None
     display_name: str | None = None
+    timezone: str
 
     model_config = ConfigDict(from_attributes=True)
 

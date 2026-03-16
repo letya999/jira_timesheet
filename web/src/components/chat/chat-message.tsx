@@ -52,8 +52,8 @@ export function ChatMessage({
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              // @ts-ignore
-              a: ({ node, children, ...props }) => {
+              // @ts-expect-error - ReactMarkdown components type mismatch
+              a: ({ children, ...props }) => {
                 const text = children?.toString() || ""
                 if (/^[A-Z]+-\d+$/.test(text)) {
                   return (

@@ -40,10 +40,13 @@ const NAV_ITEMS = [
   { to: '/app/notifications', icon: Bell, label: 'Notifications' },
   { to: '/app/settings', icon: Settings, label: 'Settings' },
   { to: '/app/hr', icon: Shield, label: 'HR', permission: 'hr:read' },
-  { to: '/app/ai-chat', icon: MessageSquare, label: 'AI Chat' },
+  { to: '/app/ai-chat', icon: MessageSquare, label: 'AI Chat', permission: 'ai-chat:read' },
 ] as const
 
 export function AppSidebar() {
+  const isAiEnabled = import.meta.env.VITE_AI_ENABLED === 'true'
+  const navItems = NAV_ITEMS.filter((item) => item.to !== '/app/ai-chat' || isAiEnabled)
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -61,7 +64,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <NavItem key={item.to} {...item} />
               ))}
             </SidebarMenu>

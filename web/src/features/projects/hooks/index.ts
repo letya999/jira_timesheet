@@ -4,6 +4,9 @@ import {
   syncAllActiveProjectsApiV1ProjectsSyncAllPost,
   syncSingleProjectApiV1ProjectsProjectIdSyncPost,
   getJobStatusApiV1SyncJobsJobIdGet,
+  updateProjectApiV1ProjectsProjectIdPatch,
+  refreshProjectsApiV1ProjectsRefreshPost,
+  getProjectSprintsApiV1ProjectsProjectIdSprintsGet,
 } from '../../../api/generated/sdk.gen';
 
 export const projectsKeys = {
@@ -11,13 +14,32 @@ export const projectsKeys = {
   list: (params?: object) => ['projects', 'list', params] as const,
   detail: (id: number) => ['projects', 'detail', id] as const,
   syncStatus: (jobId: string) => ['projects', 'sync-status', jobId] as const,
+  refresh: () => ['projects', 'refresh'] as const,
+  sprints: (projectId: number) => ['projects', 'detail', projectId, 'sprints'] as const,
 };
 
-export function useProjects(params?: { skip?: number; limit?: number; is_active?: boolean }) {
+export function useProjectSprints(projectId: number) {
+  return useQuery({
+    queryKey: projectsKeys.sprints(projectId),
+    queryFn: async () => {
+      const res = await getProjectSprintsApiV1ProjectsProjectIdSprintsGet({
+        throwOnError: true,
+        path: { project_id: projectId },
+      });
+      return res.data;
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function useProjects(params?: { page?: number; size?: number; is_active?: boolean; search?: string }) {
   return useQuery({
     queryKey: projectsKeys.list(params),
     queryFn: async () => {
-      const res = await getProjectsApiV1ProjectsGet({ throwOnError: true, query: params });
+      const res = await getProjectsApiV1ProjectsGet({ 
+        throwOnError: true, 
+        query: params as any
+      });
       return res.data;
     },
   });
@@ -35,6 +57,36 @@ export function useProject(id: number) {
   });
 }
 
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { is_active?: boolean } }) => {
+      const res = await updateProjectApiV1ProjectsProjectIdPatch({
+        throwOnError: true,
+        path: { project_id: id },
+        body: data,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectsKeys.all() });
+    },
+  });
+}
+
+export function useRefreshProjects() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await refreshProjectsApiV1ProjectsRefreshPost({ throwOnError: true });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectsKeys.all() });
+    },
+  });
+}
+
 export function useSyncProjects() {
   const queryClient = useQueryClient();
 
@@ -45,10 +97,10 @@ export function useSyncProjects() {
           throwOnError: true,
           path: { project_id: projectId },
         });
-        return res.data;
+        return res.data as { job_id: string };
       }
       const res = await syncAllActiveProjectsApiV1ProjectsSyncAllPost({ throwOnError: true });
-      return res.data;
+      return res.data as { job_id: string };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectsKeys.all() });
@@ -65,7 +117,7 @@ export function useProjectSyncStatus(jobId: string | null) {
         throwOnError: true,
         path: { job_id: jobId! },
       });
-      return res.data;
+      return res.data as { status: string; progress?: number; error?: string };
     },
     enabled: !!jobId,
     // Poll every 3s while job is running; component should set enabled=false once done

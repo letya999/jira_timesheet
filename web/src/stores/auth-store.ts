@@ -8,6 +8,7 @@ export interface UserProfile {
   display_name: string | null;
   is_active: boolean;
   is_admin: boolean;
+  timezone: string;
   jira_account_id: string | null;
 }
 

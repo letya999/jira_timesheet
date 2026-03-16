@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     SLACK_SIGNING_SECRET: str | None = None
     SLACK_NOTIFICATIONS_CHANNEL: str | None = None
 
+    # AI Chat Settings
+    OPENAI_API_KEY: str | None = None
+    AI_MODEL: str = "gpt-4o"
+    AI_ENABLED: bool = False
+    AI_QUERY_TIMEOUT_SECONDS: int = 10
+    AI_MAX_RESULT_ROWS: int = 500
+    VANNA_STORAGE_PATH: str = "/vanna_storage"
+
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.dev", "../.env", "../.env.dev"),
         env_file_encoding="utf-8",

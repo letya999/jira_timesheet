@@ -20,7 +20,7 @@ const options = [
 ]
 
 export const Default: Story = {
-  render: () => {
+  render: function Render() {
     const [selected, setSelected] = React.useState<string[]>([])
     return (
       <div className="w-[300px]">
@@ -35,7 +35,7 @@ export const Default: Story = {
 }
 
 export const Preselected: Story = {
-  render: () => {
+  render: function Render() {
     const [selected, setSelected] = React.useState<string[]>(["react", "typescript"])
     return (
       <div className="w-[300px]">

@@ -4,6 +4,7 @@ import { RefreshCcw, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SyncIndicator } from "@/components/jira/sync-indicator"
 import { cn } from "@/lib/utils"
+import { dateUtils } from "@/lib/date-utils"
 
 interface SyncStatusWidgetProps {
   status: 'idle' | 'syncing' | 'success' | 'error'
@@ -42,7 +43,7 @@ export function SyncStatusWidget({
           <div>
             <h4 className="text-sm font-semibold">Jira Data Sync</h4>
             <p className="text-xs text-muted-foreground uppercase">
-              {status === 'syncing' ? 'Syncing in progress...' : `Last sync: ${lastSyncAt ? formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true }) : 'Never'}`}
+              {status === 'syncing' ? 'Syncing in progress...' : `Last sync: ${lastSyncAt ? formatDistanceToNow(dateUtils.parse(lastSyncAt), { addSuffix: true }) : 'Never'}`}
             </p>
           </div>
         </div>

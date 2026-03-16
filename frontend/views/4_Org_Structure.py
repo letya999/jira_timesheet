@@ -1,3 +1,4 @@
+# DEPRECATED: migrated to React /app/org
 import streamlit as st
 from api_client import (
     assign_unit_role,

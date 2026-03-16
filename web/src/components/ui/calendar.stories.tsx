@@ -12,7 +12,7 @@ export default meta
 type Story = StoryObj<typeof Calendar>
 
 export const Default: Story = {
-  render: () => {
+  render: function Render() {
     const [date, setDate] = React.useState<Date | undefined>(new Date())
     return (
       <Calendar

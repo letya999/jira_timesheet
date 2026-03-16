@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createRoute, useRouter } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'

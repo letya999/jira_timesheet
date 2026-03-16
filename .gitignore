@@ -134,7 +134,10 @@ docker-compose.override.yml
 # Web (React)
 # web/src/stories/ -- unignored: stories are source files that must be committed
 # web/src/api/generated/ -- unignored: generated types committed for CI/CD type checking
-web/node_modules/
+node_modules/
+playwright-report/
+test-results/
+blob-report/
 web/dist/
 web/dist-ssr/
 web/coverage/

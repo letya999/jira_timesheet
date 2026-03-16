@@ -31,4 +31,8 @@ dependencies = [
     "structlog>=25.5.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "fastapi-sso>=0.21.0",
+    "vanna>=2.0.2",
+    "openai>=2.24.0",
+    "chromadb>=1.5.2",
+    "psycopg2-binary>=2.9.11",
 ]

@@ -54,9 +54,9 @@ describe('useCreateEntry — optimistic update', () => {
     qc.setQueryData(timesheetKeys.entries(), mockEntries);
 
     // Make the mutation hang so we can inspect the optimistic state
-    let resolveCreate!: (v: unknown) => void;
+    let resolveCreate!: (v: any) => void;
     vi.mocked(createManualLogApiV1TimesheetManualPost).mockImplementation(
-      () => new Promise((res) => { resolveCreate = res; }),
+      () => new Promise((res) => { resolveCreate = res; }) as any,
     );
 
     const { result } = renderHookWithQuery(() => useCreateEntry(), { queryClient: qc });
@@ -73,7 +73,7 @@ describe('useCreateEntry — optimistic update', () => {
     // onMutate is async — wait until the optimistic entry appears in cache
     await waitFor(() => {
       const cached = qc.getQueryData<typeof mockEntries>(timesheetKeys.entries());
-      expect(cached?.some((e) => e.description === 'Optimistic entry')).toBe(true);
+      expect(cached?.some((e: any) => e.description === 'Optimistic entry')).toBe(true);
     });
 
     // Resolve the API call
@@ -99,7 +99,7 @@ describe('useCreateEntry — optimistic update', () => {
 
     // After rollback + re-fetch the optimistic entry should be gone
     const cached = qc.getQueryData<typeof mockEntries>(timesheetKeys.entries());
-    const optimisticIds = cached?.filter((e) => e.id < 0) ?? [];
+    const optimisticIds = cached?.filter((e: any) => e.id < 0) ?? [];
     expect(optimisticIds).toHaveLength(0);
   });
 });

@@ -10,4 +10,4 @@ RUN bun install --frozen-lockfile
 # Source files are mounted at runtime via volume, not copied here
 EXPOSE 5173
 
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+CMD ["sh", "-c", "bun install --frozen-lockfile && bun run dev --host 0.0.0.0"]

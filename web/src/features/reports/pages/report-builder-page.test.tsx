@@ -37,6 +37,9 @@ describe('ReportBuilderPage', () => {
     format: 'hours',
     group_by_rows: ['user'],
     group_by_cols: ['date'],
+    group_horizontally_by: null,
+    group_vertically_by: null,
+    date_granularity: 'week',
   };
 
   const mockToReportRequest = vi.fn(() => ({ ...mockFilters }));

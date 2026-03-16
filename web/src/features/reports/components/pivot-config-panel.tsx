@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
@@ -38,13 +39,18 @@ interface PivotConfigPanelProps {
 
 export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotConfigPanelProps) {
   const overlap = filters.group_by_rows.filter((r) => filters.group_by_cols.includes(r));
-  const hasError = filters.group_by_rows.length === 0 || overlap.length > 0;
+  const directionConflict =
+    !!filters.group_horizontally_by
+    && !!filters.group_vertically_by
+    && filters.group_horizontally_by === filters.group_vertically_by;
+  const hasError = filters.group_by_rows.length === 0 || overlap.length > 0 || directionConflict;
 
   const showGranularity =
     filters.group_by_rows.includes('date') || filters.group_by_cols.includes('date');
 
   const rowOptions = PIVOT_DIMENSIONS.filter((d) => !filters.group_by_cols.includes(d.value));
   const colOptions = PIVOT_DIMENSIONS.filter((d) => !filters.group_by_rows.includes(d.value));
+  const horizontalOptions = PIVOT_DIMENSIONS;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
@@ -68,6 +74,26 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
             placeholder="None (flat table)"
           />
         </div>
+        <div>
+          <Label className="mb-1.5 block text-sm">Group horizontally by</Label>
+          <Combobox
+            options={[{ label: 'None', value: '' }, ...horizontalOptions]}
+            value={filters.group_horizontally_by ?? ''}
+            onChange={(val) => onFilter('group_horizontally_by', val || null)}
+            placeholder="None"
+            className="w-full"
+          />
+        </div>
+        <div>
+          <Label className="mb-1.5 block text-sm">Group vertically by</Label>
+          <Combobox
+            options={[{ label: 'None', value: '' }, ...horizontalOptions]}
+            value={filters.group_vertically_by ?? ''}
+            onChange={(val) => onFilter('group_vertically_by', val || null)}
+            placeholder="None"
+            className="w-full"
+          />
+        </div>
         {overlap.length > 0 && (
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="size-3" />
@@ -78,6 +104,12 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="size-3" />
             At least one row dimension is required.
+          </p>
+        )}
+        {directionConflict && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="size-3" />
+            Horizontal and vertical grouping cannot use the same dimension.
           </p>
         )}
       </div>

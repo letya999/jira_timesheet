@@ -168,6 +168,13 @@ function computeBarsForUser(
   entries: LeaveTimelineEntry[],
   columns: Column[]
 ): Bar[] {
+  if (columns.length === 0) return []
+
+  const firstCol = columns[0]
+  const lastCol = columns[columns.length - 1]
+
+  if (!firstCol || !lastCol) return []
+
   return entries
     .filter((e) => e.userId === userId)
     .flatMap((entry) => {
@@ -175,6 +182,8 @@ function computeBarsForUser(
       let endIdx = -1
       for (let i = 0; i < columns.length; i++) {
         const col = columns[i]
+        if (!col) continue
+
         const overlaps =
           !isAfter(entry.startDate, col.end) && !isBefore(entry.endDate, col.start)
         if (overlaps) {
@@ -188,8 +197,8 @@ function computeBarsForUser(
           entry,
           startIdx,
           span: endIdx - startIdx + 1,
-          clippedLeft: isBefore(entry.startDate, columns[0].start),
-          clippedRight: isAfter(entry.endDate, columns[columns.length - 1].end),
+          clippedLeft: isBefore(entry.startDate, firstCol.start),
+          clippedRight: isAfter(entry.endDate, lastCol.end),
         },
       ]
     })

@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { subDays, format } from 'date-fns';
+import { subDays } from 'date-fns';
 import type { FilterChip } from '@/components/shared/filter-bar';
 import type { ReportRequest } from '../schemas';
+import { dateUtils } from '@/lib/date-utils';
 
 export type DateGranularity = 'day' | 'week' | '2weeks' | 'month' | 'quarter';
 export type ValueFormat = 'hours' | 'days';
@@ -18,13 +19,22 @@ export type ReportFilters = {
   category_ids: number[];
   group_by_rows: string[];
   group_by_cols: string[];
+  group_horizontally_by: string | null;
+  group_vertically_by: string | null;
   date_granularity: DateGranularity;
   format: ValueFormat;
   hours_per_day: number;
 };
 
-const today = format(new Date(), 'yyyy-MM-dd');
-const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+const getInitialDates = () => {
+  const now = dateUtils.now();
+  return {
+    today: dateUtils.formatPlain(now, 'yyyy-MM-dd'),
+    thirtyDaysAgo: dateUtils.formatPlain(subDays(now, 30), 'yyyy-MM-dd'),
+  };
+};
+
+const { today, thirtyDaysAgo } = getInitialDates();
 
 export const DEFAULT_FILTERS: ReportFilters = {
   start_date: thirtyDaysAgo,
@@ -38,6 +48,8 @@ export const DEFAULT_FILTERS: ReportFilters = {
   category_ids: [],
   group_by_rows: ['user', 'project'],
   group_by_cols: ['date'],
+  group_horizontally_by: null,
+  group_vertically_by: null,
   date_granularity: 'week',
   format: 'hours',
   hours_per_day: 8,

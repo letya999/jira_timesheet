@@ -27,6 +27,12 @@ export function useTimesheetEntries(params?: {
   start_date?: string;
   end_date?: string;
   user_id?: number;
+  project_id?: number;
+  category?: string;
+  org_unit_id?: number;
+  sort_order?: 'asc' | 'desc';
+  page?: number;
+  size?: number;
   skip?: number;
   limit?: number;
 }) {

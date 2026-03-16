@@ -11,14 +11,14 @@ export default meta
 type Story = StoryObj<typeof Stepper>
 
 export const Default: Story = {
-  render: () => {
+  render: function Render() {
     const [value, setValue] = React.useState(0)
     return <Stepper value={value} onValueChange={setValue} />
   },
 }
 
 export const Limits: Story = {
-  render: () => {
+  render: function Render() {
     const [value, setValue] = React.useState(5)
     return <Stepper value={value} onValueChange={setValue} min={0} max={10} step={0.5} />
   },
