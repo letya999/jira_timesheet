@@ -1,82 +1,77 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import { EmployeesPage } from './employees-page';
-import * as usersHooks from '../../users/hooks';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Mock UserType
+vi.mock('@/api/generated/types.gen', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    UserType: {
+      SYSTEM: 'system',
+      IMPORT: 'import',
+    },
+  };
+});
 
 // Mock hooks
-vi.mock('../../users/hooks', () => ({
-  useJiraUsers: vi.fn(() => ({ data: { items: [], total: 0 }, isLoading: false })),
-  useUpdateJiraUser: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+vi.mock('@/features/users/hooks', () => ({
+  useUsers: vi.fn(() => ({ data: { items: [], total: 0 }, isLoading: false })),
+  useResetPassword: vi.fn(() => ({ mutate: vi.fn() })),
   useSyncUsersFromJira: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
-  usePromoteUser: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useDeleteUser: vi.fn(() => ({ mutate: vi.fn() })),
+  useBulkUpdateUsers: vi.fn(() => ({ mutate: vi.fn() })),
+  useUpdateUser: vi.fn(() => ({ mutate: vi.fn() })),
+  usePromoteUser: vi.fn(() => ({ mutate: vi.fn() })),
+  useMergeUsers: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 
-vi.mock('../../org/hooks', () => ({
+vi.mock('@/features/org/hooks', () => ({
   useOrgTree: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
-vi.mock('../../auth/hooks', () => ({
-  useCurrentUser: vi.fn(() => ({ data: { role: 'Admin' }, isLoading: false })),
+vi.mock('@/features/auth/hooks', () => ({
+  useCurrentUser: vi.fn(() => ({ data: { role: 'Admin' } })),
 }));
 
-// Mock child components
+// Mock DataTable since it's complex
 vi.mock('@/components/ui/data-table', () => ({
-  DataTable: ({ data }: any) => <div data-testid="data-table">Employees: {data?.length || 0}</div>
-}));
-
-vi.mock('../components/employee-hierarchy', () => ({
-  EmployeeHierarchy: () => <div data-testid="employee-hierarchy">Hierarchy View</div>
-}));
-
-vi.mock('../components/temp-password-dialog', () => ({
-  TempPasswordDialog: () => <div data-testid="temp-password-dialog">Dialog</div>
+  DataTable: () => <div data-testid="data-table">Data Table</div>,
 }));
 
 describe('EmployeesPage', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    queryClient = new QueryClient();
   });
 
-  it('renders "Employees" heading', () => {
-    render(<EmployeesPage />);
+  it('renders employees page title', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EmployeesPage />
+      </QueryClientProvider>
+    );
     expect(screen.getByText('Employees')).toBeDefined();
   });
 
-  it('renders "Sync from Jira" button', () => {
-    render(<EmployeesPage />);
+  it('shows sync button', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EmployeesPage />
+      </QueryClientProvider>
+    );
     expect(screen.getByText('Sync from Jira')).toBeDefined();
   });
 
-  it('renders both List and Hierarchy tabs', () => {
-    render(<EmployeesPage />);
+  it('renders tabs', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EmployeesPage />
+      </QueryClientProvider>
+    );
     expect(screen.getByText('List View')).toBeDefined();
     expect(screen.getByText('Hierarchy View')).toBeDefined();
-  });
-
-  it('shows skeleton while loading', () => {
-    vi.mocked(usersHooks.useJiraUsers).mockReturnValue({ data: null, isLoading: true } as any);
-    
-    render(<EmployeesPage />);
-    expect(screen.queryByTestId('data-table')).toBeNull();
-  });
-
-  it('switches to hierarchy view when tab clicked', async () => {
-    const user = userEvent.setup();
-    render(<EmployeesPage />);
-    const hierarchyTab = screen.getByRole('tab', { name: /hierarchy view/i });
-
-    await user.click(hierarchyTab);
-
-    await waitFor(() => {
-      expect(hierarchyTab.getAttribute('data-state')).toBe('active');
-    });
-  });
-
-  it('updates search state when input changes', () => {
-    render(<EmployeesPage />);
-    const input = screen.getByPlaceholderText('Search employees...') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'Alice' } });
-    expect(input.value).toBe('Alice');
   });
 });

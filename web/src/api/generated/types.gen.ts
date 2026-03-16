@@ -98,6 +98,16 @@ export type BodyLoginApiV1AuthLoginPost = {
 };
 
 /**
+ * ChatRequest
+ */
+export type ChatRequest = {
+  /**
+   * Message
+   */
+  message: string;
+};
+
+/**
  * CountrySetting
  */
 export type CountrySetting = {
@@ -275,6 +285,7 @@ export type JiraUserResponse = {
    * User Id
    */
   user_id?: number | null;
+  type?: UserType;
 };
 
 /**
@@ -661,13 +672,13 @@ export type PaginatedResponseProjectResponse = {
 };
 
 /**
- * PaginatedResponse[UserResponse]
+ * PaginatedResponse[Union[UserResponse, JiraUserResponse]]
  */
-export type PaginatedResponseUserResponse = {
+export type PaginatedResponseUnionUserResponseJiraUserResponse = {
   /**
    * Items
    */
-  items: Array<UserResponse>;
+  items: Array<UserResponse | JiraUserResponse>;
   /**
    * Total
    */
@@ -983,6 +994,34 @@ export type TimesheetSubmitRequest = {
 };
 
 /**
+ * TrainRequest
+ */
+export type TrainRequest = {
+  /**
+   * Force Refresh
+   */
+  force_refresh?: boolean;
+};
+
+/**
+ * TrainResponse
+ */
+export type TrainResponse = {
+  /**
+   * Success
+   */
+  success: boolean;
+  /**
+   * Tables Trained
+   */
+  tables_trained: number;
+  /**
+   * Message
+   */
+  message: string;
+};
+
+/**
  * UserOrgRoleCreate
  */
 export type UserOrgRoleCreate = {
@@ -1044,6 +1083,10 @@ export type UserPromoteResponse = {
    */
   jira_user_id?: number | null;
   /**
+   * Timezone
+   */
+  timezone: string;
+  /**
    * Id
    */
   id: number;
@@ -1060,9 +1103,14 @@ export type UserPromoteResponse = {
    */
   org_unit_id?: number | null;
   /**
+   * Org Unit Ids
+   */
+  org_unit_ids?: Array<number>;
+  /**
    * Display Name
    */
   display_name?: string | null;
+  type?: UserType;
   /**
    * Temporary Password
    */
@@ -1090,6 +1138,10 @@ export type UserResponse = {
    */
   jira_user_id?: number | null;
   /**
+   * Timezone
+   */
+  timezone: string;
+  /**
    * Id
    */
   id: number;
@@ -1106,10 +1158,20 @@ export type UserResponse = {
    */
   org_unit_id?: number | null;
   /**
+   * Org Unit Ids
+   */
+  org_unit_ids?: Array<number>;
+  /**
    * Display Name
    */
   display_name?: string | null;
+  type?: UserType;
 };
+
+/**
+ * UserType
+ */
+export type UserType = "system" | "import";
 
 /**
  * UserUpdate
@@ -1127,6 +1189,14 @@ export type UserUpdate = {
    * Is Active
    */
   is_active?: boolean | null;
+  /**
+   * Timezone
+   */
+  timezone?: string | null;
+  /**
+   * Org Unit Ids
+   */
+  org_unit_ids?: Array<number> | null;
 };
 
 /**
@@ -1313,6 +1383,18 @@ export type GetUsersApiV1UsersGetData = {
      * Size
      */
     size?: number;
+    /**
+     * Search
+     */
+    search?: string | null;
+    /**
+     * Type
+     */
+    type?: UserType | null;
+    /**
+     * Org Unit Id
+     */
+    org_unit_id?: number | null;
   };
   url: "/api/v1/users/";
 };
@@ -1331,11 +1413,166 @@ export type GetUsersApiV1UsersGetResponses = {
   /**
    * Successful Response
    */
-  200: PaginatedResponseUserResponse;
+  200: PaginatedResponseUnionUserResponseJiraUserResponse;
 };
 
 export type GetUsersApiV1UsersGetResponse =
   GetUsersApiV1UsersGetResponses[keyof GetUsersApiV1UsersGetResponses];
+
+export type BulkUpdateUsersApiV1UsersBulkUpdatePostData = {
+  /**
+   * Payload
+   */
+  body: {
+    [key: string]: unknown;
+  };
+  path?: never;
+  query?: never;
+  url: "/api/v1/users/bulk-update";
+};
+
+export type BulkUpdateUsersApiV1UsersBulkUpdatePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type BulkUpdateUsersApiV1UsersBulkUpdatePostError =
+  BulkUpdateUsersApiV1UsersBulkUpdatePostErrors[keyof BulkUpdateUsersApiV1UsersBulkUpdatePostErrors];
+
+export type BulkUpdateUsersApiV1UsersBulkUpdatePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type ResetUserPasswordApiV1UsersResetPasswordUserIdPostData = {
+  body?: never;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: number;
+  };
+  query?: never;
+  url: "/api/v1/users/reset-password/{user_id}";
+};
+
+export type ResetUserPasswordApiV1UsersResetPasswordUserIdPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ResetUserPasswordApiV1UsersResetPasswordUserIdPostError =
+  ResetUserPasswordApiV1UsersResetPasswordUserIdPostErrors[keyof ResetUserPasswordApiV1UsersResetPasswordUserIdPostErrors];
+
+export type ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserPromoteResponse;
+};
+
+export type ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponse =
+  ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponses[keyof ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponses];
+
+export type MergeUsersApiV1UsersMergePostData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Jira User Id
+     */
+    jira_user_id: number;
+    /**
+     * System User Id
+     */
+    system_user_id: number;
+  };
+  url: "/api/v1/users/merge";
+};
+
+export type MergeUsersApiV1UsersMergePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type MergeUsersApiV1UsersMergePostError =
+  MergeUsersApiV1UsersMergePostErrors[keyof MergeUsersApiV1UsersMergePostErrors];
+
+export type MergeUsersApiV1UsersMergePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type DeleteUserApiV1UsersUserIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: number;
+  };
+  query?: never;
+  url: "/api/v1/users/{user_id}";
+};
+
+export type DeleteUserApiV1UsersUserIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteUserApiV1UsersUserIdDeleteError =
+  DeleteUserApiV1UsersUserIdDeleteErrors[keyof DeleteUserApiV1UsersUserIdDeleteErrors];
+
+export type DeleteUserApiV1UsersUserIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type UpdateUserApiV1UsersUserIdPatchData = {
+  body: UserUpdate;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: number;
+  };
+  query?: never;
+  url: "/api/v1/users/{user_id}";
+};
+
+export type UpdateUserApiV1UsersUserIdPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateUserApiV1UsersUserIdPatchError =
+  UpdateUserApiV1UsersUserIdPatchErrors[keyof UpdateUserApiV1UsersUserIdPatchErrors];
+
+export type UpdateUserApiV1UsersUserIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type UpdateUserApiV1UsersUserIdPatchResponse =
+  UpdateUserApiV1UsersUserIdPatchResponses[keyof UpdateUserApiV1UsersUserIdPatchResponses];
 
 export type ReadUsersMeApiV1UsersMeGetData = {
   body?: never;
@@ -1423,38 +1660,6 @@ export type SyncUsersApiV1UsersSyncPostResponses = {
    */
   200: unknown;
 };
-
-export type UpdateUserApiV1UsersUserIdPatchData = {
-  body: UserUpdate;
-  path: {
-    /**
-     * User Id
-     */
-    user_id: number;
-  };
-  query?: never;
-  url: "/api/v1/users/{user_id}";
-};
-
-export type UpdateUserApiV1UsersUserIdPatchErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type UpdateUserApiV1UsersUserIdPatchError =
-  UpdateUserApiV1UsersUserIdPatchErrors[keyof UpdateUserApiV1UsersUserIdPatchErrors];
-
-export type UpdateUserApiV1UsersUserIdPatchResponses = {
-  /**
-   * Successful Response
-   */
-  200: UserResponse;
-};
-
-export type UpdateUserApiV1UsersUserIdPatchResponse =
-  UpdateUserApiV1UsersUserIdPatchResponses[keyof UpdateUserApiV1UsersUserIdPatchResponses];
 
 export type GetEmployeesApiV1OrgEmployeesGetData = {
   body?: never;
@@ -3132,6 +3337,78 @@ export type SlackInteractiveApiV1SlackInteractivePostResponses = {
    */
   200: unknown;
 };
+
+export type ChatApiV1AiChatPostData = {
+  body: ChatRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/chat";
+};
+
+export type ChatApiV1AiChatPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ChatApiV1AiChatPostError =
+  ChatApiV1AiChatPostErrors[keyof ChatApiV1AiChatPostErrors];
+
+export type ChatApiV1AiChatPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type TrainApiV1AiTrainPostData = {
+  body: TrainRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/train";
+};
+
+export type TrainApiV1AiTrainPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type TrainApiV1AiTrainPostError =
+  TrainApiV1AiTrainPostErrors[keyof TrainApiV1AiTrainPostErrors];
+
+export type TrainApiV1AiTrainPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: TrainResponse;
+};
+
+export type TrainApiV1AiTrainPostResponse =
+  TrainApiV1AiTrainPostResponses[keyof TrainApiV1AiTrainPostResponses];
+
+export type HealthApiV1AiHealthGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/health";
+};
+
+export type HealthApiV1AiHealthGetResponses = {
+  /**
+   * Response Health Api V1 Ai Health Get
+   *
+   * Successful Response
+   */
+  200: {
+    [key: string]: unknown;
+  };
+};
+
+export type HealthApiV1AiHealthGetResponse =
+  HealthApiV1AiHealthGetResponses[keyof HealthApiV1AiHealthGetResponses];
 
 export type HealthCheckHealthGetData = {
   body?: never;

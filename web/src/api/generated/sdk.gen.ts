@@ -20,9 +20,15 @@ import type {
   AssignUserRoleApiV1OrgUnitsRolesPostData,
   AssignUserRoleApiV1OrgUnitsRolesPostErrors,
   AssignUserRoleApiV1OrgUnitsRolesPostResponses,
+  BulkUpdateUsersApiV1UsersBulkUpdatePostData,
+  BulkUpdateUsersApiV1UsersBulkUpdatePostErrors,
+  BulkUpdateUsersApiV1UsersBulkUpdatePostResponses,
   ChangePasswordApiV1UsersChangePasswordPostData,
   ChangePasswordApiV1UsersChangePasswordPostErrors,
   ChangePasswordApiV1UsersChangePasswordPostResponses,
+  ChatApiV1AiChatPostData,
+  ChatApiV1AiChatPostErrors,
+  ChatApiV1AiChatPostResponses,
   CreateApprovalRouteApiV1OrgUnitsApprovalRoutesPostData,
   CreateApprovalRouteApiV1OrgUnitsApprovalRoutesPostErrors,
   CreateApprovalRouteApiV1OrgUnitsApprovalRoutesPostResponses,
@@ -50,6 +56,9 @@ import type {
   DeleteRoleApiV1OrgRolesRoleIdDeleteData,
   DeleteRoleApiV1OrgRolesRoleIdDeleteErrors,
   DeleteRoleApiV1OrgRolesRoleIdDeleteResponses,
+  DeleteUserApiV1UsersUserIdDeleteData,
+  DeleteUserApiV1UsersUserIdDeleteErrors,
+  DeleteUserApiV1UsersUserIdDeleteResponses,
   ExportReportApiV1ReportsExportGetData,
   ExportReportApiV1ReportsExportGetErrors,
   ExportReportApiV1ReportsExportGetResponses,
@@ -125,6 +134,8 @@ import type {
   GetUsersApiV1UsersGetData,
   GetUsersApiV1UsersGetErrors,
   GetUsersApiV1UsersGetResponses,
+  HealthApiV1AiHealthGetData,
+  HealthApiV1AiHealthGetResponses,
   HealthCheckHealthGetData,
   HealthCheckHealthGetResponses,
   JiraWebhookApiV1SyncWebhooksJiraPostData,
@@ -134,6 +145,9 @@ import type {
   LoginApiV1AuthLoginPostResponses,
   MarkAllNotificationsReadApiV1NotificationsMarkAllReadPostData,
   MarkAllNotificationsReadApiV1NotificationsMarkAllReadPostResponses,
+  MergeUsersApiV1UsersMergePostData,
+  MergeUsersApiV1UsersMergePostErrors,
+  MergeUsersApiV1UsersMergePostResponses,
   MetricsMetricsGetData,
   MetricsMetricsGetResponses,
   PromoteToSystemUserApiV1UsersPromoteJiraUserIdPostData,
@@ -146,6 +160,9 @@ import type {
   RemoveUserRoleApiV1OrgUnitsRolesAssignmentIdDeleteData,
   RemoveUserRoleApiV1OrgUnitsRolesAssignmentIdDeleteErrors,
   RemoveUserRoleApiV1OrgUnitsRolesAssignmentIdDeleteResponses,
+  ResetUserPasswordApiV1UsersResetPasswordUserIdPostData,
+  ResetUserPasswordApiV1UsersResetPasswordUserIdPostErrors,
+  ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponses,
   SearchProjectIssuesApiV1ProjectsIssuesGetData,
   SearchProjectIssuesApiV1ProjectsIssuesGetErrors,
   SearchProjectIssuesApiV1ProjectsIssuesGetResponses,
@@ -178,6 +195,9 @@ import type {
   SyncSingleProjectApiV1ProjectsProjectIdSyncPostResponses,
   SyncUsersApiV1UsersSyncPostData,
   SyncUsersApiV1UsersSyncPostResponses,
+  TrainApiV1AiTrainPostData,
+  TrainApiV1AiTrainPostErrors,
+  TrainApiV1AiTrainPostResponses,
   UpdateEmployeeApiV1OrgEmployeesEmployeeIdPatchData,
   UpdateEmployeeApiV1OrgEmployeesEmployeeIdPatchErrors,
   UpdateEmployeeApiV1OrgEmployeesEmployeeIdPatchResponses,
@@ -284,7 +304,7 @@ export const ssoCallbackApiV1AuthSsoCallbackGet = <
 /**
  * Get Users
  *
- * Fetch all system users with pagination.
+ * Fetch all users (system and import) with advanced filtering.
  */
 export const getUsersApiV1UsersGet = <ThrowOnError extends boolean = false>(
   options?: Options<GetUsersApiV1UsersGetData, ThrowOnError>,
@@ -297,6 +317,109 @@ export const getUsersApiV1UsersGet = <ThrowOnError extends boolean = false>(
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/",
     ...options,
+  });
+
+/**
+ * Bulk Update Users
+ */
+export const bulkUpdateUsersApiV1UsersBulkUpdatePost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<BulkUpdateUsersApiV1UsersBulkUpdatePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    BulkUpdateUsersApiV1UsersBulkUpdatePostResponses,
+    BulkUpdateUsersApiV1UsersBulkUpdatePostErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/bulk-update",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Reset User Password
+ */
+export const resetUserPasswordApiV1UsersResetPasswordUserIdPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    ResetUserPasswordApiV1UsersResetPasswordUserIdPostData,
+    ThrowOnError
+  >,
+) =>
+  (options.client ?? client).post<
+    ResetUserPasswordApiV1UsersResetPasswordUserIdPostResponses,
+    ResetUserPasswordApiV1UsersResetPasswordUserIdPostErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/reset-password/{user_id}",
+    ...options,
+  });
+
+/**
+ * Merge Users
+ */
+export const mergeUsersApiV1UsersMergePost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<MergeUsersApiV1UsersMergePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    MergeUsersApiV1UsersMergePostResponses,
+    MergeUsersApiV1UsersMergePostErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/merge",
+    ...options,
+  });
+
+/**
+ * Delete User
+ */
+export const deleteUserApiV1UsersUserIdDelete = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeleteUserApiV1UsersUserIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteUserApiV1UsersUserIdDeleteResponses,
+    DeleteUserApiV1UsersUserIdDeleteErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/{user_id}",
+    ...options,
+  });
+
+/**
+ * Update User
+ *
+ * Update system user details (Admin only).
+ */
+export const updateUserApiV1UsersUserIdPatch = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<UpdateUserApiV1UsersUserIdPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateUserApiV1UsersUserIdPatchResponses,
+    UpdateUserApiV1UsersUserIdPatchErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/{user_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**
@@ -387,30 +510,6 @@ export const syncUsersApiV1UsersSyncPost = <
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/sync",
     ...options,
-  });
-
-/**
- * Update User
- *
- * Update system user details (Admin only).
- */
-export const updateUserApiV1UsersUserIdPatch = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<UpdateUserApiV1UsersUserIdPatchData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateUserApiV1UsersUserIdPatchResponses,
-    UpdateUserApiV1UsersUserIdPatchErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/users/{user_id}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
   });
 
 /**
@@ -1679,6 +1778,62 @@ export const slackInteractiveApiV1SlackInteractivePost = <
     unknown,
     ThrowOnError
   >({ url: "/api/v1/slack/interactive", ...options });
+
+/**
+ * Chat
+ */
+export const chatApiV1AiChatPost = <ThrowOnError extends boolean = false>(
+  options: Options<ChatApiV1AiChatPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ChatApiV1AiChatPostResponses,
+    ChatApiV1AiChatPostErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/ai/chat",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Train
+ */
+export const trainApiV1AiTrainPost = <ThrowOnError extends boolean = false>(
+  options: Options<TrainApiV1AiTrainPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    TrainApiV1AiTrainPostResponses,
+    TrainApiV1AiTrainPostErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/ai/train",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Health
+ */
+export const healthApiV1AiHealthGet = <ThrowOnError extends boolean = false>(
+  options?: Options<HealthApiV1AiHealthGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    HealthApiV1AiHealthGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/ai/health",
+    ...options,
+  });
 
 /**
  * Health Check

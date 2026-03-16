@@ -1,7 +1,14 @@
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, Table, Column, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import AuditMixin, Base
+
+user_org_units = Table(
+    "user_org_units",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("org_unit_id", Integer, ForeignKey("org_units.id"), primary_key=True),
+)
 
 
 class JiraUser(Base):
@@ -43,3 +50,4 @@ class User(Base, AuditMixin):
 
     jira_user_id: Mapped[int | None] = mapped_column(ForeignKey("jira_users.id"), nullable=True)
     jira_user = relationship("JiraUser", back_populates="user")
+    org_units = relationship("OrgUnit", secondary=user_org_units)

@@ -56,6 +56,34 @@ class ReleaseResponse(ReleaseBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class IssueTypeBase(BaseModel):
+    jira_id: str
+    name: str
+    icon_url: str | None = None
+    is_subtask: bool = False
+
+
+class IssueTypeResponse(IssueTypeBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class IssueBase(BaseModel):
+    jira_id: str
+    key: str
+    summary: str
+    status: str | None = None
+    issue_type: str | None = None
+    project_id: int
+    parent_id: int | None = None
+
+
+class IssueResponse(IssueBase):
+    id: int
+    issue_type_obj: IssueTypeResponse | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class JiraProject(BaseModel):
     id: str
     key: str

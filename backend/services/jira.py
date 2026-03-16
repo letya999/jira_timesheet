@@ -6,7 +6,7 @@ import httpx
 from core.config import settings
 from crud.settings import system_settings
 from dateutil import parser
-from models import Issue, JiraUser, Project, Release, Sprint, User, Worklog, WorklogCategory
+from models import Issue, IssueType, JiraUser, Project, Release, Sprint, User, Worklog, WorklogCategory
 from models.project import issue_releases
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +54,10 @@ async def fetch_issue_details(issue_ids: list[str]):
                         "project_name": fields["project"]["name"],
                         "summary": fields.get("summary"),
                         "status": fields.get("status", {}).get("name"),
-                        "issue_type": fields.get("issuetype", {}).get("name"),
+                        "issue_type_name": fields.get("issuetype", {}).get("name"),
+                        "issue_type_id": fields.get("issuetype", {}).get("id"),
+                        "issue_type_icon": fields.get("issuetype", {}).get("iconUrl"),
+                        "issue_type_subtask": fields.get("issuetype", {}).get("subtask", False),
                         "parent_id": fields.get("parent", {}).get("id"),
                         "releases": [{"id": v["id"], "name": v["name"]} for v in versions],
                     }
@@ -123,6 +126,26 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
         db.add(db_project)
         await db.flush()
 
+    # IssueType
+    db_issue_type = None
+    if "issue_type_id" in iss_data:
+        res_it = await db.execute(select(IssueType).where(IssueType.jira_id == str(iss_data["issue_type_id"])))
+        db_issue_type = res_it.scalar_one_or_none()
+        if not db_issue_type:
+            db_issue_type = IssueType(
+                jira_id=str(iss_data["issue_type_id"]),
+                name=iss_data.get("issue_type_name") or "Unknown",
+                icon_url=iss_data.get("issue_type_icon"),
+                is_subtask=iss_data.get("issue_type_subtask", False),
+            )
+            db.add(db_issue_type)
+            await db.flush()
+        else:
+            # Update icon if changed
+            if db_issue_type.icon_url != iss_data.get("issue_type_icon"):
+                db_issue_type.icon_url = iss_data.get("issue_type_icon")
+                db_issue_type.name = iss_data.get("issue_type_name") or db_issue_type.name
+
     # Issue
     res_i = await db.execute(select(Issue).where(Issue.jira_id == issue_id_jira))
     db_issue = res_i.scalar_one_or_none()
@@ -132,7 +155,8 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
             key=iss_data["key"],
             summary=iss_data["summary"] or "No summary",
             status=iss_data["status"],
-            issue_type=iss_data["issue_type"],
+            issue_type=iss_data.get("issue_type_name"),
+            issue_type_id=db_issue_type.id if db_issue_type else None,
             project_id=db_project.id,
         )
         db.add(db_issue)
@@ -140,6 +164,9 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
     else:
         db_issue.summary = iss_data["summary"] or db_issue.summary
         db_issue.status = iss_data["status"] or db_issue.status
+        if db_issue_type:
+            db_issue.issue_type_id = db_issue_type.id
+            db_issue.issue_type = iss_data.get("issue_type_name") or db_issue.issue_type
 
     return db_jira_user, db_project, db_issue
 

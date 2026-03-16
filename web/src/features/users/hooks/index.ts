@@ -6,7 +6,12 @@ import {
   updateEmployeeApiV1OrgEmployeesEmployeeIdPatch,
   syncUsersApiV1UsersSyncPost,
   promoteToSystemUserApiV1UsersPromoteJiraUserIdPost,
+  bulkUpdateUsersApiV1UsersBulkUpdatePost,
+  resetUserPasswordApiV1UsersResetPasswordUserIdPost,
+  mergeUsersApiV1UsersMergePost,
+  deleteUserApiV1UsersUserIdDelete,
 } from '../../../api/generated/sdk.gen';
+import { UserType } from '@/api/generated/types.gen';
 
 export const usersKeys = {
   all: () => ['users'] as const,
@@ -16,12 +21,95 @@ export const usersKeys = {
   employees: (params?: object) => ['users', 'employees', params] as const,
 };
 
-export function useUsers(params?: { page?: number; size?: number }) {
+export function useUsers(params?: {
+  page?: number;
+  size?: number;
+  search?: string;
+  type?: UserType;
+  org_unit_id?: number;
+  enabled?: boolean;
+}) {
+  const { enabled = true, ...queryParams } = params ?? {};
   return useQuery({
-    queryKey: usersKeys.list(params),
+    queryKey: usersKeys.list(queryParams),
     queryFn: async () => {
-      const res = await getUsersApiV1UsersGet({ throwOnError: true, query: params });
+      const res = await getUsersApiV1UsersGet({
+        throwOnError: true,
+        query: queryParams
+      });
       return res.data;
+    },
+    enabled,
+  });
+}
+
+interface BulkUpdateData {
+  role?: string;
+  org_unit_ids?: number[];
+  is_active?: boolean;
+}
+
+export function useBulkUpdateUsers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userIds, data }: { userIds: number[]; data: BulkUpdateData }) => {
+      const res = await bulkUpdateUsersApiV1UsersBulkUpdatePost({
+        throwOnError: true,
+        body: { user_ids: userIds, data } as Parameters<typeof bulkUpdateUsersApiV1UsersBulkUpdatePost>[0]['body'],
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersKeys.all() });
+    },
+  });
+}
+
+export function useResetPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await resetUserPasswordApiV1UsersResetPasswordUserIdPost({
+        throwOnError: true,
+        path: { user_id: userId },
+      });
+      return res.data;
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: usersKeys.detail(userId) });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all() });
+    },
+  });
+}
+
+export function useMergeUsers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ jiraUserId, systemUserId }: { jiraUserId: number; systemUserId: number }) => {
+      const res = await mergeUsersApiV1UsersMergePost({
+        throwOnError: true,
+        query: { jira_user_id: jiraUserId, system_user_id: systemUserId },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersKeys.all() });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await deleteUserApiV1UsersUserIdDelete({
+        throwOnError: true,
+        path: { user_id: userId },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersKeys.all() });
     },
   });
 }

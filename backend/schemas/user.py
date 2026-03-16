@@ -1,4 +1,25 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from enum import Enum
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+
+class UserType(str, Enum):
+    SYSTEM = "system"
+    IMPORT = "import"
+
+
+class BulkUpdateData(BaseModel):
+    role: str | None = None
+    org_unit_ids: list[int] | None = None
+    is_active: bool | None = None
+
+
+class BulkUpdatePayload(BaseModel):
+    user_ids: list[int] = Field(..., min_length=1)
+    data: BulkUpdateData
+
+
+class PromoteBulkPayload(BaseModel):
+    user_ids: list[int] = Field(..., min_length=1)
 
 
 class UserBase(BaseModel):
@@ -18,6 +39,7 @@ class UserUpdate(BaseModel):
     role: str | None = None
     is_active: bool | None = None
     timezone: str | None = None
+    org_unit_ids: list[int] | None = None
 
 
 class UserResponse(UserBase):
@@ -25,8 +47,10 @@ class UserResponse(UserBase):
     is_active: bool
     needs_password_change: bool = False
     org_unit_id: int | None = None
+    org_unit_ids: list[int] = []
     display_name: str | None = None
     timezone: str
+    type: UserType = UserType.SYSTEM
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,6 +73,7 @@ class JiraUserResponse(BaseModel):
     weekly_quota: int
     org_unit_id: int | None = None
     user_id: int | None = None
+    type: UserType = UserType.IMPORT
 
     model_config = ConfigDict(from_attributes=True)
 

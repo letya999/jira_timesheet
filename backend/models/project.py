@@ -59,6 +59,17 @@ class Release(Base, AuditMixin):
     issues = relationship("Issue", secondary=issue_releases, back_populates="releases")
 
 
+class IssueType(Base, AuditMixin):
+    __tablename__ = "issue_types"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    jira_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    icon_url: Mapped[str | None] = mapped_column(String(1024))
+    is_subtask: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    issues = relationship("Issue", back_populates="issue_type_obj")
+
+
 class Issue(Base, AuditMixin):
     __tablename__ = "issues"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -66,12 +77,14 @@ class Issue(Base, AuditMixin):
     key: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     summary: Mapped[str] = mapped_column(String(1024))
     status: Mapped[str | None] = mapped_column(String(100), index=True)
-    issue_type: Mapped[str | None] = mapped_column(String(50), index=True)
+    issue_type: Mapped[str | None] = mapped_column(String(50), index=True)  # Keep for backward compatibility or migration
+    issue_type_id: Mapped[int | None] = mapped_column(ForeignKey("issue_types.id"), nullable=True)
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("issues.id"), nullable=True)
 
     project = relationship("Project", back_populates="issues")
+    issue_type_obj = relationship("IssueType", back_populates="issues")
     parent = relationship("Issue", remote_side=[id], back_populates="subtasks")
     subtasks = relationship("Issue", back_populates="parent")
     worklogs = relationship("Worklog", back_populates="issue")

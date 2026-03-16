@@ -5,7 +5,7 @@ from models.category import WorklogCategory
 from models.leave import LeaveApprovalStep, LeaveRequest
 from models.notification import Notification
 from models.org import ApprovalRoute, OrgUnit, Role, UserOrgRole
-from models.project import Issue, Project, Release, Sprint
+from models.project import Issue, IssueType, Project, Release, Sprint
 from models.settings import SystemSettings
 from models.timesheet import TimesheetApprovalStep, TimesheetPeriod, Worklog
 from models.user import JiraUser, User
@@ -25,6 +25,7 @@ __all__ = [
     "Sprint",
     "Release",
     "Issue",
+    "IssueType",
     "WorklogCategory",
     "SystemSettings",
     "CalendarEvent",
