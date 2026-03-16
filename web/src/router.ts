@@ -1,6 +1,8 @@
 import { createRouter } from '@tanstack/react-router'
 
 import { rootRoute } from './routes/__root.tsx'
+import { notFoundRoute } from './routes/not-found.tsx'
+import { badGatewayRoute } from './routes/bad-gateway.tsx'
 import { authLayoutRoute } from './routes/_auth.tsx'
 import { loginRoute } from './routes/_auth.login.tsx'
 import { appLayoutRoute } from './routes/_app.tsx'
@@ -25,6 +27,8 @@ import { hrRoute } from './routes/_app.hr.tsx'
 import { aiChatRoute } from './routes/_app.ai-chat.tsx'
 
 const routeTree = rootRoute.addChildren([
+  notFoundRoute,
+  badGatewayRoute,
   authLayoutRoute.addChildren([loginRoute]),
   appLayoutRoute.addChildren([
     dashboardRoute,

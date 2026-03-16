@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-// Use any for missing SDK types for now
 import * as sdk from '@/api/generated/sdk.gen'
 import { ChatMessage, ChatChunk } from '../schemas'
 import { useAuthStore } from '@/stores/auth-store'
@@ -11,20 +10,65 @@ export const aiKeys = {
   health: () => [...aiKeys.all, 'health'] as const,
 }
 
+type HealthResponse = {
+  enabled: boolean;
+  ready: boolean;
+};
+
+type TrainingResponse = {
+  message: string
+}
+
+type AiSdk = {
+  healthApiV1AiHealthGet?: () => Promise<{ data: HealthResponse }>
+  trainApiV1AiTrainPost?: (options: {
+    body: { force_refresh: boolean }
+  }) => Promise<{ data: TrainingResponse }>
+}
+
+const aiSdk = sdk as unknown as AiSdk
+
+async function fetchAiHealthFallback(token: string | null): Promise<{ data: HealthResponse }> {
+  const res = await fetch('/api/v1/ai/health', {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+
+  if (!res.ok) {
+    throw new Error('Failed to load AI health status')
+  }
+
+  return { data: (await res.json()) as HealthResponse }
+}
+
+async function fetchAiTrainingFallback(
+  options: { body: { force_refresh: boolean } },
+  token: string | null,
+): Promise<{ data: TrainingResponse }> {
+  const res = await fetch('/api/v1/ai/train', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(options.body),
+  })
+
+  if (!res.ok) {
+    throw new Error('Training request failed')
+  }
+
+  return { data: (await res.json()) as TrainingResponse }
+}
+
 export function useAiHealth() {
   return useQuery({
     queryKey: aiKeys.health(),
     queryFn: async () => {
-      // Fallback if SDK is not generated yet
-      const healthFn = (sdk as any).healthApiV1AiHealthGet || 
-        (async () => {
-          const res = await fetch('/api/v1/ai/health', {
-            headers: { 'Authorization': `Bearer ${useAuthStore.getState().token}` }
-          })
-          return { data: await res.json() }
-        })
-      
-      return healthFn().then((r: any) => r.data as { enabled: boolean; ready: boolean })
+      const healthFn =
+        aiSdk.healthApiV1AiHealthGet ??
+        (() => fetchAiHealthFallback(useAuthStore.getState().token))
+
+      return healthFn().then((r: { data: HealthResponse }) => r.data)
     },
   })
 }
@@ -32,22 +76,14 @@ export function useAiHealth() {
 export function useAiTraining() {
   return useMutation({
     mutationFn: async (variables: { force_refresh: boolean }) => {
-      const trainFn = (sdk as any).trainApiV1AiTrainPost ||
-        (async (opts: any) => {
-          const res = await fetch('/api/v1/ai/train', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${useAuthStore.getState().token}` 
-            },
-            body: JSON.stringify(opts.body)
-          })
-          return { data: await res.json() }
-        })
-      
-      return trainFn({ body: variables }).then((r: any) => r.data)
+      const trainFn =
+        aiSdk.trainApiV1AiTrainPost ??
+        ((opts: { body: { force_refresh: boolean } }) =>
+          fetchAiTrainingFallback(opts, useAuthStore.getState().token))
+
+      return trainFn({ body: variables }).then((r: { data: TrainingResponse }) => r.data)
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: TrainingResponse) => {
       toast.success(data.message || 'Training complete')
     },
     onError: () => {
@@ -121,21 +157,23 @@ export function useAiChat() {
             const jsonStr = line.trim().substring(6)
             try {
               const chunk = JSON.parse(jsonStr) as ChatChunk
-              
-              setMessages((prev) => prev.map((msg) => {
-                if (msg.id === assistantMessageId) {
-                  const updated = { ...msg }
-                  if (chunk.sql) updated.sql = chunk.sql
-                  if (chunk.data) updated.data = chunk.data
-                  if (chunk.answer) updated.content += chunk.answer
-                  if (chunk.error) {
-                    updated.content = `Error: ${chunk.error}`
-                    setIsStreaming(false)
+
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  if (msg.id === assistantMessageId) {
+                    const updated = { ...msg }
+                    if (chunk.sql) updated.sql = chunk.sql
+                    if (chunk.data) updated.data = chunk.data
+                    if (chunk.answer) updated.content += chunk.answer
+                    if (chunk.error) {
+                      updated.content = `Error: ${chunk.error}`
+                      setIsStreaming(false)
+                    }
+                    return updated
                   }
-                  return updated
-                }
-                return msg
-              }))
+                  return msg
+                }),
+              )
 
               if (chunk.stage === 'complete' || chunk.stage === 'error') {
                 setIsStreaming(false)

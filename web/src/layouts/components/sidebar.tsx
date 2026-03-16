@@ -44,6 +44,9 @@ const NAV_ITEMS = [
 ] as const
 
 export function AppSidebar() {
+  const isAiEnabled = import.meta.env.VITE_AI_ENABLED === 'true'
+  const navItems = NAV_ITEMS.filter((item) => item.to !== '/app/ai-chat' || isAiEnabled)
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -61,7 +64,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <NavItem key={item.to} {...item} />
               ))}
             </SidebarMenu>

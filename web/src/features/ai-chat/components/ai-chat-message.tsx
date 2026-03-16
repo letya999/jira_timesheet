@@ -17,14 +17,17 @@ interface AiChatMessageProps {
   message: ChatMessage
 }
 
+type TableRow = Record<string, unknown>
+
 export function AiChatMessage({ message }: AiChatMessageProps) {
   const isAssistant = message.role === 'assistant'
   const [isSqlOpen, setIsSqlOpen] = useState(false)
+  const tableRows: TableRow[] = message.data ?? []
 
   // Dynamically generate columns for data table if data exists
-  const columns: ColumnDef<any>[] = message.data && message.data.length > 0 && message.data[0]
-    ? Object.keys(message.data[0]).map(key => ({
-        accessorKey: key,
+  const columns: ColumnDef<TableRow>[] = tableRows.length > 0 && tableRows[0]
+    ? Object.keys(tableRows[0]).map((key) => ({
+        accessorKey: key as keyof TableRow,
         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
       }))
     : []
@@ -88,11 +91,11 @@ export function AiChatMessage({ message }: AiChatMessageProps) {
           </Collapsible>
         )}
 
-        {isAssistant && message.data && message.data.length > 0 && (
+        {isAssistant && tableRows.length > 0 && (
           <div className="w-full mt-2 border rounded-md overflow-hidden bg-background">
             <DataTable 
               columns={columns} 
-              data={message.data} 
+              data={tableRows}
             />
           </div>
         )}

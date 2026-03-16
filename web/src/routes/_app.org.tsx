@@ -4,5 +4,5 @@ import { appLayoutRoute } from './_app';
 export const orgRoute = createRoute({
   path: 'org',
   getParentRoute: () => appLayoutRoute,
-  component: lazyRouteComponent(() => import('@/features/org/pages/org-page')),
+  component: lazyRouteComponent(() => import('@/features/org/pages/org-page'), 'OrgPage'),
 });
