@@ -6,7 +6,7 @@ import {
 import { appLayoutRoute } from './_app'
 import { queryClient } from '@/lib/query-client'
 import { timesheetKeys } from '@/features/timesheet/hooks'
-import { getMyWorklogsApiV1TimesheetWorklogsGet } from '@/api/generated/sdk.gen'
+import { getAllWorklogsApiV1TimesheetGet } from '@/api/generated/sdk.gen'
 import { dateUtils } from '@/lib/date-utils'
 
 export const dashboardRoute = createRoute({
@@ -19,12 +19,14 @@ export const dashboardRoute = createRoute({
     const weekQuery = {
       start_date: dateUtils.formatPlain(loaderWeekStart, 'yyyy-MM-dd'),
       end_date: dateUtils.formatPlain(loaderWeekEnd, 'yyyy-MM-dd'),
+      page: 1,
+      size: 500,
     }
     return queryClient
       .prefetchQuery({
-        queryKey: timesheetKeys.myEntries(weekQuery),
+        queryKey: timesheetKeys.entries(weekQuery),
         queryFn: () =>
-          getMyWorklogsApiV1TimesheetWorklogsGet({ query: weekQuery }).then(
+          getAllWorklogsApiV1TimesheetGet({ query: weekQuery }).then(
             (r) => r.data,
           ),
       })

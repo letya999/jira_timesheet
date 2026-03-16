@@ -11,6 +11,13 @@ interface ReportSummaryCardProps {
   className?: string
 }
 
+function formatHours(value: number): string {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })
+}
+
 export function ReportSummaryCard({
   title,
   period,
@@ -31,7 +38,9 @@ export function ReportSummaryCard({
             <p className="text-xs text-muted-foreground mt-1">{period}</p>
           </div>
           <div className="text-right">
-            <Typography variant="h3" className="font-bold">{totalHours}h</Typography>
+            <Typography variant="h3" className="font-bold text-2xl leading-none tabular-nums whitespace-nowrap">
+              {formatHours(totalHours)}h
+            </Typography>
             <p className="text-xs text-muted-foreground uppercase font-medium">Total logged</p>
           </div>
         </div>
@@ -41,7 +50,9 @@ export function ReportSummaryCard({
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
               <span className="font-medium">CapEx</span>
-              <span className="text-muted-foreground">{capexHours}h ({capexPercent.toFixed(1)}%)</span>
+              <span className="text-muted-foreground tabular-nums">
+                {formatHours(capexHours)}h ({capexPercent.toFixed(1)}%)
+              </span>
             </div>
             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
               <div 
@@ -53,7 +64,9 @@ export function ReportSummaryCard({
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
               <span className="font-medium">OpEx</span>
-              <span className="text-muted-foreground">{opexHours}h ({opexPercent.toFixed(1)}%)</span>
+              <span className="text-muted-foreground tabular-nums">
+                {formatHours(opexHours)}h ({opexPercent.toFixed(1)}%)
+              </span>
             </div>
             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
               <div 

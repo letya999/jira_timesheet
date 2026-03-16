@@ -23,7 +23,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 function LoginPage() {
   const router = useRouter()
-  const { mutate: login, isPending, error } = useLogin()
+  const { mutateAsync: login, isPending, error } = useLogin()
   const ssoLogin = useSsoLogin()
 
   const {
@@ -39,11 +39,9 @@ function LoginPage() {
 
   const rememberMe = watch('rememberMe')
 
-  const onSubmit = (values: LoginFormValues) => {
-    login(
-      { username: values.username, password: values.password },
-      { onSuccess: () => router.navigate({ to: '/app/dashboard' }) },
-    )
+  const onSubmit = async (values: LoginFormValues) => {
+    await login({ username: values.username, password: values.password })
+    router.navigate({ to: '/app/dashboard' })
   }
 
   const errorMessage =
