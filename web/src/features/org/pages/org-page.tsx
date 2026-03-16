@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { OrgUnitCreate } from '@/features/org/schemas';
+import { OrgUnitCreate, OrgUnitResponse } from '@/features/org/schemas';
 import { useOrgTree, useCreateOrgUnit, useUpdateOrgUnit, useDeleteOrgUnit } from '@/features/org/hooks';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { OrgTreeNode } from '../components/org-tree-node';
@@ -37,8 +37,9 @@ export function OrgPage() {
   if (authLoading) return <div className="p-6">{t('web.org.loading_permissions')}</div>;
   if (currentUser?.role !== 'Admin') return <Navigate to="/" />;
 
-  const rootUnits = (units as any[]).filter((u) => !u.parent_id);
-  const editingUnit = (units as any[]).find((u) => u.id === editingUnitId);
+  const typedUnits = units as OrgUnitResponse[];
+  const rootUnits = typedUnits.filter((u) => !u.parent_id);
+  const editingUnit = typedUnits.find((u) => u.id === editingUnitId);
 
   const handleCreate = (data: OrgUnitCreate) => {
     createMutation.mutate(data, {
@@ -107,7 +108,7 @@ export function OrgPage() {
             ) : (
               <div className="space-y-2">
                 {rootUnits.map((unit) => (
-                  <OrgTreeNode key={unit.id} unit={unit as any} allUnits={units as any} />
+                  <OrgTreeNode key={unit.id} unit={unit} allUnits={typedUnits} />
                 ))}
                 {rootUnits.length === 0 && (
                   <p className="text-center py-8 text-muted-foreground italic">{t('org.no_units')}</p>
@@ -121,7 +122,7 @@ export function OrgPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <UnitForm
-                units={units as any}
+                units={typedUnits}
                 onSubmit={handleCreate}
                 isPending={createMutation.isPending}
               />
@@ -138,7 +139,7 @@ export function OrgPage() {
                       <SelectValue placeholder={t('web.org.select_unit_to_modify')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {units.map((u) => (
+                      {typedUnits.map((u) => (
                         <SelectItem key={u.id} value={u.id.toString()}>
                           {u.name}
                         </SelectItem>
@@ -171,8 +172,8 @@ export function OrgPage() {
                 {editingUnitId && editingUnit && (
                   <div className="mt-4 pt-4 border-t">
                     <UnitForm
-                      initialData={editingUnit as any}
-                      units={units as any}
+                      initialData={editingUnit}
+                      units={typedUnits}
                       onSubmit={handleUpdate}
                       isPending={updateMutation.isPending}
                       onCancel={() => setEditingUnitId(null)}
@@ -185,7 +186,7 @@ export function OrgPage() {
             <div className="space-y-8">
               <RoleManager />
               <div className="border-t pt-8">
-                <UnitRoleAssignments units={units as any} />
+                <UnitRoleAssignments units={typedUnits} />
               </div>
             </div>
           </div>
@@ -193,7 +194,7 @@ export function OrgPage() {
 
         <TabsContent value="workflows" className="pt-4">
           <div className="max-w-4xl">
-            <ApprovalWorkflowConfig units={units as any} />
+            <ApprovalWorkflowConfig units={typedUnits} />
           </div>
         </TabsContent>
       </Tabs>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useApprovalRoutes, useCreateApprovalRoute, useDeleteApprovalRoute, useRoles } from '@/features/org/hooks';
-import { OrgUnitResponse } from '@/features/org/schemas';
+import { OrgUnitResponse, RoleResponse } from '@/features/org/schemas';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -30,6 +30,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
 
   const { data: routes = [], isLoading: routesLoading } = useApprovalRoutes(selectedUnitId || 0, targetType);
   const { data: roles = [] } = useRoles();
+  const roleItems = roles as RoleResponse[];
 
   const createMutation = useCreateApprovalRoute();
   const deleteMutation = useDeleteApprovalRoute();
@@ -93,7 +94,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
           <Label>{t('org.target_type')}</Label>
           <RadioGroup
             value={targetType}
-            onValueChange={(val: any) => setTargetType(val)}
+            onValueChange={(val: 'leave' | 'timesheet') => setTargetType(val)}
             className="flex gap-4 pt-2"
           >
             <div className="flex items-center space-x-2">
@@ -127,7 +128,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
                  ) : (
                    <div className="flex flex-col items-center max-w-md mx-auto">
                      {sortedRoutes.map((route, index) => {
-                       const role = roles.find(r => r.id === route.role_id);
+                       const role = roleItems.find((r) => r.id === route.role_id);
                        return (
                          <React.Fragment key={route.id}>
                            <div className="w-full flex items-center justify-between p-3 border rounded-lg bg-background shadow-sm group">
@@ -185,7 +186,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
                         <SelectValue placeholder={t('web.org.select_role')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {roles.map((r: any) => (
+                        {roleItems.map((r) => (
                           <SelectItem key={r.id} value={r.id.toString()}>
                             {r.name}
                           </SelectItem>

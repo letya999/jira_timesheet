@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { orgUnitCreateSchema, OrgUnitResponse } from '@/features/org/schemas';
+import { orgUnitCreateSchema, OrgUnitCreate, OrgUnitResponse } from '@/features/org/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 interface UnitFormProps {
   initialData?: OrgUnitResponse;
   units: OrgUnitResponse[];
-  onSubmit: (data: any) => void;
+  onSubmit: (data: OrgUnitCreate | Partial<OrgUnitCreate>) => void;
   isPending: boolean;
   onCancel?: () => void;
 }
@@ -30,7 +30,7 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
     watch,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<OrgUnitCreate>({
     resolver: zodResolver(orgUnitCreateSchema),
     defaultValues: initialData
       ? {
@@ -76,7 +76,7 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
     .map((u) => ({ id: u.id, path: getUnitPath(u) }))
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = (data: OrgUnitCreate) => {
     onSubmit(data);
     if (!initialData) reset();
   };
@@ -115,7 +115,7 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
         <Label htmlFor="reporting-period">{t('org.reporting_period')}</Label>
         <Select
           value={reportingPeriod}
-          onValueChange={(val: any) => setValue('reporting_period', val)}
+          onValueChange={(val: OrgUnitCreate['reporting_period']) => setValue('reporting_period', val)}
         >
           <SelectTrigger id="reporting-period">
             <SelectValue />

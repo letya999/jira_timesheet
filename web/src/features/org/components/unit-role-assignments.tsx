@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useUnitRoles, useAssignUnitRole, useRemoveUnitRole, useRoles } from '@/features/org/hooks';
 import { useUsers } from '@/features/users/hooks';
-import { OrgUnitResponse } from '@/features/org/schemas';
+import { OrgUnitResponse, RoleResponse, UnitRoleAssignment } from '@/features/org/schemas';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -18,6 +18,17 @@ import { useTranslation } from 'react-i18next';
 interface UnitRoleAssignmentsProps {
   units: OrgUnitResponse[];
 }
+
+type UserItem = {
+  id: number;
+  display_name?: string;
+  full_name?: string;
+  email?: string;
+};
+
+type UsersPayload = {
+  items?: UserItem[];
+};
 
 export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
   const { t } = useTranslation();
@@ -58,7 +69,9 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
     );
   };
 
-  const users = Array.isArray(usersData) ? usersData : (usersData as any)?.items || [];
+  const users = (Array.isArray(usersData) ? usersData : (usersData as UsersPayload | undefined)?.items ?? []) as UserItem[];
+  const assignmentItems = assignments as UnitRoleAssignment[];
+  const roleItems = roles as RoleResponse[];
 
   return (
     <div className="space-y-6">
@@ -102,9 +115,9 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
               {assignments.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">{t('org.no_roles_assigned')}</p>
               ) : (
-                assignments.map((assignment: any) => {
-                   const user = users.find((u: any) => u.id === assignment.user_id);
-                   const role = roles.find((r: any) => r.id === assignment.role_id);
+                assignmentItems.map((assignment) => {
+                   const user = users.find((u) => u.id === assignment.user_id);
+                   const role = roleItems.find((r) => r.id === assignment.role_id);
                    return (
                       <div
                         key={assignment.id}
@@ -143,7 +156,7 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
                     <SelectValue placeholder={t('web.org.select_user')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map((u: any) => (
+                    {users.map((u) => (
                       <SelectItem key={u.id} value={u.id.toString()}>
                         {u.display_name || u.full_name || u.email}
                       </SelectItem>
@@ -162,7 +175,7 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
                     <SelectValue placeholder={t('web.org.select_role')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles.map((r: any) => (
+                    {roleItems.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
                         {r.name}
                       </SelectItem>
