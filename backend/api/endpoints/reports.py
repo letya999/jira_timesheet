@@ -23,6 +23,16 @@ from api.deps import get_current_user, require_role
 router = APIRouter()
 
 
+def _join_unique_names(items: list[Any] | None) -> str:
+    """Serialize relation objects into comma-separated unique names."""
+    if not items:
+        return "N/A"
+    names = [str(item.name).strip() for item in items if getattr(item, "name", None)]
+    if not names:
+        return "N/A"
+    return ", ".join(dict.fromkeys(names))
+
+
 @router.get("/dashboard", response_model=dict[str, Any])
 @cache(expire=300, namespace="reports")
 async def get_dashboard_data(
@@ -244,8 +254,8 @@ async def get_custom_report(
             "project": w.issue.project.name if w.issue and w.issue.project else "N/A",
             "task": w.issue.summary if w.issue else "N/A",
             "issue_key": w.issue.key if w.issue else "N/A",
-            "release": ", ".join([r.name for r in w.issue.releases]) if w.issue and w.issue.releases else "N/A",
-            "sprint": ", ".join([s.name for s in w.issue.sprints]) if w.issue and w.issue.sprints else "N/A",
+            "release": _join_unique_names(w.issue.releases if w.issue else None),
+            "sprint": _join_unique_names(w.issue.sprints if w.issue else None),
             "category": w.category.name if w.category else "N/A",
             "description": w.description or "",
             "team": unit_name,

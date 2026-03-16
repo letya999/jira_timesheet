@@ -1,73 +1,145 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ReportDataTable } from './report-data-table';
 
-// Mock DataTableOrganism to simplify testing the column definitions and data flow
-vi.mock('@/components/shared/data-table-organism', () => ({
-  DataTableOrganism: ({ data, columns }: any) => (
-    <table>
-      <thead>
-        <tr>
-          {columns.map((col: any) => (
-            <th key={col.accessorKey}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row: any, i: number) => (
-          <tr key={i}>
-            {columns.map((col: any) => {
-              const val = row[col.accessorKey];
-              // Simulate cell renderer
-              if (col.cell) {
-                const getValue = () => val;
-                return <td key={col.accessorKey}>{col.cell({ getValue })}</td>;
-              }
-              return <td key={col.accessorKey}>{String(val ?? '—')}</td>;
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ),
-}));
-
 describe('ReportDataTable', () => {
-  it('renders "No data" empty state when data is empty', () => {
-    render(<ReportDataTable data={[]} columns={[]} />);
-    expect(screen.getByText(/no data to display/i)).toBeDefined();
+  it('renders empty state when data is empty', () => {
+    render(
+      <ReportDataTable
+        data={[]}
+        rowDimensions={['user']}
+        columnDimensions={['date']}
+        groupHorizontallyBy={null}
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+    expect(screen.getByText(/no results/i)).toBeDefined();
   });
 
-  it('renders column headers derived from columns prop', () => {
-    render(<ReportDataTable data={[{ user: 'Alice' }]} columns={['user', 'value']} />);
+  it('renders only selected row dimension headers', () => {
+    render(
+      <ReportDataTable
+        data={[{ user: 'Alice', project: 'A', date: '2026-03-02', value: 8, issue_key: 'ISS-1' }]}
+        rowDimensions={['user']}
+        columnDimensions={['date']}
+        groupHorizontallyBy={null}
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+
     expect(screen.getByText('User')).toBeDefined();
-    expect(screen.getByText('Value')).toBeDefined();
+    expect(screen.queryByText('Project')).toBeNull();
+    expect(screen.queryByText('Issue key')).toBeNull();
   });
 
-  it('renders column headers from first row keys when columns prop is empty', () => {
-    render(<ReportDataTable data={[{ project: 'A' }]} columns={[]} />);
-    expect(screen.getByText('Project')).toBeDefined();
+  it('aggregates values and formats with one decimal', () => {
+    render(
+      <ReportDataTable
+        data={[
+          { user: 'Alice', date: '2026-03-02', value: 2 },
+          { user: 'Alice', date: '2026-03-03', value: 3.25 },
+        ]}
+        rowDimensions={['user']}
+        columnDimensions={[]}
+        groupHorizontallyBy={null}
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+
+    expect(screen.getByText('Total')).toBeDefined();
+    expect(screen.getByText(/5[.,]3/)).toBeDefined();
   });
 
-  it('renders data rows', () => {
-    render(<ReportDataTable data={[{ user: 'Alice', value: 8 }]} columns={['user', 'value']} />);
-    expect(screen.getByText('Alice')).toBeDefined();
+  it('renders nested headers for multiple column dimensions in selected order', () => {
+    render(
+      <ReportDataTable
+        data={[
+          { user: 'Alice', project: 'A', date: '2026-03-02', category: 'Dev', value: 8 },
+          { user: 'Alice', project: 'A', date: '2026-03-09', category: 'QA', value: 4 },
+        ]}
+        rowDimensions={['user']}
+        columnDimensions={['category', 'date']}
+        groupHorizontallyBy={null}
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+
+    expect(screen.getByText('Dev')).toBeDefined();
+    expect(screen.getByText('QA')).toBeDefined();
+    expect(screen.getByText('2026-03-02')).toBeDefined();
+    expect(screen.getByText('2026-03-09')).toBeDefined();
   });
 
-  it('numeric "value" and "hours" fields are formatted with 1 decimal place', () => {
-    render(<ReportDataTable data={[{ value: 8, hours: 7.56 }]} columns={['value', 'hours']} />);
-    // Use regex to match either . or , as decimal separator
-    expect(screen.getByText(/8[.,]0/)).toBeDefined();
-    expect(screen.getByText(/7[.,]6/)).toBeDefined();
+  it('moves horizontal grouping field out of rows to avoid duplicate row records', () => {
+    render(
+      <ReportDataTable
+        data={[
+          { user: 'Alexey Kuznetsov', task: '[Site] Task A', date: '2026-03-02', value: 26 },
+          { user: 'Alexey Kuznetsov', task: '[Site] Task B', date: '2026-03-02', value: 0.5 },
+        ]}
+        rowDimensions={['user', 'task']}
+        columnDimensions={['date']}
+        groupHorizontallyBy="task"
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+
+    expect(screen.getByText('User')).toBeDefined();
+    expect(screen.queryByText('Task')).toBeNull();
+    expect(screen.getByText('[Site] Task A')).toBeDefined();
+    expect(screen.getByText('[Site] Task B')).toBeDefined();
+    expect(screen.getAllByText('2026-03-02').length).toBe(2);
+    expect(screen.getAllByText('Alexey Kuznetsov').length).toBe(1);
   });
 
-  it('non-numeric fields rendered as strings', () => {
-    render(<ReportDataTable data={[{ user: 'Alice' }]} columns={['user']} />);
-    expect(screen.getByText('Alice')).toBeDefined();
+  it('moves vertical grouping field out of columns and into rows', () => {
+    render(
+      <ReportDataTable
+        data={[
+          { user: 'Alexey Kuznetsov', task: 'Task A', date: '2026-03-02', value: 2 },
+          { user: 'Alexey Kuznetsov', task: 'Task A', date: '2026-03-03', value: 3 },
+        ]}
+        rowDimensions={['user']}
+        columnDimensions={['task', 'date']}
+        groupHorizontallyBy={null}
+        groupVerticallyBy="task"
+        dateGranularity="week"
+      />
+    );
+
+    expect(screen.getByText('Task')).toBeDefined();
+    expect(screen.getByText('Task A')).toBeDefined();
+    expect(screen.queryByText('Total')).toBeNull();
+    expect(screen.getByText('2026-03-02')).toBeDefined();
+    expect(screen.queryByText('2026-03-03')).toBeNull();
+    expect(screen.getAllByText('Alexey Kuznetsov').length).toBe(1);
+    expect(screen.getByText(/5[.,]0/)).toBeDefined();
   });
 
-  it('handles undefined/null values showing —', () => {
-    render(<ReportDataTable data={[{ user: null }]} columns={['user']} />);
-    expect(screen.getByText('—')).toBeDefined();
+  it('renders vertical super-groups by merging repeated row header values', () => {
+    render(
+      <ReportDataTable
+        data={[
+          { user: 'Alexey Kuznetsov', task: 'Task A', date: '2026-03-02', value: 2 },
+          { user: 'Alexey Kuznetsov', task: 'Task B', date: '2026-03-02', value: 3 },
+        ]}
+        rowDimensions={['user', 'task']}
+        columnDimensions={['date']}
+        groupHorizontallyBy={null}
+        groupVerticallyBy={null}
+        dateGranularity="week"
+      />
+    );
+
+    expect(screen.getByText('User')).toBeDefined();
+    expect(screen.getByText('Task')).toBeDefined();
+    expect(screen.getByText('Task A')).toBeDefined();
+    expect(screen.getByText('Task B')).toBeDefined();
+    expect(screen.getAllByText('Alexey Kuznetsov').length).toBe(1);
   });
 });

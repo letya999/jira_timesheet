@@ -14,6 +14,8 @@ describe('useReportFilters', () => {
       expect(result.current.filters.end_date).toBe(today);
       expect(result.current.filters.group_by_rows).toEqual(['user', 'project']);
       expect(result.current.filters.group_by_cols).toEqual(['date']);
+      expect(result.current.filters.group_horizontally_by).toBeNull();
+      expect(result.current.filters.group_vertically_by).toBeNull();
       expect(result.current.filters.date_granularity).toBe('week');
       expect(result.current.filters.format).toBe('hours');
     });

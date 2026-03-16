@@ -19,6 +19,8 @@ export type ReportFilters = {
   category_ids: number[];
   group_by_rows: string[];
   group_by_cols: string[];
+  group_horizontally_by: string | null;
+  group_vertically_by: string | null;
   date_granularity: DateGranularity;
   format: ValueFormat;
   hours_per_day: number;
@@ -46,6 +48,8 @@ export const DEFAULT_FILTERS: ReportFilters = {
   category_ids: [],
   group_by_rows: ['user', 'project'],
   group_by_cols: ['date'],
+  group_horizontally_by: null,
+  group_vertically_by: null,
   date_granularity: 'week',
   format: 'hours',
   hours_per_day: 8,

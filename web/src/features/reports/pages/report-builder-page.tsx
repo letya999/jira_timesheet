@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { CollapsibleBlock } from '@/components/shared/collapsible-block';
 import { useReportFilters, type ReportFilters } from '../hooks/use-report-filters';
 import {
   useCustomReport,
@@ -53,7 +54,6 @@ export function ReportBuilderPage({
 
   const { data: reportData, isFetching, isError } = useCustomReport(reportBody);
   const rows: Row[] = (reportData?.data as Row[] | undefined) ?? [];
-  const columns: string[] = (reportData?.columns as string[] | undefined) ?? [];
 
   const handleRun = useCallback(() => {
     setReportBody(toReportRequest());
@@ -76,33 +76,27 @@ export function ReportBuilderPage({
       <h2 className="text-xl font-semibold">{title}</h2>
 
       {/* Filter panel */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Data filters</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleBlock title="Data filters" defaultOpen>
+        <div className="pt-1">
           <ReportFilterPanel
             filters={filters}
             onFilter={setFilter}
             lockedFields={lockedFields}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleBlock>
 
       {/* Pivot config */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Pivot configuration</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleBlock title="Pivot configuration" defaultOpen>
+        <div className="pt-1">
           <PivotConfigPanel
             filters={filters}
             onFilter={setFilter}
             onRun={handleRun}
             isLoading={isFetching}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleBlock>
 
       {/* Active filter chips */}
       <FilterBar
@@ -127,7 +121,9 @@ export function ReportBuilderPage({
 
       {!isFetching && !isError && rows.length > 0 && (
         <div className="space-y-4">
-          <ReportMetricsBar data={rows} format={filters.format} />
+          <CollapsibleBlock title="Aggregated statistics" defaultOpen>
+            <ReportMetricsBar data={rows} format={filters.format} />
+          </CollapsibleBlock>
 
           <Separator />
 
@@ -142,7 +138,14 @@ export function ReportBuilderPage({
               </div>
             </CardHeader>
             <CardContent>
-              <ReportDataTable data={rows} columns={columns} />
+              <ReportDataTable
+                data={rows}
+                rowDimensions={filters.group_by_rows}
+                columnDimensions={filters.group_by_cols}
+                groupHorizontallyBy={filters.group_horizontally_by}
+                groupVerticallyBy={filters.group_vertically_by}
+                dateGranularity={filters.date_granularity}
+              />
             </CardContent>
           </Card>
 
