@@ -22,7 +22,7 @@ describe('TempPasswordDialog', () => {
   });
 
   it('renders nothing when credentials is null', () => {
-    const { container } = render(<TempPasswordDialog credentials={null} onClose={mockOnClose} />);
+    render(<TempPasswordDialog credentials={null} onClose={mockOnClose} />);
     // Dialog uses Portal, so it might not be in container, but screen should be empty of its content
     expect(screen.queryByText('System User Created')).toBeNull();
   });
@@ -39,7 +39,9 @@ describe('TempPasswordDialog', () => {
     render(<TempPasswordDialog credentials={mockCredentials} onClose={mockOnClose} />);
     // Dialog renders two "Close" buttons: the built-in X icon and the footer button
     const closeButtons = screen.getAllByRole('button', { name: /close/i });
-    fireEvent.click(closeButtons[closeButtons.length - 1]);
+    expect(closeButtons.length).toBeGreaterThan(0);
+    const button = closeButtons[closeButtons.length - 1];
+    if (button) fireEvent.click(button);
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -48,14 +50,16 @@ describe('TempPasswordDialog', () => {
     // There are two copy buttons, first is for email
     const copyButtons = screen.getAllByRole('button');
     // Button 0 and 1 are copy buttons, Button 2 is Close
-    fireEvent.click(copyButtons[0]);
+    const firstButton = copyButtons[0];
+    if (firstButton) fireEvent.click(firstButton);
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('alice@example.com');
   });
 
   it('copies password to clipboard when copy button clicked', () => {
     render(<TempPasswordDialog credentials={mockCredentials} onClose={mockOnClose} />);
     const copyButtons = screen.getAllByRole('button');
-    fireEvent.click(copyButtons[1]);
+    const secondButton = copyButtons[1];
+    if (secondButton) fireEvent.click(secondButton);
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('secret-password');
   });
 });

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createRoute, redirect } from '@tanstack/react-router'
 import { appLayoutRoute } from './_app'
 import { queryClient } from '@/lib/query-client'
@@ -21,7 +22,7 @@ import { toast } from 'sonner'
 const ROLE_OPTIONS = ['admin', 'manager', 'hr', 'employee']
 
 function HrPage() {
-  const { data: response, isLoading } = useUsers({ skip: 0, limit: 200 })
+  const { data: response, isLoading } = useUsers({ page: 1, size: 200 })
   const updateUserMutation = useUpdateUser()
 
   const users = useMemo(

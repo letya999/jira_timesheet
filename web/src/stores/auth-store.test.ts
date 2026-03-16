@@ -10,7 +10,8 @@ const mockUser: UserProfile = {
   display_name: 'John Doe',
   is_active: true,
   is_admin: false,
-  jira_account_id: 'abc123',
+  timezone: 'UTC',
+  jira_account_id: 'jira-123',
 };
 
 // Reset the store to initial state before each test

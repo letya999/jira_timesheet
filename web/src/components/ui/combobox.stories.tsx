@@ -17,14 +17,14 @@ const options = [
 ]
 
 export const Default: Story = {
-  render: () => {
+  render: function Render() {
     const [value, setValue] = React.useState("")
     return <Combobox options={options} value={value} onChange={setValue} />
   },
 }
 
 export const Preselected: Story = {
-  render: () => {
+  render: function Render() {
     const [value, setValue] = React.useState("opt2")
     return <Combobox options={options} value={value} onChange={setValue} />
   },

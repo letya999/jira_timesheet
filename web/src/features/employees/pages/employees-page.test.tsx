@@ -3,8 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EmployeesPage } from './employees-page';
 import * as usersHooks from '../../users/hooks';
-import * as orgHooks from '../../org/hooks';
-import * as authHooks from '../../auth/hooks';
 
 // Mock hooks
 vi.mock('../../users/hooks', () => ({

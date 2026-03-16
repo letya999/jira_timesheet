@@ -5,6 +5,6 @@ export const employeeDetailRoute = createRoute({
   path: 'employees/$id',
   getParentRoute: () => appLayoutRoute,
   beforeLoad: () => {
-    throw redirect({ to: '/employees' });
+    throw redirect({ to: '/app/employees' });
   },
 });

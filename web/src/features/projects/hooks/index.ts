@@ -38,7 +38,7 @@ export function useProjects(params?: { page?: number; size?: number; is_active?:
     queryFn: async () => {
       const res = await getProjectsApiV1ProjectsGet({ 
         throwOnError: true, 
-        query: params as Parameters<typeof getProjectsApiV1ProjectsGet>[0]['query']
+        query: params as any
       });
       return res.data;
     },

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useSyncProjects, useProjectSyncStatus } from '@/features/projects/hooks';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Badge } from '@/components/ui/badge';
 

@@ -1,8 +1,9 @@
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { ReportSummaryCard } from '@/components/shared/report-summary-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCapexReport } from '../hooks';
 import { ReportBuilderPage } from './report-builder-page';
+import { dateUtils } from '@/lib/date-utils';
 
 type DashboardRow = {
   Hours?: number;
@@ -16,10 +17,10 @@ function computeSummary(data: DashboardRow[]) {
 }
 
 export function CapexReportPage() {
-  const now = new Date();
+  const now = dateUtils.now();
   const params = {
-    start_date: format(startOfMonth(now), 'yyyy-MM-dd'),
-    end_date: format(endOfMonth(now), 'yyyy-MM-dd'),
+    start_date: dateUtils.formatPlain(startOfMonth(now), 'yyyy-MM-dd'),
+    end_date: dateUtils.formatPlain(endOfMonth(now), 'yyyy-MM-dd'),
   };
 
   const { data, isLoading } = useCapexReport(params);

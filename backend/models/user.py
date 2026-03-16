@@ -39,6 +39,7 @@ class User(Base, AuditMixin):
     # Login access control only
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     needs_password_change: Mapped[bool] = mapped_column(Boolean, default=False)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC")
 
     jira_user_id: Mapped[int | None] = mapped_column(ForeignKey("jira_users.id"), nullable=True)
     jira_user = relationship("JiraUser", back_populates="user")

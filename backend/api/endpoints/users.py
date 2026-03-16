@@ -51,6 +51,7 @@ async def get_users(
                 "role": u.role,
                 "is_active": u.is_active,
                 "needs_password_change": u.needs_password_change,
+                "timezone": u.timezone,
                 "jira_user_id": u.jira_user_id,
                 "org_unit_id": u.jira_user.org_unit_id if u.jira_user else None,
                 "display_name": u.jira_user.display_name if u.jira_user else u.full_name,
@@ -73,6 +74,7 @@ async def read_users_me(current_user: User = Depends(deps.get_current_user), db:
         "role": u.role,
         "is_active": u.is_active,
         "needs_password_change": u.needs_password_change,
+        "timezone": u.timezone,
         "jira_user_id": u.jira_user_id,
         "org_unit_id": u.jira_user.org_unit_id if u.jira_user else None,
         "display_name": u.jira_user.display_name if u.jira_user else u.full_name,
@@ -108,6 +110,7 @@ async def promote_to_system_user(
         is_active=True,
         needs_password_change=True,
         jira_user_id=jira_user_id,
+        timezone="UTC",
     )
 
     db.add(new_user)
@@ -121,6 +124,7 @@ async def promote_to_system_user(
         "role": new_user.role,
         "is_active": new_user.is_active,
         "needs_password_change": new_user.needs_password_change,
+        "timezone": new_user.timezone,
         "jira_user_id": new_user.jira_user_id,
         "org_unit_id": jira_user.org_unit_id,
         "display_name": jira_user.display_name,
@@ -179,6 +183,7 @@ async def update_user(
         "role": user.role,
         "is_active": user.is_active,
         "needs_password_change": user.needs_password_change,
+        "timezone": user.timezone,
         "jira_user_id": user.jira_user_id,
         "org_unit_id": user.jira_user.org_unit_id if user.jira_user else None,
         "display_name": user.jira_user.display_name if user.jira_user else user.full_name,

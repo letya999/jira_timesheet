@@ -36,11 +36,11 @@ export function useOrgTree() {
   });
 }
 
-export function useDepartments(params?: { parent_id?: number; type?: string }) {
+export function useDepartments() {
   return useQuery({
-    queryKey: orgKeys.departments(params),
+    queryKey: orgKeys.departments(),
     queryFn: async () => {
-      const res = await getOrgUnitsApiV1OrgUnitsGet({ throwOnError: true, query: params });
+      const res = await getOrgUnitsApiV1OrgUnitsGet({ throwOnError: true });
       return res.data;
     },
   });
@@ -58,7 +58,7 @@ export function useDepartment(id: number) {
   });
 }
 
-export function useEmployees(params?: { skip?: number; limit?: number }) {
+export function useEmployees(params?: { page?: number; size?: number; search?: string; org_unit_id?: number }) {
   return useQuery({
     queryKey: ['org', 'employees', params],
     queryFn: async () => {
@@ -163,7 +163,14 @@ export function useAssignUnitRole() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { unit_id: number; user_id: number; role_id: number }) => {
-      const res = await assignUserRoleApiV1OrgUnitsRolesPost({ throwOnError: true, body: data });
+      const res = await assignUserRoleApiV1OrgUnitsRolesPost({
+        throwOnError: true,
+        body: {
+          org_unit_id: data.unit_id,
+          user_id: data.user_id,
+          role_id: data.role_id,
+        },
+      });
       return res.data;
     },
     onSuccess: (_, variables) => {
@@ -175,10 +182,10 @@ export function useAssignUnitRole() {
 export function useRemoveUnitRole() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ assignmentId }: { assignmentId: number; unitId: number }) => {
+    mutationFn: async (vars: { assignmentId: number; unitId: number }) => {
       await removeUserRoleApiV1OrgUnitsRolesAssignmentIdDelete({
         throwOnError: true,
-        path: { assignment_id: assignmentId },
+        path: { assignment_id: vars.assignmentId },
       });
     },
     onSuccess: (_, variables) => {
@@ -206,7 +213,15 @@ export function useCreateApprovalRoute() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { unit_id: number; target_type: 'leave' | 'timesheet'; step_order: number; role_id: number }) => {
-      const res = await createApprovalRouteApiV1OrgUnitsApprovalRoutesPost({ throwOnError: true, body: data });
+      const res = await createApprovalRouteApiV1OrgUnitsApprovalRoutesPost({
+        throwOnError: true,
+        body: {
+          org_unit_id: data.unit_id,
+          target_type: data.target_type,
+          step_order: data.step_order,
+          role_id: data.role_id,
+        },
+      });
       return res.data;
     },
     onSuccess: (_, variables) => {
@@ -218,10 +233,10 @@ export function useCreateApprovalRoute() {
 export function useDeleteApprovalRoute() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ routeId, unitId, targetType }: { routeId: number; unitId: number; targetType: 'leave' | 'timesheet' }) => {
+    mutationFn: async (vars: { routeId: number; unitId: number; targetType: 'leave' | 'timesheet' }) => {
       await deleteApprovalRouteApiV1OrgUnitsApprovalRoutesRouteIdDelete({
         throwOnError: true,
-        path: { route_id: routeId },
+        path: { route_id: vars.routeId },
       });
     },
     onSuccess: (_, variables) => {

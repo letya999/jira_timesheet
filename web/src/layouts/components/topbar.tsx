@@ -26,7 +26,7 @@ export function Topbar() {
 
   const userInitials =
     user?.display_name?.slice(0, 2).toUpperCase() ??
-    user?.username?.slice(0, 2).toUpperCase() ??
+    user?.email?.slice(0, 2).toUpperCase() ??
     'U'
 
   const handleLogout = () => {
@@ -64,7 +64,7 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user?.display_name ?? user?.username ?? 'User'}</p>
+              <p className="text-sm font-medium">{user?.display_name ?? user?.email ?? 'User'}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />

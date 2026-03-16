@@ -10,9 +10,9 @@ export const calendarKeys = {
   holidays: (params?: object) => ['calendar', 'holidays', params] as const,
 };
 
-export function useCalendar(params?: {
-  start_date?: string;
-  end_date?: string;
+export function useCalendar(params: {
+  start_date: string;
+  end_date: string;
   user_id?: number;
 }) {
   return useQuery({
@@ -27,7 +27,7 @@ export function useCalendar(params?: {
   });
 }
 
-export function useHolidays(params?: { year?: number; country?: string }) {
+export function useHolidays(params: { start_date: string; end_date: string }) {
   return useQuery({
     queryKey: calendarKeys.holidays(params),
     queryFn: async () => {

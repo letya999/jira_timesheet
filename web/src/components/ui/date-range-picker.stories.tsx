@@ -12,7 +12,7 @@ export default meta
 type Story = StoryObj<typeof DateRangePicker>
 
 export const Default: Story = {
-  render: () => {
+  render: function Render() {
     const [date, setDate] = React.useState<DateRange | undefined>({
       from: new Date(),
       to: new Date(new Date().setDate(new Date().getDate() + 7)),

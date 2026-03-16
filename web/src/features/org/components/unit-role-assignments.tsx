@@ -24,8 +24,8 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
   const [selectedRoleId, setSelectedRoleId] = React.useState<number | null>(null);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useUnitRoles(selectedUnitId || 0);
-  const { data: usersData = { items: [] }, isLoading: usersLoading } = useUsers();
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: usersData = { items: [] } } = useUsers();
+  const { data: roles = [] } = useRoles();
 
   const assignMutation = useAssignUnitRole();
   const removeMutation = useRemoveUnitRole();

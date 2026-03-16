@@ -16,7 +16,7 @@ export const usersKeys = {
   employees: (params?: object) => ['users', 'employees', params] as const,
 };
 
-export function useUsers(params?: { skip?: number; limit?: number }) {
+export function useUsers(params?: { page?: number; size?: number }) {
   return useQuery({
     queryKey: usersKeys.list(params),
     queryFn: async () => {
@@ -76,7 +76,7 @@ export function useJiraUsers(params?: { page?: number; size?: number; search?: s
     queryFn: async () => {
       const res = await getEmployeesApiV1OrgEmployeesGet({ 
         throwOnError: true, 
-        query: params as Parameters<typeof getEmployeesApiV1OrgEmployeesGet>[0]['query']
+        query: params as any
       });
       return res.data;
     },

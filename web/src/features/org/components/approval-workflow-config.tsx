@@ -27,7 +27,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
   const [roleId, setRoleId] = React.useState<number | null>(null);
 
   const { data: routes = [], isLoading: routesLoading } = useApprovalRoutes(selectedUnitId || 0, targetType);
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: roles = [] } = useRoles();
 
   const createMutation = useCreateApprovalRoute();
   const deleteMutation = useDeleteApprovalRoute();

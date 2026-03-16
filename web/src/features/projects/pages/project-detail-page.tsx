@@ -1,11 +1,9 @@
-import * as React from 'react';
 import { useProject, useProjectSprints } from '@/features/projects/hooks';
 import { GanttWrapper } from '../components/gantt-wrapper';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
-import { SprintResponse } from '@/features/projects/schemas';
 import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
@@ -15,7 +13,7 @@ interface ProjectDetailPageProps {
   projectId: number;
 }
 
-const sprintColumns: ColumnDef<SprintResponse>[] = [
+const sprintColumns: ColumnDef<any>[] = [
   {
     accessorKey: 'name',
     header: 'Sprint Name',

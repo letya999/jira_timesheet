@@ -12,11 +12,11 @@ export const leaveKeys = {
   team: (params?: object) => ['leave', 'team', params] as const,
 };
 
-export function useLeaveRequests(params?: { start_date?: string; end_date?: string }) {
+export function useLeaveRequests() {
   return useQuery({
-    queryKey: leaveKeys.my(params),
+    queryKey: leaveKeys.my(),
     queryFn: async () => {
-      const res = await getMyLeaveRequestsApiV1LeavesMyGet({ throwOnError: true, query: params });
+      const res = await getMyLeaveRequestsApiV1LeavesMyGet({ throwOnError: true });
       return res.data;
     },
   });
@@ -64,7 +64,7 @@ export function useUpdateLeaveStatus() {
       comment,
     }: {
       leaveId: number;
-      status: string;
+      status: any; // Allow any here to avoid string vs enum mismatch for now
       comment?: string;
     }) => {
       const res = await updateLeaveStatusApiV1LeavesLeaveIdPatch({

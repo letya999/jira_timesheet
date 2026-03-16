@@ -56,7 +56,7 @@ describe('projects hooks', () => {
     const { result, queryClient } = renderHookWithQuery(() => useRefreshProjects());
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(undefined);
     });
     expect(sdk.refreshProjectsApiV1ProjectsRefreshPost).toHaveBeenCalledWith({ throwOnError: true });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectsKeys.all() });
@@ -82,7 +82,7 @@ describe('projects hooks', () => {
       const { result, queryClient } = renderHookWithQuery(() => useSyncProjects());
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
       await act(async () => {
-        await result.current.mutateAsync();
+        await result.current.mutateAsync(undefined);
       });
       expect(sdk.syncAllActiveProjectsApiV1ProjectsSyncAllPost).toHaveBeenCalledWith({ throwOnError: true });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectsKeys.all() });

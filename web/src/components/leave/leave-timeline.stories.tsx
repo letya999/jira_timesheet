@@ -426,7 +426,9 @@ type Story = StoryObj<typeof LeaveTimeline>
 
 /** Full interactive demo — view switcher, date navigation, user & type filters. */
 export const Interactive: Story = {
-  render: () => <LeaveTimelineDemo />,
+  render: function Render() {
+    return <LeaveTimelineDemo />
+  },
   parameters: { controls: { disable: true } },
 }
 

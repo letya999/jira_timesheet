@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { appLayoutRoute } from './_app'
@@ -6,9 +7,9 @@ import { timesheetKeys, useTimesheetEntries } from '@/features/timesheet/hooks'
 import { getAllWorklogsApiV1TimesheetGet } from '@/api/generated/sdk.gen'
 import { TimesheetGrid, type TimesheetEntry } from '@/components/time/timesheet-grid'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { startOfMonth, endOfMonth } from 'date-fns'
 import { Loader2, FileSpreadsheet } from 'lucide-react'
-import { DateRange } from 'react-day-picker'
+import { dateUtils } from '@/lib/date-utils'
 
 export const controlSheetRoute = createRoute({
   path: 'control-sheet',
@@ -18,26 +19,30 @@ export const controlSheetRoute = createRoute({
       queryKey: timesheetKeys.entries(),
       queryFn: () => getAllWorklogsApiV1TimesheetGet().then((r) => r.data),
     }).catch(() => null),
-  component: ControlSheetPage,
+  component: ControlSheet,
 })
 
-function ControlSheetPage() {
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
+function ControlSheet() {
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => {
+    const now = dateUtils.now()
+    return {
+      from: startOfMonth(now),
+      to: endOfMonth(now),
+    }
   })
 
-  const { data: worklogs, isLoading } = useTimesheetEntries({
-    start_date: format(dateRange.from, 'yyyy-MM-dd'),
-    end_date: format(dateRange.to, 'yyyy-MM-dd'),
+  const { data: worklogsData, isLoading } = useTimesheetEntries({
+    start_date: dateUtils.formatPlain(dateRange.from, 'yyyy-MM-dd'),
+    end_date: dateUtils.formatPlain(dateRange.to, 'yyyy-MM-dd'),
   })
 
   const gridEntries = useMemo<TimesheetEntry[]>(() => {
-    if (!worklogs) return []
+    const worklogs = Array.isArray(worklogsData) ? worklogsData : worklogsData?.items || []
+    if (worklogs.length === 0) return []
 
     // Group by issue/task to show in grid
     // Using project_name and issue_key from backend schema
-    const grouped = worklogs.reduce((acc, log: any) => {
+    const grouped = worklogs.reduce((acc: Record<string, any>, log: any) => {
       const key = `${log.issue_key || 'manual'}-${log.project_name || 'other'}`
       if (!acc[key]) {
         acc[key] = {
@@ -51,8 +56,8 @@ function ControlSheetPage() {
       return acc
     }, {} as Record<string, TimesheetEntry>)
 
-    return Object.values(grouped)
-  }, [worklogs])
+    return Object.values(grouped) as TimesheetEntry[]
+  }, [worklogsData])
 
   return (
     <div className="space-y-6">

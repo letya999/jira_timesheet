@@ -8,6 +8,7 @@ import {
   Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { dateUtils } from "@/lib/date-utils"
 
 export type NotificationType = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'SYSTEM'
 
@@ -61,7 +62,7 @@ export function NotificationItem({
         </p>
         <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
           <Clock className="size-3" />
-          <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+          <span>{formatDistanceToNow(dateUtils.parse(createdAt), { addSuffix: true })}</span>
         </div>
       </div>
       {!isRead && (

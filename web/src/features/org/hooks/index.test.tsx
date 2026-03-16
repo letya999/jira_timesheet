@@ -64,9 +64,9 @@ describe('org hooks', () => {
     const { result, queryClient } = renderHookWithQuery(() => useCreateRole());
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     await act(async () => {
-      await result.current.mutateAsync({ name: 'Manager' });
+      await result.current.mutateAsync({ name: 'Manager', reporting_period: 'weekly' });
     });
-    expect(sdk.createRoleApiV1OrgRolesPost).toHaveBeenCalledWith({ throwOnError: true, body: { name: 'Manager' } });
+    expect(sdk.createRoleApiV1OrgRolesPost).toHaveBeenCalledWith({ throwOnError: true, body: { name: 'Manager', reporting_period: 'weekly' } });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: orgKeys.roles() });
   });
 
