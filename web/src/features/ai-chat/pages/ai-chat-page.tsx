@@ -7,8 +7,10 @@ import { AiChatDisabled } from '../components/ai-chat-disabled'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Bot } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function AiChatPage() {
+  const { t } = useTranslation()
   const { data: health, isLoading: isHealthLoading } = useAiHealth()
   const { messages, sendMessage, isStreaming, clearHistory } = useAiChat()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -48,9 +50,9 @@ export function AiChatPage() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full py-20 text-center opacity-50">
             <Bot className="size-12 mb-4" />
-            <h3 className="text-lg font-medium">How can I help you today?</h3>
+            <h3 className="text-lg font-medium">{t('web.ai_chat.how_can_help')}</h3>
             <p className="text-sm max-w-sm">
-              Ask about team performance, project status, or individual worklogs across your organization.
+              {t('web.ai_chat.hint')}
             </p>
           </div>
         )}
@@ -67,7 +69,7 @@ export function AiChatPage() {
               </div>
               <div className="flex flex-col gap-2 w-[80%]">
                 <div className="flex items-center gap-2 px-1">
-                  <span className="text-xs font-semibold">Assistant</span>
+                  <span className="text-xs font-semibold">{t('web.ai_chat.assistant')}</span>
                 </div>
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-[250px]" />
@@ -82,7 +84,7 @@ export function AiChatPage() {
       <div className="p-4 border-t bg-background">
         <AiChatInput onSend={sendMessage} disabled={isStreaming} />
         <p className="text-[10px] text-center text-muted-foreground mt-2">
-          AI generated content can be inaccurate. Always verify against reports.
+          {t('web.ai_chat.disclaimer')}
         </p>
       </div>
     </div>

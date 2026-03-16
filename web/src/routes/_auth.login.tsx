@@ -89,7 +89,7 @@ function LoginPage() {
           <Input
             type="password"
             autoComplete="current-password"
-            placeholder="••••••••"
+            placeholder={t('web.auth.password_placeholder')}
             aria-invalid={!!errors.password}
             {...register('password')}
           />

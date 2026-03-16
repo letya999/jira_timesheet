@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Bell, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 function toNotificationType(type?: string): NotificationType {
   const normalized = (type ?? 'SYSTEM').toUpperCase()
@@ -21,6 +22,7 @@ function toNotificationType(type?: string): NotificationType {
 }
 
 export default function NotificationsPage() {
+  const { t } = useTranslation()
   const [unreadOnly, setUnreadOnly] = useState(false)
 
   const { data: notifications = [], isLoading } = useNotifications({ page: 1, size: 100 })
@@ -46,9 +48,9 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Notifications</h1>
+          <h1 className="text-2xl font-bold">{t('notifications.title')}</h1>
           <p className="text-muted-foreground">
-            Review updates from approvals, leave workflow, and integrations.
+            {t('notifications.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -56,14 +58,14 @@ export default function NotificationsPage() {
             variant={unreadOnly ? 'default' : 'outline'}
             onClick={() => setUnreadOnly((prev) => !prev)}
           >
-            {unreadOnly ? 'Show all' : 'Show unread'}
+            {unreadOnly ? t('web.notifications.show_all') : t('web.notifications.show_unread')}
           </Button>
           <Button
             variant="outline"
             onClick={() => void markAllRead.mutateAsync()}
             disabled={unreadCount === 0 || markAllRead.isPending}
           >
-            Mark all as read
+            {t('notifications.mark_all_read')}
           </Button>
         </div>
       </div>
@@ -71,8 +73,8 @@ export default function NotificationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Inbox ({visibleNotifications.length})
-            {unreadCount > 0 ? ` • ${unreadCount} unread` : ''}
+            {t('web.notifications.inbox_count', { count: visibleNotifications.length })}
+            {unreadCount > 0 ? ` • ${t('web.notifications.unread_count', { count: unreadCount })}` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
@@ -83,8 +85,8 @@ export default function NotificationsPage() {
           ) : visibleNotifications.length === 0 ? (
             <EmptyState
               icon={Bell}
-              title="No notifications"
-              description="You're up to date."
+              title={t('notifications.no_notifications')}
+              description={t('notifications.caught_up')}
               className="py-16"
             />
           ) : (

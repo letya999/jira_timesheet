@@ -7,6 +7,7 @@ import { LEAVE_TYPE_LABELS } from '@/components/leave/leave-absence-badge';
 import type { LeaveType } from '@/api/generated/types.gen';
 import type { LeaveFilters, LeaveTab } from '../types';
 import { LEAVE_STATUS_OPTIONS } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface LeaveFiltersPanelProps {
   open: boolean;
@@ -35,17 +36,18 @@ export function LeaveFiltersPanel({
   onLeaveTypesChange,
   onStatusesChange,
 }: LeaveFiltersPanelProps) {
+  const { t } = useTranslation();
   const disableOrgFilters = activeTab === 'my';
 
   return (
     <CollapsibleFilterBlock
-      title="Фильтры и поиск"
+      title={t('approvals.filters')}
       open={open}
       onOpenChange={onOpenChange}
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div>
-          <Label className="mb-1.5 block text-sm">Период</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.period')}</Label>
           <DateRangePicker
             date={filters.dateRange}
             setDate={onDateRangeChange}
@@ -54,29 +56,29 @@ export function LeaveFiltersPanel({
         </div>
 
         <div>
-          <Label className="mb-1.5 block text-sm">Команда</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.team')}</Label>
           <MultiSelect
             options={teamOptions}
             selected={filters.teamIds.map(String)}
             onChange={(vals) => onTeamIdsChange(vals.map(Number))}
-            placeholder="Все команды"
+            placeholder={t('approvals.all_teams')}
             disabled={disableOrgFilters}
           />
         </div>
 
         <div>
-          <Label className="mb-1.5 block text-sm">Сотрудники</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.employees')}</Label>
           <MultiSelect
             options={employeeOptions}
             selected={filters.employeeIds.map(String)}
             onChange={(vals) => onEmployeeIdsChange(vals.map(Number))}
-            placeholder="Все сотрудники"
+            placeholder={t('reports.all_employees')}
             disabled={disableOrgFilters}
           />
         </div>
 
         <div>
-          <Label className="mb-1.5 block text-sm">Тип отсутствия</Label>
+          <Label className="mb-1.5 block text-sm">{t('leaves.type')}</Label>
           <MultiSelect
             options={Object.entries(LEAVE_TYPE_LABELS).map(([value, label]) => ({
               value,
@@ -84,17 +86,17 @@ export function LeaveFiltersPanel({
             }))}
             selected={filters.leaveTypes}
             onChange={(vals) => onLeaveTypesChange(vals as LeaveType[])}
-            placeholder="Все типы"
+            placeholder={t('employees.all_types')}
           />
         </div>
 
         <div>
-          <Label className="mb-1.5 block text-sm">Статус</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.status')}</Label>
           <MultiSelect
             options={LEAVE_STATUS_OPTIONS}
             selected={filters.statuses}
             onChange={(vals) => onStatusesChange(vals as Array<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>)}
-            placeholder="Все статусы"
+            placeholder={t('web.leave.all_statuses')}
           />
         </div>
       </div>

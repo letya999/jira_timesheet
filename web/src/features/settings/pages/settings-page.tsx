@@ -55,6 +55,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 const COUNTRY_NAMES: Record<string, string> = {
   RU: 'Russia',
@@ -76,15 +77,6 @@ type UserColumn = {
   label: string
 }
 
-const USER_COLUMNS: UserColumn[] = [
-  { key: 'id', label: 'ID' },
-  { key: 'full_name', label: 'Full Name' },
-  { key: 'email', label: 'Email' },
-  { key: 'role', label: 'Role' },
-  { key: 'jira_user_id', label: 'Jira User ID' },
-  { key: 'weekly_quota', label: 'Weekly Quota' },
-]
-
 function currentYearDateRange() {
   const year = new Date().getFullYear()
   return {
@@ -95,6 +87,7 @@ function currentYearDateRange() {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation()
   const { data: user } = useCurrentUser()
   const storeUser = useAuthStore((state) => state.user)
   const permissions = useAuthStore((state) => state.permissions)
@@ -151,11 +144,11 @@ export default function SettingsPage() {
       return countryCode
     },
     onSuccess: (countryCode) => {
-      toast.success(`Country updated to ${countryCode}`)
+      toast.success(t('web.settings.country_updated_to', { country: countryCode }))
       queryClient.invalidateQueries({ queryKey: ['settings', 'country'] })
       queryClient.invalidateQueries({ queryKey: ['settings', 'holidays'] })
     },
-    onError: () => toast.error('Failed to update country'),
+    onError: () => toast.error(t('settings.failed_update_country')),
   })
 
   const usersQuery = useQuery({
@@ -193,10 +186,10 @@ export default function SettingsPage() {
       })
     },
     onSuccess: () => {
-      toast.success('Holidays synced')
+      toast.success(t('web.settings.holidays_synced'))
       queryClient.invalidateQueries({ queryKey: ['settings', 'holidays'] })
     },
-    onError: () => toast.error('Failed to sync holidays'),
+    onError: () => toast.error(t('web.settings.holidays_sync_failed')),
   })
 
   const addHolidayMutation = useMutation({
@@ -207,11 +200,11 @@ export default function SettingsPage() {
       })
     },
     onSuccess: () => {
-      toast.success('Holiday saved')
+      toast.success(t('settings.holiday_saved'))
       setNewHolidayName('')
       queryClient.invalidateQueries({ queryKey: ['settings', 'holidays'] })
     },
-    onError: () => toast.error('Failed to save holiday'),
+    onError: () => toast.error(t('web.settings.holiday_save_failed')),
   })
 
   const deleteHolidayMutation = useMutation({
@@ -222,10 +215,10 @@ export default function SettingsPage() {
       })
     },
     onSuccess: () => {
-      toast.success('Holiday deleted')
+      toast.success(t('settings.holiday_deleted'))
       queryClient.invalidateQueries({ queryKey: ['settings', 'holidays'] })
     },
-    onError: () => toast.error('Failed to delete holiday'),
+    onError: () => toast.error(t('web.settings.holiday_delete_failed')),
   })
 
   const changePasswordMutation = useMutation({
@@ -237,14 +230,14 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       setNewPassword('')
-      toast.success('Password updated')
+      toast.success(t('web.settings.password_updated'))
     },
-    onError: () => toast.error('Failed to update password'),
+    onError: () => toast.error(t('web.settings.password_update_failed')),
   })
 
   const handlePasswordUpdate = () => {
     if (newPassword.trim().length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error(t('web.settings.password_min_length'))
       return
     }
     changePasswordMutation.mutate(newPassword.trim())
@@ -252,15 +245,15 @@ export default function SettingsPage() {
 
   const handleSyncUsers = () => {
     syncUsersMutation.mutate(undefined, {
-      onSuccess: () => toast.success('Jira users sync started'),
-      onError: () => toast.error('Failed to start Jira sync'),
+      onSuccess: () => toast.success(t('web.settings.jira_sync_started')),
+      onError: () => toast.error(t('web.settings.jira_sync_start_failed')),
     })
   }
 
   const handleMarkAllRead = () => {
     markAllReadMutation.mutate(undefined, {
-      onSuccess: () => toast.success('All notifications marked as read'),
-      onError: () => toast.error('Failed to mark notifications as read'),
+      onSuccess: () => toast.success(t('notifications.all_read_success')),
+      onError: () => toast.error(t('web.settings.mark_read_failed')),
     })
   }
 
@@ -273,7 +266,7 @@ export default function SettingsPage() {
 
   const handleAddHoliday = () => {
     if (!newHolidayName.trim()) {
-      toast.error('Holiday name is required')
+      toast.error(t('web.settings.holiday_name_required'))
       return
     }
 
@@ -296,20 +289,32 @@ export default function SettingsPage() {
   const usersTotal = usersQuery.data?.total ?? 0
   const usersTotalPages = usersQuery.data?.pages ?? 1
 
+  const USER_COLUMNS: UserColumn[] = useMemo(
+    () => [
+      { key: 'id', label: 'ID' },
+      { key: 'full_name', label: t('web.settings.full_name') },
+      { key: 'email', label: t('common.email') },
+      { key: 'role', label: t('common.role') },
+      { key: 'jira_user_id', label: t('web.settings.jira_user_id') },
+      { key: 'weekly_quota', label: t('web.settings.weekly_quota') },
+    ],
+    [t],
+  )
+
   const visibleUserColumns = useMemo(
     () => USER_COLUMNS.filter((column) => usersItems.some((item) => column.key in item)),
-    [usersItems],
+    [USER_COLUMNS, usersItems],
   )
 
   const currentYear = defaults.year
-  const jiraUrl = import.meta.env.VITE_JIRA_URL ?? 'Not configured'
+  const jiraUrl = import.meta.env.VITE_JIRA_URL ?? t('web.settings.not_configured')
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t('common.settings')}</h1>
         <p className="text-muted-foreground">
-          Manage profile, integrations, and workspace preferences.
+          {t('web.settings.subtitle')}
         </p>
       </div>
 
@@ -317,54 +322,54 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <UserRound className="size-4" />
-            Profile
+            {t('web.settings.profile')}
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="size-4" />
-            Notifications
+            {t('common.notifications')}
           </TabsTrigger>
           {canManageSettings && (
             <TabsTrigger value="org" className="flex items-center gap-2">
               <Building2 className="size-4" />
-              Org
+              {t('web.settings.org')}
             </TabsTrigger>
           )}
           {canManageSettings && (
             <TabsTrigger value="jira" className="flex items-center gap-2">
               <LinkIcon className="size-4" />
-              Jira Integration
+              {t('web.settings.jira_integration')}
             </TabsTrigger>
           )}
           <TabsTrigger value="admin" className="flex items-center gap-2">
             <Shield className="size-4" />
-            Admin Settings
+            {t('web.settings.admin_settings')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="pt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>Account details and password update.</CardDescription>
+              <CardTitle>{t('web.settings.profile')}</CardTitle>
+              <CardDescription>{t('web.settings.profile_desc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Username">
+                <FormField label={t('web.auth.username')}>
                   <Input value={storeUser?.username ?? ''} readOnly />
                 </FormField>
-                <FormField label="Email">
+                <FormField label={t('common.email')}>
                   <Input value={user?.email ?? storeUser?.email ?? ''} readOnly />
                 </FormField>
               </div>
               <div className="max-w-md space-y-3">
                 <Label htmlFor="new-password" className="flex items-center gap-2">
                   <KeyRound className="size-4" />
-                  Change Password
+                  {t('web.settings.change_password')}
                 </Label>
                 <Input
                   id="new-password"
                   type="password"
-                  placeholder="At least 8 characters"
+                  placeholder={t('web.settings.password_placeholder')}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
@@ -372,7 +377,7 @@ export default function SettingsPage() {
                   onClick={handlePasswordUpdate}
                   disabled={changePasswordMutation.isPending}
                 >
-                  Update password
+                  {t('web.settings.update_password')}
                 </Button>
               </div>
             </CardContent>
@@ -382,24 +387,24 @@ export default function SettingsPage() {
         <TabsContent value="notifications" className="pt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>Delivery options and inbox controls.</CardDescription>
+              <CardTitle>{t('common.notifications')}</CardTitle>
+              <CardDescription>{t('web.settings.notifications_desc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
-                  <p className="font-medium">Email notifications</p>
+                  <p className="font-medium">{t('web.settings.email_notifications')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Send important updates to your email.
+                    {t('web.settings.email_notifications_desc')}
                   </p>
                 </div>
                 <Switch checked={notifyByEmail} onCheckedChange={setNotifyByEmail} />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
-                  <p className="font-medium">Approval reminders</p>
+                  <p className="font-medium">{t('web.settings.approval_reminders')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Notify when approvals are pending.
+                    {t('web.settings.approval_reminders_desc')}
                   </p>
                 </div>
                 <Switch
@@ -409,7 +414,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
                 <p className="text-sm text-muted-foreground">
-                  Unread notifications:{' '}
+                  {t('web.settings.unread_notifications')}:{' '}
                   <span className="font-semibold text-foreground">
                     {notificationStats?.unread_count ?? 0}
                   </span>
@@ -422,7 +427,7 @@ export default function SettingsPage() {
                     markAllReadMutation.isPending
                   }
                 >
-                  Mark all as read
+                  {t('notifications.mark_all_read')}
                 </Button>
               </div>
             </CardContent>
@@ -433,14 +438,14 @@ export default function SettingsPage() {
           <TabsContent value="org" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Org</CardTitle>
-                <CardDescription>Instance-level organization settings.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Org units configured: {orgUnits.length}
-                </p>
-              </CardContent>
+              <CardTitle>{t('web.settings.org')}</CardTitle>
+              <CardDescription>{t('web.settings.org_desc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t('web.settings.org_units_configured')}: {orgUnits.length}
+              </p>
+            </CardContent>
             </Card>
           </TabsContent>
         )}
@@ -449,20 +454,20 @@ export default function SettingsPage() {
           <TabsContent value="jira" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Jira Integration</CardTitle>
-                <CardDescription>
-                  Manage user sync from Jira and integration health.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardTitle>{t('web.settings.jira_integration')}</CardTitle>
+              <CardDescription>
+                  {t('web.settings.jira_integration_desc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
                 <Button onClick={handleSyncUsers} disabled={syncUsersMutation.isPending}>
                   <RefreshCw
                     className={`mr-2 size-4 ${syncUsersMutation.isPending ? 'animate-spin' : ''}`}
                   />
-                  Sync users from Jira
+                  {t('web.settings.sync_users_from_jira')}
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  This action refreshes Jira users and updates employee mappings.
+                  {t('web.settings.sync_users_hint')}
                 </p>
               </CardContent>
             </Card>
@@ -473,23 +478,23 @@ export default function SettingsPage() {
           {canManageSettings ? (
             <Card>
               <CardHeader>
-                <CardTitle>Admin Settings</CardTitle>
+                <CardTitle>{t('web.settings.admin_settings')}</CardTitle>
                 <CardDescription>
-                  Streamlit parity for production calendar and system users.
+                  {t('web.settings.admin_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Tabs defaultValue="system-users" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="system-users">System Users</TabsTrigger>
-                    <TabsTrigger value="calendar">Production Calendar</TabsTrigger>
+                    <TabsTrigger value="system-users">{t('settings.tab_users')}</TabsTrigger>
+                    <TabsTrigger value="calendar">{t('settings.calendar_title')}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="system-users" className="space-y-4 pt-4">
-                    <div className="text-sm text-muted-foreground">Total system users: {usersTotal}</div>
+                    <div className="text-sm text-muted-foreground">{t('web.settings.total_system_users')}: {usersTotal}</div>
 
                     {usersQuery.isLoading ? (
-                      <div className="text-sm text-muted-foreground">Loading system users...</div>
+                      <div className="text-sm text-muted-foreground">{t('web.settings.loading_system_users')}</div>
                     ) : usersItems.length > 0 ? (
                       <div className="space-y-4">
                         <Table>
@@ -518,7 +523,7 @@ export default function SettingsPage() {
                         {usersTotalPages > 1 && (
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="text-sm text-muted-foreground">
-                              Page {usersPage} of {usersTotalPages}
+                              {t('common.page')} {usersPage} {t('common.of')} {usersTotalPages}
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
@@ -526,39 +531,39 @@ export default function SettingsPage() {
                                 onClick={() => setUsersPage(1)}
                                 disabled={usersPage === 1}
                               >
-                                First
+                                {t('common.first')}
                               </Button>
                               <Button
                                 variant="outline"
                                 onClick={() => setUsersPage((prev) => Math.max(1, prev - 1))}
                                 disabled={usersPage === 1}
                               >
-                                Prev
+                                {t('common.prev')}
                               </Button>
                               <Button
                                 variant="outline"
                                 onClick={() => setUsersPage((prev) => Math.min(usersTotalPages, prev + 1))}
                                 disabled={usersPage >= usersTotalPages}
                               >
-                                Next
+                                {t('common.next')}
                               </Button>
                               <Button
                                 variant="outline"
                                 onClick={() => setUsersPage(usersTotalPages)}
                                 disabled={usersPage >= usersTotalPages}
                               >
-                                Last
+                                {t('common.last')}
                               </Button>
                             </div>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">No system users found.</div>
+                      <div className="text-sm text-muted-foreground">{t('web.settings.no_system_users')}</div>
                     )}
 
                     <p className="text-sm text-muted-foreground">
-                      System users are managed through authentication and employee sync flows.
+                      {t('web.settings.system_users_note')}
                     </p>
                   </TabsContent>
 
@@ -566,14 +571,14 @@ export default function SettingsPage() {
                     <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label>Instance country</Label>
+                          <Label>{t('settings.instance_country')}</Label>
                           <Select
                             value={selectedCountry}
                             onValueChange={setSelectedCountry}
                             disabled={countryQuery.isLoading || setCountryMutation.isPending}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select country" />
+                              <SelectValue placeholder={t('web.settings.select_country')} />
                             </SelectTrigger>
                             <SelectContent>
                               {COUNTRY_OPTIONS.map((code) => (
@@ -593,18 +598,18 @@ export default function SettingsPage() {
                             selectedCountry === countryQuery.data
                           }
                         >
-                          Update country
+                          {t('settings.update_country')}
                         </Button>
 
                         <div className="space-y-2 border-t pt-4">
-                          <h3 className="font-semibold">Actions</h3>
+                          <h3 className="font-semibold">{t('common.actions')}</h3>
                           <Button
                             variant="outline"
                             onClick={() => syncHolidaysMutation.mutate(undefined)}
                             disabled={syncHolidaysMutation.isPending}
                             className="w-full"
                           >
-                            Sync current year
+                            {t('settings.sync_current')}
                           </Button>
                           <Button
                             variant="outline"
@@ -612,17 +617,17 @@ export default function SettingsPage() {
                             disabled={syncHolidaysMutation.isPending}
                             className="w-full"
                           >
-                            Sync next year
+                            {t('settings.sync_next')}
                           </Button>
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <h3 className="font-semibold">Holidays</h3>
+                        <h3 className="font-semibold">{t('settings.holidays_title')}</h3>
 
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-2">
-                            <Label htmlFor="holidays-from">From</Label>
+                            <Label htmlFor="holidays-from">{t('common.from')}</Label>
                             <Input
                               id="holidays-from"
                               type="date"
@@ -631,7 +636,7 @@ export default function SettingsPage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="holidays-to">To</Label>
+                            <Label htmlFor="holidays-to">{t('common.to')}</Label>
                             <Input
                               id="holidays-to"
                               type="date"
@@ -642,16 +647,16 @@ export default function SettingsPage() {
                         </div>
 
                         {holidaysQuery.isLoading ? (
-                          <div className="text-sm text-muted-foreground">Loading holidays...</div>
+                          <div className="text-sm text-muted-foreground">{t('web.settings.loading_holidays')}</div>
                         ) : sortedHolidays.length > 0 ? (
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Holiday</TableHead>
-                                <TableHead>Custom</TableHead>
-                                <TableHead>Country</TableHead>
+                                <TableHead>{t('common.date')}</TableHead>
+                                <TableHead>{t('common.name')}</TableHead>
+                                <TableHead>{t('web.settings.holiday')}</TableHead>
+                                <TableHead>{t('web.settings.custom')}</TableHead>
+                                <TableHead>{t('web.settings.country')}</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -659,22 +664,22 @@ export default function SettingsPage() {
                                 <TableRow key={`${holiday.date}-${holiday.name}`}>
                                   <TableCell>{holiday.date}</TableCell>
                                   <TableCell>{holiday.name}</TableCell>
-                                  <TableCell>{holiday.is_holiday ? 'Yes' : 'No'}</TableCell>
-                                  <TableCell>{holiday.is_custom ? 'Yes' : 'No'}</TableCell>
+                                  <TableCell>{holiday.is_holiday ? t('common.yes') : t('common.no')}</TableCell>
+                                  <TableCell>{holiday.is_custom ? t('common.yes') : t('common.no')}</TableCell>
                                   <TableCell>{holiday.country_code ?? '-'}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
                           </Table>
                         ) : (
-                          <div className="text-sm text-muted-foreground">Not found.</div>
+                          <div className="text-sm text-muted-foreground">{t('common.not_found')}.</div>
                         )}
 
                         <div className="space-y-3 rounded-lg border p-4">
-                          <h4 className="font-medium">Add/Update Custom Holiday</h4>
+                          <h4 className="font-medium">{t('settings.add_holiday')}</h4>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
-                              <Label htmlFor="new-holiday-date">Date</Label>
+                              <Label htmlFor="new-holiday-date">{t('common.date')}</Label>
                               <Input
                                 id="new-holiday-date"
                                 type="date"
@@ -683,17 +688,17 @@ export default function SettingsPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="new-holiday-name">Name</Label>
+                              <Label htmlFor="new-holiday-name">{t('common.name')}</Label>
                               <Input
                                 id="new-holiday-name"
                                 value={newHolidayName}
                                 onChange={(e) => setNewHolidayName(e.target.value)}
-                                placeholder="Holiday name"
+                                placeholder={t('web.settings.holiday_name_placeholder')}
                               />
                             </div>
                           </div>
                           <div className="flex items-center justify-between rounded-md border p-3">
-                            <Label htmlFor="new-holiday-is-holiday">Is holiday</Label>
+                            <Label htmlFor="new-holiday-is-holiday">{t('web.settings.is_holiday')}</Label>
                             <Switch
                               id="new-holiday-is-holiday"
                               checked={newHolidayIsHoliday}
@@ -701,14 +706,14 @@ export default function SettingsPage() {
                             />
                           </div>
                           <Button onClick={handleAddHoliday} disabled={addHolidayMutation.isPending}>
-                            Save
+                            {t('common.save')}
                           </Button>
                         </div>
 
                         <div className="space-y-3 rounded-lg border p-4">
-                          <h4 className="font-medium">Remove Custom Holiday</h4>
+                          <h4 className="font-medium">{t('settings.remove_holiday')}</h4>
                           <div className="space-y-2">
-                            <Label htmlFor="delete-holiday-date">Date</Label>
+                            <Label htmlFor="delete-holiday-date">{t('common.date')}</Label>
                             <Input
                               id="delete-holiday-date"
                               type="date"
@@ -721,13 +726,13 @@ export default function SettingsPage() {
                             onClick={() => deleteHolidayMutation.mutate(deleteHolidayDate)}
                             disabled={deleteHolidayMutation.isPending}
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         </div>
 
                         <div className="space-y-1 border-t pt-4 text-sm">
-                          <p>Jira URL: {jiraUrl}</p>
-                          <p className="text-muted-foreground">More configuration options coming soon.</p>
+                          <p>{t('web.settings.jira_url')}: {jiraUrl}</p>
+                          <p className="text-muted-foreground">{t('settings.coming_soon')}</p>
                         </div>
                       </div>
                     </div>
@@ -740,10 +745,10 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings2 className="size-4" />
-                  Admin settings
+                  {t('web.settings.admin_settings')}
                 </CardTitle>
                 <CardDescription>
-                  You can open this tab, but full admin controls require `settings.manage` (or admin account).
+                  {t('web.settings.admin_required_desc')}
                 </CardDescription>
               </CardHeader>
             </Card>

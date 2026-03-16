@@ -41,8 +41,10 @@ import { LeaveAbsenceList } from '../components/leave-absence-list';
 import { applyLeaveFilters, buildUserOrgUnitMap } from '../utils';
 import type { LeaveTab } from '../types';
 import { createDefaultLeaveFilters } from '../types';
+import { useTranslation } from 'react-i18next';
 
 export default function LeavePage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<LeaveTab>('overview');
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -93,14 +95,14 @@ export default function LeavePage() {
     for (const employee of employees) {
       const requestUserId = employee.user_id ?? employee.id;
       if (!byId.has(requestUserId)) {
-        byId.set(requestUserId, employee.display_name || `User ${requestUserId}`);
+        byId.set(requestUserId, employee.display_name || t('web.leave.user_id', { id: requestUserId }));
       }
     }
     return Array.from(byId.entries()).map(([id, label]) => ({
       value: String(id),
       label,
     }));
-  }, [employees]);
+  }, [employees, t]);
 
   const rawOverviewRequests = useMemo(
     () =>
@@ -132,7 +134,7 @@ export default function LeavePage() {
 
   const handleCreateRequest = async () => {
     if (!dateRange?.from || !dateRange?.to) {
-      toast.error('Please select a date range');
+      toast.error(t('web.leave.select_date_range'));
       return;
     }
 
@@ -143,12 +145,12 @@ export default function LeavePage() {
         end_date: format(dateRange.to, 'yyyy-MM-dd'),
         reason,
       });
-      toast.success('Leave request submitted');
+      toast.success(t('leaves.request_submitted'));
       setIsDialogOpen(false);
       setDateRange(undefined);
       setReason('');
     } catch {
-      toast.error('Failed to submit leave request');
+      toast.error(t('leaves.request_failed'));
     }
   };
 
@@ -157,9 +159,9 @@ export default function LeavePage() {
 
     try {
       await updateStatusMutation.mutateAsync({ leaveId, status });
-      toast.success('Leave status updated');
+      toast.success(t('web.leave.status_updated'));
     } catch {
-      toast.error('Failed to update leave status');
+      toast.error(t('web.leave.status_update_failed'));
     }
   };
 
@@ -169,9 +171,9 @@ export default function LeavePage() {
   const handleSelfCancel = async (leaveId: number) => {
     try {
       await updateStatusMutation.mutateAsync({ leaveId, status: 'CANCELLED' });
-      toast.success('Leave status updated');
+      toast.success(t('web.leave.status_updated'));
     } catch {
-      toast.error('Failed to update leave status');
+      toast.error(t('web.leave.status_update_failed'));
     }
   };
 
@@ -179,27 +181,27 @@ export default function LeavePage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leave</h1>
-          <p className="text-muted-foreground">Планирование и управление отсутствиями команды.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('leaves.title')}</h1>
+          <p className="text-muted-foreground">{t('web.leave.subtitle')}</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <CalendarPlus className="mr-2 size-4" />
-              Request Leave
+              {t('leaves.submit_request')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New Leave Request</DialogTitle>
+              <DialogTitle>{t('web.leave.new_request')}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">Leave Type</Label>
+                <Label htmlFor="type">{t('leaves.type')}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as LeaveType)}>
                   <SelectTrigger id="type">
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={t('web.leave.select_type')} />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(LEAVE_TYPE_LABELS).map(([value, label]) => (
@@ -211,17 +213,17 @@ export default function LeavePage() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Date Range</Label>
+                <Label>{t('web.reports.date_range')}</Label>
                 <DateRangePicker
                   date={dateRange}
                   setDate={(range) => setDateRange(range as { from: Date; to: Date })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="reason">Reason (optional)</Label>
+                <Label htmlFor="reason">{t('leaves.reason')} ({t('leaves.optional').toLowerCase()})</Label>
                 <Textarea
                   id="reason"
-                  placeholder="Tell us why..."
+                  placeholder={t('web.leave.reason_placeholder')}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
@@ -229,11 +231,11 @@ export default function LeavePage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreateRequest} disabled={createMutation.isPending}>
                 {createMutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Submit Request
+                {t('leaves.submit_request')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -264,9 +266,9 @@ export default function LeavePage() {
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as LeaveTab)}>
         <TabsList className="grid w-full grid-cols-3 h-11">
-          <TabsTrigger value="overview">Список отсутствий</TabsTrigger>
-          <TabsTrigger value="my">Мои отсутствия</TabsTrigger>
-          <TabsTrigger value="management">Управление отсутствиями</TabsTrigger>
+          <TabsTrigger value="overview">{t('web.leave.overview_tab')}</TabsTrigger>
+          <TabsTrigger value="my">{t('leaves.my_leaves')}</TabsTrigger>
+          <TabsTrigger value="management">{t('web.leave.management_tab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -286,8 +288,8 @@ export default function LeavePage() {
           <LeaveAbsenceList
             requests={myRequests}
             isLoading={myRequestsQuery.isLoading}
-            emptyTitle="Нет заявок"
-            emptySubtitle="Создайте заявку на отпуск или другой тип отсутствия"
+            emptyTitle={t('web.leave.no_requests')}
+            emptySubtitle={t('web.leave.no_requests_hint')}
             currentUserId={currentUserId}
             allowSelfCancel
             onCancel={handleSelfCancel}
@@ -297,14 +299,14 @@ export default function LeavePage() {
         <TabsContent value="management" className="mt-4">
           {!canManageLeaves ? (
             <div className="rounded-lg border bg-muted/20 p-8 text-center text-muted-foreground">
-              У вас нет прав на управление заявками отсутствий.
+              {t('web.leave.no_manage_permissions')}
             </div>
           ) : (
             <LeaveAbsenceList
               requests={managementRequests}
               isLoading={allRequestsQuery.isLoading}
-              emptyTitle="Нет заявок для обработки"
-              emptySubtitle="По выбранным фильтрам нет запросов на согласование"
+              emptyTitle={t('web.leave.no_requests_to_process')}
+              emptySubtitle={t('web.leave.no_requests_to_process_hint')}
               canManage
               onApprove={(id) => handleStatusChange(id, 'APPROVED')}
               onReject={(id) => handleStatusChange(id, 'REJECTED')}

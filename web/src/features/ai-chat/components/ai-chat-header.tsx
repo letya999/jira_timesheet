@@ -14,12 +14,14 @@ import {
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { useTranslation } from 'react-i18next'
 
 interface AiChatHeaderProps {
   onClearHistory: () => void
 }
 
 export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const isAdmin = user?.is_admin === true
   const [forceRefresh, setForceRefresh] = useState(false)
@@ -33,10 +35,10 @@ export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
     <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div>
         <h1 className="text-lg font-semibold flex items-center gap-2">
-          AI Assistant
-          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">Beta</span>
+          {t('common.ai_chat')}
+          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">{t('web.ai_chat.beta')}</span>
         </h1>
-        <p className="text-xs text-muted-foreground">Powered by Vanna.ai + GPT-4o</p>
+        <p className="text-xs text-muted-foreground">{t('web.ai_chat.powered_by')}</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -45,14 +47,14 @@ export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 gap-1.5">
                 <Settings className="size-3.5" />
-                Training
+                {t('web.ai_chat.training')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>AI Training Panel</DialogTitle>
+                <DialogTitle>{t('web.ai_chat.training_panel')}</DialogTitle>
                 <DialogDescription>
-                  Update the AI's understanding of the database schema. This introspects all tables and columns.
+                  {t('web.ai_chat.training_panel_desc')}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 flex items-center space-x-2">
@@ -62,7 +64,7 @@ export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
                   onCheckedChange={(checked) => setForceRefresh(!!checked)} 
                 />
                 <Label htmlFor="force-refresh" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Force refresh (re-train all tables)
+                  {t('web.ai_chat.force_refresh')}
                 </Label>
               </div>
               <DialogFooter>
@@ -72,7 +74,7 @@ export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
                   className="gap-2"
                 >
                   {trainingMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-                  Start Training
+                  {t('web.ai_chat.start_training')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -86,7 +88,7 @@ export function AiChatHeader({ onClearHistory }: AiChatHeaderProps) {
           className="h-8 text-muted-foreground hover:text-destructive gap-1.5"
         >
           <Trash2 className="size-3.5" />
-          Clear
+          {t('web.ai_chat.clear')}
         </Button>
       </div>
     </div>

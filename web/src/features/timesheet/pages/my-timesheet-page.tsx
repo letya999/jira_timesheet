@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { dateUtils } from '@/lib/date-utils'
 import { useTimezone } from '@/hooks/use-timezone'
+import { useTranslation } from 'react-i18next'
 
 const FMT = 'yyyy-MM-dd'
 
@@ -47,6 +48,7 @@ function mapWorklogsToTimesheetEntries(
 }
 
 export default function MyTimesheetPage() {
+  const { t } = useTranslation()
   const { timezone } = useTimezone()
   const [weekOffset, setWeekOffset] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -68,15 +70,15 @@ export default function MyTimesheetPage() {
 
   const timesheetEntries = mapWorklogsToTimesheetEntries(worklogs ?? [])
 
-  const weekLabel = `${dateUtils.format(weekStart, 'MMM d', timezone)} – ${dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}`
+  const weekLabel = `${dateUtils.format(weekStart, 'MMM d', timezone)} - ${dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}`
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Timesheet</h1>
+        <h1 className="text-2xl font-bold">{t('timesheet.title')}</h1>
         <Button onClick={() => setIsModalOpen(true)} className="gap-2">
           <Plus className="size-4" />
-          Log Time
+          {t('web.timesheet.log_time')}
         </Button>
       </div>
 
@@ -85,18 +87,18 @@ export default function MyTimesheetPage() {
           variant="outline"
           size="icon"
           onClick={() => setWeekOffset((o) => o - 1)}
-          aria-label="Previous week"
+          aria-label={t('web.timesheet.previous_week')}
         >
           <ChevronLeft className="size-4" />
         </Button>
         <span className="text-sm font-medium min-w-[200px] text-center">
-          Week of {weekLabel}
+          {t('web.timesheet.week_of', { week: weekLabel })}
         </span>
         <Button
           variant="outline"
           size="icon"
           onClick={() => setWeekOffset((o) => o + 1)}
-          aria-label="Next week"
+          aria-label={t('web.timesheet.next_week')}
         >
           <ChevronRight className="size-4" />
         </Button>
@@ -125,7 +127,7 @@ export default function MyTimesheetPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Log Time</DialogTitle>
+            <DialogTitle>{t('web.timesheet.log_time')}</DialogTitle>
           </DialogHeader>
           <WorklogEntryForm
             isLoading={createEntry.isPending}

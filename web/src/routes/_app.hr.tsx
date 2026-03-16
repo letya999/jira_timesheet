@@ -18,10 +18,12 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 const ROLE_OPTIONS = ['admin', 'manager', 'hr', 'employee']
 
 function HrPage() {
+  const { t } = useTranslation()
   const { data: response, isLoading } = useUsers({ page: 1, size: 200 })
   const updateUserMutation = useUpdateUser()
 
@@ -48,16 +50,16 @@ function HrPage() {
     () => [
       {
         accessorKey: 'email',
-        header: 'Email',
+        header: t('common.email'),
       },
       {
         accessorKey: 'full_name',
-        header: 'Full name',
-        cell: ({ getValue }) => getValue<string | null>() ?? '—',
+        header: t('web.settings.full_name'),
+        cell: ({ getValue }) => getValue<string | null>() ?? t('common.na'),
       },
       {
         accessorKey: 'role',
-        header: 'Role',
+        header: t('common.role'),
         cell: ({ getValue }) => {
           const role = (getValue<string>() ?? 'employee').toUpperCase()
           return <Badge variant="secondary">{role}</Badge>
@@ -65,24 +67,24 @@ function HrPage() {
       },
       {
         accessorKey: 'is_active',
-        header: 'Status',
-        cell: ({ getValue }) => (getValue<boolean>() ? 'Active' : 'Inactive'),
+        header: t('common.status'),
+        cell: ({ getValue }) => (getValue<boolean>() ? t('common.active') : t('common.inactive')),
       },
       {
         id: 'actions',
-        header: 'Actions',
+        header: t('common.actions'),
         cell: ({ row }) => (
           <Button
             variant="outline"
             size="sm"
             onClick={() => onSelectUser(row.original)}
           >
-            Manage
+            {t('org.manage_structure')}
           </Button>
         ),
       },
     ],
-    [],
+    [t],
   )
 
   const handleSave = () => {
@@ -97,8 +99,8 @@ function HrPage() {
         },
       },
       {
-        onSuccess: () => toast.success('User updated'),
-        onError: () => toast.error('Failed to update user'),
+        onSuccess: () => toast.success(t('web.hr.user_updated')),
+        onError: () => toast.error(t('web.hr.update_failed')),
       },
     )
   }
@@ -114,43 +116,43 @@ function HrPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">HR Administration</h1>
-        <p className="text-muted-foreground">Manage user access and account status for HR workflows.</p>
+        <h1 className="text-2xl font-bold">{t('web.hr.title')}</h1>
+        <p className="text-muted-foreground">{t('web.hr.subtitle')}</p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Directory with role and active state.</CardDescription>
+            <CardTitle>{t('settings.tab_users')}</CardTitle>
+            <CardDescription>{t('web.hr.users_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable
               columns={columns}
               data={users}
               filterColumn="email"
-              filterPlaceholder="Filter by email..."
+              filterPlaceholder={t('web.hr.filter_by_email')}
             />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Management Form</CardTitle>
-            <CardDescription>Update selected user permissions and status.</CardDescription>
+            <CardTitle>{t('web.hr.management_form')}</CardTitle>
+            <CardDescription>{t('web.hr.management_desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField label="User">
-              <Input value={selectedUser?.email ?? 'Select a user from the table'} readOnly />
+            <FormField label={t('common.user')}>
+              <Input value={selectedUser?.email ?? t('web.hr.select_user_from_table')} readOnly />
             </FormField>
-            <FormField label="Role">
+            <FormField label={t('common.role')}>
               <Select
                 value={draftRole}
                 onValueChange={setDraftRole}
                 disabled={!selectedUser}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t('web.hr.select_role')} />
                 </SelectTrigger>
                 <SelectContent>
                   {ROLE_OPTIONS.map((role) => (
@@ -162,7 +164,7 @@ function HrPage() {
               </Select>
             </FormField>
             <div className="flex items-center justify-between rounded-lg border p-3">
-              <span className="text-sm font-medium">Active account</span>
+              <span className="text-sm font-medium">{t('web.hr.active_account')}</span>
               <Switch
                 checked={draftActive}
                 onCheckedChange={setDraftActive}
@@ -174,7 +176,7 @@ function HrPage() {
               onClick={handleSave}
               disabled={!selectedUser || updateUserMutation.isPending}
             >
-              Save changes
+              {t('employees.save_changes')}
             </Button>
           </CardContent>
         </Card>

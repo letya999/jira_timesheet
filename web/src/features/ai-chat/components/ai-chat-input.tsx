@@ -2,6 +2,7 @@ import { useState, KeyboardEvent, useRef, useEffect } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { SendHorizontal, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface AiChatInputProps {
   onSend: (message: string) => void
@@ -9,6 +10,7 @@ interface AiChatInputProps {
 }
 
 export function AiChatInput({ onSend, disabled }: AiChatInputProps) {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -41,7 +43,7 @@ export function AiChatInput({ onSend, disabled }: AiChatInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask anything about worklogs, projects, or team performance..."
+        placeholder={t('web.ai_chat.input_placeholder')}
         className="min-h-[44px] max-h-[200px] resize-none border-none bg-transparent focus-visible:ring-0 shadow-none px-2 py-3"
         rows={1}
       />

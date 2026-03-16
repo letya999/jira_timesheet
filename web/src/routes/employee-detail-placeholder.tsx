@@ -1,14 +1,16 @@
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 
 export function EmployeeDetailPlaceholder() {
+  const { t } = useTranslation()
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-      <h1 className="text-2xl font-semibold">Employee details</h1>
+      <h1 className="text-2xl font-semibold">{t('web.routes.employee_details')}</h1>
       <p className="max-w-md text-sm text-muted-foreground">
-        Employee details page is not implemented yet.
+        {t('web.routes.employee_details_not_implemented')}
       </p>
       <Link to="/app/employees" className="text-sm text-primary hover:underline">
-        Back to employees
+        {t('web.routes.back_to_employees')}
       </Link>
     </div>
   )
