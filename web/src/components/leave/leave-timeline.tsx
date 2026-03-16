@@ -52,6 +52,7 @@ export interface LeaveTimelineProps {
   startDate: Date
   users: LeaveTimelineUser[]
   entries: LeaveTimelineEntry[]
+  holidayDates?: ReadonlySet<string>
   onEntryClick?: (entry: LeaveTimelineEntry) => void
   className?: string
 }
@@ -63,10 +64,15 @@ interface Column {
   start: Date
   end: Date
   isWeekend: boolean
+  isHoliday: boolean
   isToday: boolean
 }
 
-function buildColumns(view: TimelineView, startDate: Date): Column[] {
+function toDateKey(date: Date): string {
+  return format(date, "yyyy-MM-dd")
+}
+
+function buildColumns(view: TimelineView, startDate: Date, holidayDates?: ReadonlySet<string>): Column[] {
   const today = new Date()
 
   switch (view) {
@@ -79,6 +85,7 @@ function buildColumns(view: TimelineView, startDate: Date): Column[] {
           start: startDate,
           end: startDate,
           isWeekend: isWeekend(startDate),
+          isHoliday: holidayDates?.has(toDateKey(startDate)) ?? false,
           isToday: isToday(startDate),
         },
       ]
@@ -94,6 +101,7 @@ function buildColumns(view: TimelineView, startDate: Date): Column[] {
         start: d,
         end: d,
         isWeekend: isWeekend(d),
+        isHoliday: holidayDates?.has(toDateKey(d)) ?? false,
         isToday: isToday(d),
       }))
     }
@@ -111,7 +119,10 @@ function buildColumns(view: TimelineView, startDate: Date): Column[] {
           label: format(colStart, "d MMM"),
           start: colStart,
           end: colEnd,
+          // In aggregated views (week-slot/month+), per-day non-working markers are misleading.
+          // Keep exact weekend/holiday highlighting only for day/week views.
           isWeekend: false,
+          isHoliday: false,
           isToday: !isAfter(today, colEnd) && !isBefore(today, colStart),
         }
       })
@@ -134,6 +145,7 @@ function buildColumns(view: TimelineView, startDate: Date): Column[] {
           start: slotStart,
           end: slotEnd,
           isWeekend: false,
+          isHoliday: false,
           isToday: !isAfter(today, slotEnd) && !isBefore(today, slotStart),
         })
         cursor = addDays(cursor, 14)
@@ -153,6 +165,7 @@ function buildColumns(view: TimelineView, startDate: Date): Column[] {
           start: monthStart,
           end: monthEnd,
           isWeekend: false,
+          isHoliday: false,
           isToday: !isAfter(today, monthEnd) && !isBefore(today, monthStart),
         }
       })
@@ -296,6 +309,7 @@ export function LeaveTimeline({
   startDate,
   users,
   entries,
+  holidayDates,
   onEntryClick,
   className,
 }: LeaveTimelineProps) {
@@ -307,7 +321,7 @@ export function LeaveTimeline({
     )
   }
 
-  const columns = buildColumns(view, startDate)
+  const columns = buildColumns(view, startDate, holidayDates)
   const colWidth = COL_WIDTH[view]
   const totalWidth = STICKY_WIDTH + columns.length * colWidth
 
@@ -338,9 +352,14 @@ export function LeaveTimeline({
             key={col.key}
             role="columnheader"
             data-weekend={col.isWeekend || undefined}
+            data-holiday={col.isHoliday || undefined}
             className={cn(
               "flex flex-col items-center justify-center border-b border-r",
-              col.isWeekend ? "bg-muted/20" : "bg-muted/60",
+              col.isHoliday
+                ? "bg-rose-100/80"
+                : col.isWeekend
+                ? "bg-muted/20"
+                : "bg-muted/60",
               col.isToday && "bg-primary/10"
             )}
             style={{ gridRow: 1, gridColumn: idx + 2, height: 54 }}
@@ -401,9 +420,10 @@ export function LeaveTimeline({
                   key={col.key}
                   role="cell"
                   data-weekend={col.isWeekend || undefined}
+                  data-holiday={col.isHoliday || undefined}
                   className={cn(
                     "border-b border-r",
-                    col.isWeekend ? "bg-muted/10" : "",
+                    col.isHoliday ? "bg-rose-50/70" : col.isWeekend ? "bg-muted/10" : "",
                     col.isToday && "bg-primary/5"
                   )}
                   style={{ gridRow, gridColumn: colIdx + 2, height: ROW_HEIGHT, zIndex: 0 }}
@@ -498,6 +518,10 @@ export function LeaveTimeline({
             aria-hidden="true"
           />
           <span className="text-xs text-muted-foreground">Pending (not approved)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="size-2.5 rounded-sm bg-rose-200" aria-hidden="true" />
+          <span className="text-xs text-muted-foreground">Holiday</span>
         </div>
       </div>
     </div>

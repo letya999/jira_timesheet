@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { addDays, addMonths, addQuarters, addWeeks, addYears, format, startOfMonth, startOfQuarter, startOfWeek, startOfYear } from 'date-fns';
+import { addDays, addMonths, addQuarters, addWeeks, addYears, endOfMonth, endOfQuarter, endOfYear, format, startOfMonth, startOfQuarter, startOfWeek, startOfYear } from 'date-fns';
 import { CalendarDays, ChevronLeft, ChevronRight, List } from 'lucide-react';
 import type { LeaveResponse } from '@/api/generated/types.gen';
 import { LeaveTimeline, type TimelineView } from '@/components/leave/leave-timeline';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { mapRequestsToTimelineData } from '../utils';
 import { LeaveAbsenceList } from './leave-absence-list';
+import { useHolidays } from '@/features/calendar/hooks';
 
 interface LeaveOverviewTabProps {
   requests: LeaveResponse[];
@@ -79,6 +80,39 @@ export function LeaveOverviewTab({ requests, startDate }: LeaveOverviewTabProps)
         return format(cursorDate, 'yyyy');
     }
   }, [timelineView, cursorDate]);
+
+  const visibleRange = useMemo(() => {
+    switch (timelineView) {
+      case 'day':
+        return { start: alignToView(cursorDate, timelineView), end: alignToView(cursorDate, timelineView) };
+      case 'week': {
+        const start = alignToView(cursorDate, timelineView);
+        return { start, end: addDays(start, 13) };
+      }
+      case 'month': {
+        const start = alignToView(cursorDate, timelineView);
+        return { start, end: endOfMonth(start) };
+      }
+      case 'quarter': {
+        const start = alignToView(cursorDate, timelineView);
+        return { start, end: endOfQuarter(start) };
+      }
+      case 'year': {
+        const start = alignToView(cursorDate, timelineView);
+        return { start, end: endOfYear(start) };
+      }
+    }
+  }, [cursorDate, timelineView]);
+
+  const holidaysQuery = useHolidays({
+    start_date: format(visibleRange.start, 'yyyy-MM-dd'),
+    end_date: format(visibleRange.end, 'yyyy-MM-dd'),
+  });
+
+  const holidayDates = useMemo(() => {
+    const list = holidaysQuery.data ?? [];
+    return new Set(list.filter((holiday) => holiday.is_holiday).map((holiday) => holiday.date));
+  }, [holidaysQuery.data]);
 
   if (requests.length === 0) {
     return (
@@ -159,6 +193,7 @@ export function LeaveOverviewTab({ requests, startDate }: LeaveOverviewTabProps)
           startDate={alignToView(cursorDate, timelineView)}
           users={users}
           entries={entries}
+          holidayDates={holidayDates}
           className="min-h-[560px]"
         />
       ) : (

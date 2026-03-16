@@ -58,4 +58,34 @@ describe("LeaveTimeline", () => {
     // Two weeks => Sat/Sun x2
     expect(weekendHeaders.length).toBe(4)
   })
+
+  it("highlights holidays in grid", () => {
+    const { container } = render(
+      <LeaveTimeline
+        view="week"
+        startDate={new Date("2024-03-11")}
+        users={mockUsers}
+        entries={[]}
+        holidayDates={new Set(["2024-03-13", "2024-03-18"])}
+      />
+    )
+    const holidayHeaders = container.querySelectorAll('[role="columnheader"][data-holiday="true"]')
+    expect(holidayHeaders.length).toBe(2)
+  })
+
+  it("does not mark aggregated month view columns as weekend/holiday", () => {
+    const { container } = render(
+      <LeaveTimeline
+        view="month"
+        startDate={new Date("2024-03-01")}
+        users={mockUsers}
+        entries={[]}
+        holidayDates={new Set(["2024-03-08"])}
+      />
+    )
+    const weekendHeaders = container.querySelectorAll('[role="columnheader"][data-weekend="true"]')
+    const holidayHeaders = container.querySelectorAll('[role="columnheader"][data-holiday="true"]')
+    expect(weekendHeaders.length).toBe(0)
+    expect(holidayHeaders.length).toBe(0)
+  })
 })

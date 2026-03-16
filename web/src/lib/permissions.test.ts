@@ -68,4 +68,16 @@ describe('buildPermissionsFromRoles', () => {
     const reportViewCount = perms.filter((p) => p === 'reports.view').length;
     expect(reportViewCount).toBe(1);
   });
+
+  it('normalizes role casing and aliases (Admin/CEO/PM)', () => {
+    const adminPerms = buildPermissionsFromRoles(['Admin']);
+    expect(adminPerms).toContain('settings.manage');
+
+    const ceoPerms = buildPermissionsFromRoles(['CEO']);
+    expect(ceoPerms).toContain('settings.manage');
+
+    const pmPerms = buildPermissionsFromRoles(['PM']);
+    expect(pmPerms).toContain('reports.view');
+    expect(pmPerms).not.toContain('settings.manage');
+  });
 });

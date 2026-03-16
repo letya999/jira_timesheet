@@ -51,11 +51,22 @@ export const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
   ]),
 };
 
+function normalizeRole(role: string): Role | null {
+  const normalized = role.trim().toLowerCase();
+  if (normalized === 'admin' || normalized === 'ceo') return 'admin';
+  if (normalized === 'manager' || normalized === 'pm') return 'manager';
+  if (normalized === 'employee') return 'employee';
+  if (normalized === 'hr') return 'hr';
+  return null;
+}
+
 /** Derive a flat permission set from an array of role strings (union). */
 export function buildPermissionsFromRoles(roles: string[]): Permission[] {
   const result = new Set<Permission>();
-  for (const role of roles) {
-    const perms = ROLE_PERMISSIONS[role as Role];
+  for (const rawRole of roles) {
+    const role = normalizeRole(rawRole);
+    if (!role) continue;
+    const perms = ROLE_PERMISSIONS[role];
     if (perms) {
       for (const p of perms) result.add(p);
     }
