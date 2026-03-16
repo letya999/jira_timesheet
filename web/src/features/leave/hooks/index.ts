@@ -1,34 +1,53 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMyLeaveRequestsApiV1LeavesMyGet,
+  getTeamLeaveRequestsApiV1LeavesTeamGet,
   getAllLeaveRequestsApiV1LeavesAllGet,
   createLeaveRequestApiV1LeavesPost,
   updateLeaveStatusApiV1LeavesLeaveIdPatch,
 } from '../../../api/generated/sdk.gen';
+import type { LeaveStatus } from '@/api/generated/types.gen';
 
 export const leaveKeys = {
   all: () => ['leave'] as const,
   my: (params?: object) => ['leave', 'my', params] as const,
   team: (params?: object) => ['leave', 'team', params] as const,
+  allRequests: (params?: object) => ['leave', 'all', params] as const,
 };
 
-export function useLeaveRequests() {
+export function useLeaveRequests(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: leaveKeys.my(),
     queryFn: async () => {
       const res = await getMyLeaveRequestsApiV1LeavesMyGet({ throwOnError: true });
       return res.data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 
-export function useAllLeaveRequests(params?: { start_date?: string; end_date?: string }) {
+export function useTeamLeaveRequests(options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: leaveKeys.team(params),
+    queryKey: leaveKeys.team(),
+    queryFn: async () => {
+      const res = await getTeamLeaveRequestsApiV1LeavesTeamGet({ throwOnError: true });
+      return res.data;
+    },
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useAllLeaveRequests(
+  params?: { start_date?: string; end_date?: string },
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: leaveKeys.allRequests(params),
     queryFn: async () => {
       const res = await getAllLeaveRequestsApiV1LeavesAllGet({ throwOnError: true, query: params });
       return res.data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -64,7 +83,7 @@ export function useUpdateLeaveStatus() {
       comment,
     }: {
       leaveId: number;
-      status: any; // Allow any here to avoid string vs enum mismatch for now
+      status: LeaveStatus;
       comment?: string;
     }) => {
       const res = await updateLeaveStatusApiV1LeavesLeaveIdPatch({

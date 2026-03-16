@@ -40,8 +40,8 @@ describe("LeaveTimeline", () => {
     expect(screen.getByText("Team Member")).toBeInTheDocument()
     expect(screen.getByText("Alice Johnson")).toBeInTheDocument()
     // Days of the week headers
-    expect(screen.getByText("Mon")).toBeInTheDocument()
-    expect(screen.getByText("Tue")).toBeInTheDocument()
+    expect(screen.getAllByText("Mon").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Tue").length).toBeGreaterThan(0)
   })
 
   it("highlights weekends in grid", () => {
@@ -55,7 +55,7 @@ describe("LeaveTimeline", () => {
     )
     // New CSS Grid layout uses data-weekend attribute on role="columnheader" divs
     const weekendHeaders = container.querySelectorAll('[role="columnheader"][data-weekend="true"]')
-    // Sat and Sun
-    expect(weekendHeaders.length).toBe(2)
+    // Two weeks => Sat/Sun x2
+    expect(weekendHeaders.length).toBe(4)
   })
 })

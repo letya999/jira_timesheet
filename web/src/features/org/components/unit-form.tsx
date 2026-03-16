@@ -46,8 +46,33 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
   const parentId = watch('parent_id');
   const reportingPeriod = watch('reporting_period');
 
-  // Filter out the unit itself from parent options to avoid cycles
-  const parentOptions = units.filter((u) => !initialData || u.id !== initialData.id);
+  // Helper to get full path of a unit
+  const getUnitPath = (unit: OrgUnitResponse): string => {
+    const path = [unit.name];
+    let current = unit;
+    while (current.parent_id) {
+      const parent = units.find((u) => u.id === current.parent_id);
+      if (parent) {
+        path.unshift(parent.name);
+        current = parent;
+      } else {
+        break;
+      }
+    }
+    return path.join(' > ');
+  };
+
+  // Filter out the unit itself and its descendants from parent options to avoid cycles
+  const getDescendantIds = (unitId: number): number[] => {
+    const children = units.filter((u) => u.parent_id === unitId);
+    return [...children.map((c) => c.id), ...children.flatMap((c) => getDescendantIds(c.id))];
+  };
+
+  const forbiddenIds = initialData ? [initialData.id, ...getDescendantIds(initialData.id)] : [];
+  const parentOptions = units
+    .filter((u) => !forbiddenIds.includes(u.id))
+    .map((u) => ({ id: u.id, path: getUnitPath(u) }))
+    .sort((a, b) => a.path.localeCompare(b.path));
 
   const handleFormSubmit = (data: any) => {
     onSubmit(data);
@@ -77,7 +102,7 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
             <SelectItem value="none">None (Root)</SelectItem>
             {parentOptions.map((u) => (
               <SelectItem key={u.id} value={u.id.toString()}>
-                {u.name}
+                {u.path}
               </SelectItem>
             ))}
           </SelectContent>

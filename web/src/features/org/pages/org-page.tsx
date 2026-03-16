@@ -104,14 +104,14 @@ export function OrgPage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <Accordion type="multiple" defaultValue={rootUnits.map(u => `unit-${u.id}`)}>
+              <div className="space-y-2">
                 {rootUnits.map((unit) => (
                   <OrgTreeNode key={unit.id} unit={unit as any} allUnits={units as any} />
                 ))}
                 {rootUnits.length === 0 && (
                   <p className="text-center py-8 text-muted-foreground italic">No organizational units defined yet.</p>
                 )}
-              </Accordion>
+              </div>
             )}
           </div>
         </TabsContent>

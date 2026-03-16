@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from '@tanstack/react-router';
 
 export function ProjectsPage() {
   const [search, setSearch] = React.useState('');
@@ -81,9 +80,7 @@ export function ProjectsPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {projects.map((project: any) => (
-              <Link key={project.id} to={`/app/projects/${project.id}`} className="block group">
-                <ProjectRow project={project} />
-              </Link>
+              <ProjectRow key={project.id} project={project} />
             ))}
             {projects.length === 0 && (
               <div className="text-center py-12 border rounded-lg bg-muted/20 italic text-muted-foreground">
