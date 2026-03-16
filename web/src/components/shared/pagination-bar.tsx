@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
 
 interface PaginationBarProps {
   page: number
@@ -28,16 +29,17 @@ export function PaginationBar({
   pageSizeOptions = [10, 25, 50, 100],
   className,
 }: PaginationBarProps) {
+  const { t } = useTranslation()
   const totalPages = Math.ceil(total / pageSize)
 
   return (
     <div className={cn("flex items-center justify-between px-2", className)}>
       <div className="flex-1 text-sm text-muted-foreground">
-        {total} total items
+        {total} {t("web.pagination.total_items")}
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Rows per page</p>
+          <p className="text-sm font-medium">{t("web.pagination.rows_per_page")}</p>
           <Select
             value={`${pageSize}`}
             onValueChange={(value) => {
@@ -57,7 +59,7 @@ export function PaginationBar({
           </Select>
         </div>
         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-          Page {page} of {totalPages || 1}
+          {t("common.page")} {page} {t("common.of")} {totalPages || 1}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -66,7 +68,7 @@ export function PaginationBar({
             onClick={() => onPageChange(1)}
             disabled={page <= 1}
           >
-            <span className="sr-only">Go to first page</span>
+            <span className="sr-only">{t("web.pagination.go_first")}</span>
             <ChevronsLeft className="h-4 w-4" />
           </Button>
           <Button
@@ -75,7 +77,7 @@ export function PaginationBar({
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
           >
-            <span className="sr-only">Go to previous page</span>
+            <span className="sr-only">{t("web.pagination.go_prev")}</span>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
@@ -84,7 +86,7 @@ export function PaginationBar({
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
           >
-            <span className="sr-only">Go to next page</span>
+            <span className="sr-only">{t("web.pagination.go_next")}</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
@@ -93,7 +95,7 @@ export function PaginationBar({
             onClick={() => onPageChange(totalPages)}
             disabled={page >= totalPages}
           >
-            <span className="sr-only">Go to last page</span>
+            <span className="sr-only">{t("web.pagination.go_last")}</span>
             <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>

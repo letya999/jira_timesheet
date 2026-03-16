@@ -13,12 +13,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Trash2, Plus, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useTranslation } from 'react-i18next';
 
 interface UnitRoleAssignmentsProps {
   units: OrgUnitResponse[];
 }
 
 export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
+  const { t } = useTranslation();
   const [selectedUnitId, setSelectedUnitId] = React.useState<number | null>(null);
   const [selectedUserId, setSelectedUserId] = React.useState<number | null>(null);
   const [selectedRoleId, setSelectedRoleId] = React.useState<number | null>(null);
@@ -38,9 +40,9 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
         onSuccess: () => {
           setSelectedUserId(null);
           setSelectedRoleId(null);
-          toast.success('Role assigned');
+          toast.success(t('web.org.role_assigned'));
         },
-        onError: () => toast.error('Failed to assign role'),
+        onError: () => toast.error(t('web.org.role_assign_failed')),
       }
     );
   };
@@ -50,8 +52,8 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
     removeMutation.mutate(
       { assignmentId, unitId: selectedUnitId },
       {
-        onSuccess: () => toast.success('Assignment removed'),
-        onError: () => toast.error('Failed to remove assignment'),
+        onSuccess: () => toast.success(t('web.org.assignment_removed')),
+        onError: () => toast.error(t('web.org.assignment_remove_failed')),
       }
     );
   };
@@ -61,18 +63,18 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-medium">Unit Role Assignments</h3>
-        <p className="text-sm text-muted-foreground">Assign roles to users within specific organizational units.</p>
+        <h3 className="text-lg font-medium">{t('org.assign_roles_title')}</h3>
+        <p className="text-sm text-muted-foreground">{t('web.org.assign_roles_subtitle')}</p>
       </div>
 
       <div className="space-y-2 max-w-sm">
-        <Label htmlFor="unit-select">Select Organizational Unit</Label>
+        <Label htmlFor="unit-select">{t('org.select_unit_assign')}</Label>
         <Select
           value={selectedUnitId?.toString() || ''}
           onValueChange={(val) => setSelectedUnitId(Number(val))}
         >
           <SelectTrigger id="unit-select">
-            <SelectValue placeholder="Select a unit..." />
+            <SelectValue placeholder={t('org.select_unit')} />
           </SelectTrigger>
           <SelectContent>
             {units.map((unit) => (
@@ -87,18 +89,18 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
       {selectedUnitId && (
         <div className="space-y-4 border rounded-md p-4 bg-muted/30">
           <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-            Assignments for {units.find((u) => u.id === selectedUnitId)?.name}
+            {t('web.org.assignments_for', { unit: units.find((u) => u.id === selectedUnitId)?.name })}
           </h4>
 
           {assignmentsLoading ? (
             <div className="flex items-center gap-2 py-4">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading assignments...</span>
+              <span className="text-sm">{t('web.org.loading_assignments')}</span>
             </div>
           ) : (
             <div className="space-y-2">
               {assignments.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">No assignments found for this unit.</p>
+                <p className="text-sm text-muted-foreground italic">{t('org.no_roles_assigned')}</p>
               ) : (
                 assignments.map((assignment: any) => {
                    const user = users.find((u: any) => u.id === assignment.user_id);
@@ -109,8 +111,8 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
                         className="flex items-center justify-between p-2 border rounded-md bg-background"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{user?.display_name || user?.full_name || `User ID: ${assignment.user_id}`}</span>
-                          <span className="text-xs text-muted-foreground">{role?.name || `Role ID: ${assignment.role_id}`}</span>
+                          <span className="text-sm font-medium">{user?.display_name || user?.full_name || t('web.org.user_id', { id: assignment.user_id })}</span>
+                          <span className="text-xs text-muted-foreground">{role?.name || t('web.org.role_id', { id: assignment.role_id })}</span>
                         </div>
                         <Button
                           variant="ghost"
@@ -129,16 +131,16 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
           )}
 
           <div className="pt-4 border-t space-y-4">
-            <h5 className="text-sm font-medium">Add New Assignment</h5>
+            <h5 className="text-sm font-medium">{t('org.assign_new_role')}</h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="user-select" className="text-xs">User</Label>
+                <Label htmlFor="user-select" className="text-xs">{t('common.user')}</Label>
                 <Select
                   value={selectedUserId?.toString() || ''}
                   onValueChange={(val) => setSelectedUserId(Number(val))}
                 >
                   <SelectTrigger id="user-select">
-                    <SelectValue placeholder="Select user..." />
+                    <SelectValue placeholder={t('web.org.select_user')} />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((u: any) => (
@@ -151,13 +153,13 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role-select" className="text-xs">Role</Label>
+                <Label htmlFor="role-select" className="text-xs">{t('common.role')}</Label>
                 <Select
                   value={selectedRoleId?.toString() || ''}
                   onValueChange={(val) => setSelectedRoleId(Number(val))}
                 >
                   <SelectTrigger id="role-select">
-                    <SelectValue placeholder="Select role..." />
+                    <SelectValue placeholder={t('web.org.select_role')} />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((r: any) => (
@@ -175,7 +177,7 @@ export function UnitRoleAssignments({ units }: UnitRoleAssignmentsProps) {
               disabled={!selectedUserId || !selectedRoleId || assignMutation.isPending}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Assign Role
+              {t('web.org.assign_role')}
             </Button>
           </div>
         </div>

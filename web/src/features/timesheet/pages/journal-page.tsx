@@ -21,11 +21,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useReportCategories, useReportOrgUnits, useReportProjects } from '@/features/reports/hooks'
 import { useTimesheetEntries } from '@/features/timesheet/hooks'
 import { useAuthStore } from '@/stores/auth-store'
+import { useTranslation } from 'react-i18next'
 
 const FMT = 'yyyy-MM-dd'
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const
 
 export default function JournalPage() {
+  const { t } = useTranslation()
   const today = dateUtils.now()
   const ninetyDaysAgo = subDays(today, 90)
   const { user, permissions } = useAuthStore()
@@ -79,24 +81,24 @@ export default function JournalPage() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="start-date">Дата начала</Label>
+              <Label htmlFor="start-date">{t('journal.start_date')}</Label>
               <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="end-date">Дата окончания</Label>
+              <Label htmlFor="end-date">{t('journal.end_date')}</Label>
               <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Проект</Label>
+              <Label>{t('common.project')}</Label>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Все проекты" />
+                  <SelectValue placeholder={t('journal.all_projects')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="all">Все проекты</SelectItem>
+                    <SelectItem value="all">{t('journal.all_projects')}</SelectItem>
                     {(projects ?? []).map((project) => (
                       <SelectItem key={project.id} value={String(project.id)}>
                         {project.key} - {project.name}
@@ -110,14 +112,14 @@ export default function JournalPage() {
 
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <Label>Команда</Label>
+              <Label>{t('common.team')}</Label>
               <Select value={teamId} onValueChange={setTeamId} disabled={!isManager}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Все команды" />
+                  <SelectValue placeholder={t('journal.all_teams')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="all">Все команды</SelectItem>
+                    <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
                     {(teams ?? []).map((team) => (
                       <SelectItem key={team.id} value={String(team.id)}>
                         {team.name}
@@ -131,14 +133,14 @@ export default function JournalPage() {
 
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <Label>Категория</Label>
+              <Label>{t('common.category')}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Все" />
+                  <SelectValue placeholder={t('common.all')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="all">Все</SelectItem>
+                    <SelectItem value="all">{t('common.all')}</SelectItem>
                     {(categories ?? []).map((item) => (
                       <SelectItem key={item.id} value={item.name}>
                         {item.name}
@@ -152,7 +154,7 @@ export default function JournalPage() {
             <SortOrderControl value={sortOrder} onChange={setSortOrder} />
 
             <div className="flex flex-col gap-2">
-              <Label>Записей на страницу</Label>
+              <Label>{t('journal.logs_per_page')}</Label>
               <span className="text-sm font-semibold text-primary">{pageSize}</span>
               <Slider
                 min={0}
@@ -170,17 +172,17 @@ export default function JournalPage() {
       </CollapsibleFilterBlock>
 
       <div className="text-xl font-semibold">
-        Показано {worklogs.length} из {total} записей
+        {t('web.journal.showing_logs', { count: worklogs.length, total })}
       </div>
 
       <div className="flex flex-col gap-4">
         {isLoading || isFetching ? (
-          <div className="text-sm text-muted-foreground">Загрузка записей...</div>
+          <div className="text-sm text-muted-foreground">{t('journal.loading_logs')}</div>
         ) : null}
 
         {!isLoading && worklogs.length === 0 ? (
           <Card>
-            <CardContent className="py-8 text-sm text-muted-foreground">Записей не найдено.</CardContent>
+            <CardContent className="py-8 text-sm text-muted-foreground">{t('journal.no_logs_found')}</CardContent>
           </Card>
         ) : (
           worklogs.map((log) => <JournalWorklogCard key={log.id} log={log} />)
@@ -189,20 +191,20 @@ export default function JournalPage() {
 
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
-          Страница {page} из {pages}
+          {t('common.page')} {page} {t('common.of')} {pages}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setPage(1)} disabled={page <= 1}>
-            Первая
+            {t('common.first')}
           </Button>
           <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-            Назад
+            {t('common.prev')}
           </Button>
           <Button variant="outline" onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page >= pages}>
-            Вперед
+            {t('common.next')}
           </Button>
           <Button variant="outline" onClick={() => setPage(pages)} disabled={page >= pages}>
-            Последняя
+            {t('common.last')}
           </Button>
         </div>
       </div>

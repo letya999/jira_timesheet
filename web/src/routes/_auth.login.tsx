@@ -12,16 +12,18 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FormField } from '@/components/shared/form-field'
 import { useLogin, useSsoLogin } from '@/features/auth/hooks'
+import { useTranslation } from 'react-i18next'
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(1, 'Password is required'),
+  username: z.string().min(1, 'web.auth.username_required'),
+  password: z.string().min(1, 'web.auth.password_required'),
   rememberMe: z.boolean().default(false),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
 function LoginPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const { mutateAsync: login, isPending, error } = useLogin()
   const ssoLogin = useSsoLogin()
@@ -48,14 +50,14 @@ function LoginPage() {
     error instanceof Error
       ? error.message
       : error
-        ? 'Invalid username or password'
+        ? t('auth.invalid_credentials')
         : null
 
   return (
     <div className="flex flex-col gap-5">
       <div className="text-center">
-        <h2 className="text-lg font-semibold">Sign in</h2>
-        <p className="text-sm text-muted-foreground">to your account</p>
+        <h2 className="text-lg font-semibold">{t('web.auth.sign_in')}</h2>
+        <p className="text-sm text-muted-foreground">{t('web.auth.to_your_account')}</p>
       </div>
 
       {errorMessage && (
@@ -65,17 +67,25 @@ function LoginPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-        <FormField label="Username" error={errors.username?.message} required>
+        <FormField
+          label={t('web.auth.username')}
+          error={errors.username?.message ? t(errors.username.message) : undefined}
+          required
+        >
           <Input
             type="text"
             autoComplete="username"
-            placeholder="username"
+            placeholder={t('web.auth.username_placeholder')}
             aria-invalid={!!errors.username}
             {...register('username')}
           />
         </FormField>
 
-        <FormField label="Password" error={errors.password?.message} required>
+        <FormField
+          label={t('auth.password')}
+          error={errors.password?.message ? t(errors.password.message) : undefined}
+          required
+        >
           <Input
             type="password"
             autoComplete="current-password"
@@ -92,13 +102,13 @@ function LoginPage() {
             onCheckedChange={(checked) => setValue('rememberMe', !!checked)}
           />
           <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
-            Remember me
+            {t('web.auth.remember_me')}
           </Label>
         </div>
 
         <Button type="submit" className="w-full" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-          {isPending ? 'Signing in…' : 'Sign in'}
+          {isPending ? t('web.auth.signing_in') : t('web.auth.sign_in')}
         </Button>
       </form>
 
@@ -107,7 +117,7 @@ function LoginPage() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">or</span>
+          <span className="bg-card px-2 text-muted-foreground">{t('web.auth.or')}</span>
         </div>
       </div>
 
@@ -118,7 +128,7 @@ function LoginPage() {
         onClick={ssoLogin}
         data-testid="sso-button"
       >
-        Sign in with SSO
+        {t('web.auth.sign_in_with_sso')}
       </Button>
     </div>
   )

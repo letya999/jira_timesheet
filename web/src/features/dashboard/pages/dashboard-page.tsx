@@ -32,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useTimezone } from '@/hooks/use-timezone'
 import { dateUtils } from '@/lib/date-utils'
+import { useTranslation } from 'react-i18next'
 
 const FMT = 'yyyy-MM-dd'
 
@@ -78,6 +79,7 @@ function extractWorklogs(data: FilteredTimesheetResponse): WorklogResponse[] {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const [jobId, setJobId] = useState<string | null>(null)
   const { timezone } = useTimezone()
 
@@ -158,17 +160,17 @@ export default function DashboardPage() {
   const recentColumns: ColumnDef<WorklogResponse>[] = [
     {
       accessorKey: 'date',
-      header: 'Date',
+      header: t('common.date'),
       cell: ({ getValue }) => dateUtils.format(getValue<string>(), 'dd MMM yyyy', timezone),
     },
     {
       accessorKey: 'project_name',
-      header: 'Project',
+      header: t('common.project'),
       cell: ({ getValue }) => getValue<string | null>() ?? '-',
     },
     {
       id: 'issue',
-      header: 'Issue',
+      header: t('common.task'),
       cell: ({ row }) =>
         row.original.issue_key ? (
           <JiraKeyLink issueKey={row.original.issue_key} />
@@ -180,19 +182,19 @@ export default function DashboardPage() {
     },
     {
       accessorKey: 'hours',
-      header: 'Hours',
+      header: t('common.hours'),
       cell: ({ getValue }) => (
         <span className="tabular-nums">{getValue<number>()}h</span>
       ),
     },
     {
       accessorKey: 'type',
-      header: 'Type',
+      header: t('common.type'),
       cell: ({ getValue }) => getValue<string | null>() ?? '-',
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('common.status'),
       cell: ({ getValue }) => {
         const s = getValue<string>()
         return (
@@ -219,12 +221,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
 
-      <CollapsibleBlock title="Dashboard filters" defaultOpen>
+      <CollapsibleBlock title={t('web.dashboard.filters_title')} defaultOpen>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="dashboard-week">Week</Label>
+            <Label htmlFor="dashboard-week">{t('web.dashboard.week')}</Label>
             <Input
               id="dashboard-week"
               type="date"
@@ -240,14 +242,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Project</Label>
+            <Label>{t('common.project')}</Label>
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="All projects" />
+                <SelectValue placeholder={t('journal.all_projects')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="all">All projects</SelectItem>
+                  <SelectItem value="all">{t('journal.all_projects')}</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={String(project.id)}>
                       {project.key} - {project.name}
@@ -259,14 +261,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Team</Label>
+            <Label>{t('common.team')}</Label>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="All teams" />
+                <SelectValue placeholder={t('journal.all_teams')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="all">All teams</SelectItem>
+                  <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={String(team.id)}>
                       {team.name}
@@ -279,7 +281,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-4">
-          <Button type="button" variant="outline" onClick={resetFilters}>Reset filters</Button>
+          <Button type="button" variant="outline" onClick={resetFilters}>
+            {t('web.dashboard.reset_filters')}
+          </Button>
         </div>
       </CollapsibleBlock>
 
@@ -292,28 +296,28 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <ReportSummaryCard
-            title="Selected Week"
+            title={t('web.dashboard.selected_week')}
             period={`${dateUtils.format(weekStart, 'MMM d', timezone)} - ${dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}`}
             totalHours={weekKpi.total}
             capexHours={weekKpi.capex}
             opexHours={weekKpi.opex}
           />
           <ReportSummaryCard
-            title="Selected Month"
+            title={t('web.dashboard.selected_month')}
             period={`${dateUtils.format(monthStart, 'MMM d', timezone)} - ${dateUtils.format(monthEnd, 'MMM d, yyyy', timezone)}`}
             totalHours={monthKpi.total}
             capexHours={monthKpi.capex}
             opexHours={monthKpi.opex}
           />
           <ReportSummaryCard
-            title="CapEx Total"
+            title={t('web.dashboard.capex_total')}
             period={`MTD - ${dateUtils.format(monthStart, 'MMMM yyyy', timezone)}`}
             totalHours={monthKpi.total}
             capexHours={monthKpi.capex}
             opexHours={0}
           />
           <ReportSummaryCard
-            title="OpEx Total"
+            title={t('web.dashboard.opex_total')}
             period={`MTD - ${dateUtils.format(monthStart, 'MMMM yyyy', timezone)}`}
             totalHours={monthKpi.total}
             capexHours={0}
@@ -330,7 +334,7 @@ export default function DashboardPage() {
       />
 
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold">Recent Activity</h2>
+        <h2 className="text-lg font-semibold">{t('web.dashboard.recent_activity')}</h2>
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-lg" />
         ) : (

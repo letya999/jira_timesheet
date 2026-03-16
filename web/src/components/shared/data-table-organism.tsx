@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table"
 import { PaginationBar } from "@/components/shared/pagination-bar"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
 
 function useUrlState<T extends Record<string, string>>(defaults: T) {
   const [state, setState] = useState<T>(() => {
@@ -72,6 +73,7 @@ export function DataTableOrganism<TData, TValue>({
   className,
   rowHeight = 48,
 }: DataTableOrganismProps<TData, TValue>) {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useUrlState({ page: "1", pageSize: "10" })
   const page = Number(searchParams.page)
   const pageSize = Number(searchParams.pageSize)
@@ -179,7 +181,7 @@ export function DataTableOrganism<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t("common.not_found")}
                 </TableCell>
               </TableRow>
             )}

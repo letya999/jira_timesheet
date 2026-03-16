@@ -14,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Trash2, Plus, Loader2, ArrowDown } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useTranslation } from 'react-i18next';
 
 interface ApprovalWorkflowConfigProps {
   units: OrgUnitResponse[];
 }
 
 export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
+  const { t } = useTranslation();
   const [selectedUnitId, setSelectedUnitId] = React.useState<number | null>(null);
   const [targetType, setTargetType] = React.useState<'leave' | 'timesheet'>('leave');
   
@@ -40,9 +42,9 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
         onSuccess: () => {
           setStepOrder((prev) => prev + 1);
           setRoleId(null);
-          toast.success('Approval step added');
+          toast.success(t('web.org.approval_step_added'));
         },
-        onError: () => toast.error('Failed to add approval step'),
+        onError: () => toast.error(t('web.org.approval_step_add_failed')),
       }
     );
   };
@@ -52,8 +54,8 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
     deleteMutation.mutate(
       { routeId, unitId: selectedUnitId, targetType },
       {
-        onSuccess: () => toast.success('Step removed'),
-        onError: () => toast.error('Failed to remove step'),
+        onSuccess: () => toast.success(t('web.org.step_removed')),
+        onError: () => toast.error(t('web.org.step_remove_failed')),
       }
     );
   };
@@ -63,19 +65,19 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-medium">Approval Workflows</h3>
-        <p className="text-sm text-muted-foreground">Configure multi-step approval chains for requests.</p>
+        <h3 className="text-lg font-medium">{t('org.workflows_config')}</h3>
+        <p className="text-sm text-muted-foreground">{t('org.workflows_desc')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="workflow-unit">Select Organizational Unit</Label>
+          <Label htmlFor="workflow-unit">{t('org.select_unit')}</Label>
           <Select
             value={selectedUnitId?.toString() || ''}
             onValueChange={(val) => setSelectedUnitId(Number(val))}
           >
             <SelectTrigger id="workflow-unit">
-              <SelectValue placeholder="Select a unit..." />
+              <SelectValue placeholder={t('org.select_unit')} />
             </SelectTrigger>
             <SelectContent>
               {units.map((unit) => (
@@ -88,7 +90,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Request Type</Label>
+          <Label>{t('org.target_type')}</Label>
           <RadioGroup
             value={targetType}
             onValueChange={(val: any) => setTargetType(val)}
@@ -96,11 +98,11 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="leave" id="type-leave" />
-              <Label htmlFor="type-leave">Leave Request</Label>
+              <Label htmlFor="type-leave">{t('org.target_leave')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="timesheet" id="type-timesheet" />
-              <Label htmlFor="type-timesheet">Timesheet</Label>
+              <Label htmlFor="type-timesheet">{t('org.target_timesheet')}</Label>
             </div>
           </RadioGroup>
         </div>
@@ -110,18 +112,18 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
         <div className="space-y-6">
            <div className="border rounded-md p-4 bg-muted/30">
              <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">
-               {targetType === 'leave' ? 'Leave' : 'Timesheet'} Approval Chain: {units.find(u => u.id === selectedUnitId)?.name}
+               {targetType === 'leave' ? t('org.target_leave') : t('org.target_timesheet')} {t('web.org.approval_chain_for')}: {units.find(u => u.id === selectedUnitId)?.name}
              </h4>
 
              {routesLoading ? (
                <div className="flex items-center gap-2 py-4">
                  <Loader2 className="h-4 w-4 animate-spin" />
-                 <span className="text-sm">Loading workflow...</span>
+                 <span className="text-sm">{t('web.org.loading_workflow')}</span>
                </div>
              ) : (
                <div className="space-y-4">
                  {sortedRoutes.length === 0 ? (
-                   <p className="text-sm text-muted-foreground italic">No approval steps defined. Requests will be auto-approved if no workflow exists.</p>
+                   <p className="text-sm text-muted-foreground italic">{t('web.org.no_approval_steps')}</p>
                  ) : (
                    <div className="flex flex-col items-center max-w-md mx-auto">
                      {sortedRoutes.map((route, index) => {
@@ -134,8 +136,8 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
                                  {route.step_order}
                                </div>
                                <div className="flex flex-col">
-                                 <span className="text-sm font-medium">{role?.name || `Role ID: ${route.role_id}`}</span>
-                                 <span className="text-[10px] text-muted-foreground uppercase">Step {route.step_order}</span>
+                                 <span className="text-sm font-medium">{role?.name || t('web.org.role_id', { id: route.role_id })}</span>
+                                 <span className="text-[10px] text-muted-foreground uppercase">{t('web.org.step_n', { step: route.step_order })}</span>
                                </div>
                              </div>
                              <Button
@@ -161,10 +163,10 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
            </div>
 
            <div className="border rounded-md p-4 space-y-4">
-              <h4 className="text-sm font-medium">Add Approval Step</h4>
+              <h4 className="text-sm font-medium">{t('org.add_step')}</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="space-y-2">
-                    <Label htmlFor="step-order" className="text-xs">Step Order</Label>
+                    <Label htmlFor="step-order" className="text-xs">{t('org.step_order')}</Label>
                     <Input
                       id="step-order"
                       type="number"
@@ -174,13 +176,13 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
                     />
                  </div>
                  <div className="space-y-2">
-                    <Label htmlFor="workflow-role" className="text-xs">Required Role</Label>
+                    <Label htmlFor="workflow-role" className="text-xs">{t('org.required_role')}</Label>
                     <Select
                       value={roleId?.toString() || ''}
                       onValueChange={(val) => setRoleId(Number(val))}
                     >
                       <SelectTrigger id="workflow-role">
-                        <SelectValue placeholder="Select role..." />
+                        <SelectValue placeholder={t('web.org.select_role')} />
                       </SelectTrigger>
                       <SelectContent>
                         {roles.map((r: any) => (
@@ -198,7 +200,7 @@ export function ApprovalWorkflowConfig({ units }: ApprovalWorkflowConfigProps) {
                 disabled={!roleId || createMutation.isPending}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Step
+                {t('org.add_step')}
               </Button>
            </div>
         </div>

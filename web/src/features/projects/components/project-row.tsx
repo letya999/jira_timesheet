@@ -6,12 +6,14 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectRowProps {
   project: ProjectResponse;
 }
 
 export function ProjectRow({ project }: ProjectRowProps) {
+  const { t } = useTranslation();
   const [syncJobId, setSyncJobId] = React.useState<string | null>(null);
   
   const updateMutation = useUpdateProject();
@@ -22,8 +24,8 @@ export function ProjectRow({ project }: ProjectRowProps) {
     updateMutation.mutate(
       { id: project.id, data: { is_active: checked } },
       {
-        onSuccess: () => toast.success(`Project ${checked ? 'activated' : 'deactivated'}`),
-        onError: () => toast.error('Failed to update project'),
+        onSuccess: () => toast.success(t(checked ? 'web.projects.activated' : 'web.projects.deactivated')),
+        onError: () => toast.error(t('web.projects.update_failed')),
       }
     );
   };
@@ -32,9 +34,9 @@ export function ProjectRow({ project }: ProjectRowProps) {
     syncMutation.mutate(project.id, {
       onSuccess: (data: { job_id: string }) => {
         setSyncJobId(data.job_id);
-        toast.success('Sync job started');
+        toast.success(t('web.projects.sync_job_started'));
       },
-      onError: () => toast.error('Failed to start sync'),
+      onError: () => toast.error(t('web.projects.sync_start_failed')),
     });
   };
 
@@ -54,13 +56,13 @@ export function ProjectRow({ project }: ProjectRowProps) {
         <Badge variant="outline" className="font-mono">{project.key}</Badge>
         <div className="flex flex-col">
           <span className="font-medium">{project.name}</span>
-          <span className="text-xs text-muted-foreground">ID: {project.id}</span>
+          <span className="text-xs text-muted-foreground">{t('web.projects.id')}: {project.id}</span>
         </div>
       </div>
 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground uppercase font-semibold">Sync</span>
+          <span className="text-xs text-muted-foreground uppercase font-semibold">{t('common.sync')}</span>
           <Switch
             checked={project.is_active}
             onCheckedChange={handleToggleActive}
@@ -72,13 +74,13 @@ export function ProjectRow({ project }: ProjectRowProps) {
           {jobStatus?.status === 'complete' && (
             <Badge variant="outline" className="text-green-600 bg-green-50 border-green-200 gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              Synced
+              {t('web.projects.synced')}
             </Badge>
           )}
           {jobStatus?.status === 'failed' && (
             <Badge variant="outline" className="text-destructive bg-destructive/10 border-destructive/20 gap-1">
               <XCircle className="h-3 w-3" />
-              Failed
+              {t('web.projects.failed')}
             </Badge>
           )}
           
@@ -94,7 +96,7 @@ export function ProjectRow({ project }: ProjectRowProps) {
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
             )}
-            {isSyncing ? 'Syncing...' : 'Sync Now'}
+            {isSyncing ? t('web.projects.syncing') : t('projects.sync_now')}
           </Button>
         </div>
       </div>

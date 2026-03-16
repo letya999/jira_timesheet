@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 
 interface UnitFormProps {
   initialData?: OrgUnitResponse;
@@ -21,6 +22,7 @@ interface UnitFormProps {
 }
 
 export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: UnitFormProps) {
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -81,25 +83,25 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 border p-4 rounded-md">
-      <h3 className="text-lg font-medium">{initialData ? 'Edit Org Unit' : 'Create New Org Unit'}</h3>
+      <h3 className="text-lg font-medium">{initialData ? t('org.edit_delete_unit') : t('org.add_unit')}</h3>
       
       <div className="space-y-2">
-        <Label htmlFor="unit-name">Unit Name</Label>
-        <Input id="unit-name" {...register('name')} placeholder="e.g. Engineering, Sales" />
+        <Label htmlFor="unit-name">{t('org.unit_name')}</Label>
+        <Input id="unit-name" {...register('name')} placeholder={t('web.org.unit_name_placeholder')} />
         {errors.name && <p className="text-xs text-destructive">{errors.name.message as string}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="parent-unit">Parent Unit</Label>
+        <Label htmlFor="parent-unit">{t('org.parent_unit')}</Label>
         <Select
           value={parentId?.toString() || 'none'}
           onValueChange={(val) => setValue('parent_id', val === 'none' ? null : Number(val))}
         >
           <SelectTrigger id="parent-unit">
-            <SelectValue placeholder="None (Root)" />
+            <SelectValue placeholder={t('org.none_root')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">None (Root)</SelectItem>
+            <SelectItem value="none">{t('org.none_root')}</SelectItem>
             {parentOptions.map((u) => (
               <SelectItem key={u.id} value={u.id.toString()}>
                 {u.path}
@@ -110,7 +112,7 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reporting-period">Reporting Period</Label>
+        <Label htmlFor="reporting-period">{t('org.reporting_period')}</Label>
         <Select
           value={reportingPeriod}
           onValueChange={(val: any) => setValue('reporting_period', val)}
@@ -119,9 +121,9 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="biweekly">Bi-weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="weekly">{t('org.period_weekly')}</SelectItem>
+            <SelectItem value="biweekly">{t('org.period_biweekly')}</SelectItem>
+            <SelectItem value="monthly">{t('org.period_monthly')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -129,11 +131,11 @@ export function UnitForm({ initialData, units, onSubmit, isPending, onCancel }: 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving...' : initialData ? 'Update Unit' : 'Create Unit'}
+          {isPending ? t('web.org.saving') : initialData ? t('org.update_unit') : t('org.create_unit')}
         </Button>
       </div>
     </form>

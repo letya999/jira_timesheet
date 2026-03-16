@@ -15,6 +15,7 @@ import {
   useProjectReleases,
 } from '../hooks';
 import type { ReportFilters } from '../hooks/use-report-filters';
+import { useTranslation } from 'react-i18next';
 
 interface ReportFilterPanelProps {
   filters: ReportFilters;
@@ -22,15 +23,9 @@ interface ReportFilterPanelProps {
   lockedFields?: (keyof ReportFilters)[];
 }
 
-const WORKLOG_TYPE_OPTIONS = [
-  { label: 'Jira', value: 'JIRA' },
-  { label: 'Manual', value: 'MANUAL' },
-];
-
 export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: ReportFilterPanelProps) {
+  const { t } = useTranslation();
   const { user, permissions } = useAuthStore();
-  // RBAC: Admin, CEO, PM roles have reports.manage permission (or similar)
-  // Matching Streamlit check: user_role in ["Admin", "CEO", "PM"]
   const isManager = user?.is_admin || permissions.includes('reports.manage') || permissions.includes('org.view');
 
   const { data: categories, isLoading: loadingCats } = useReportCategories();
@@ -86,12 +81,16 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
     value: String(e.id),
   }));
 
+  const worklogTypeOptions = [
+    { label: t('web.reports.worklog_type_jira'), value: 'JIRA' },
+    { label: t('web.reports.worklog_type_manual'), value: 'MANUAL' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Col 1: Date + Categories */}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <div className="space-y-3">
         <div>
-          <Label className="mb-1.5 block text-sm">Date range</Label>
+          <Label className="mb-1.5 block text-sm">{t('web.reports.date_range')}</Label>
           <DateRangePicker
             date={dateRange}
             setDate={handleDateRange}
@@ -100,7 +99,7 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
           />
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Categories</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.categories')}</Label>
           {loadingCats ? (
             <Skeleton className="h-10 w-full" />
           ) : (
@@ -108,55 +107,54 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
               options={categoryOptions}
               selected={filters.category_ids.map(String)}
               onChange={(vals) => onFilter('category_ids', vals.map(Number))}
-              placeholder="All categories"
+              placeholder={t('web.reports.all_categories')}
               disabled={isLocked('category_ids')}
             />
           )}
         </div>
       </div>
 
-      {/* Col 2: Project → Release + Sprints */}
       <div className="space-y-3">
         <div>
-          <Label className="mb-1.5 block text-sm">Project</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.project')}</Label>
           {loadingProjects ? (
             <Skeleton className="h-10 w-full" />
           ) : (
             <Combobox
-              options={[{ label: 'All projects', value: '' }, ...projectOptions]}
+              options={[{ label: t('journal.all_projects'), value: '' }, ...projectOptions]}
               value={filters.project_id !== null ? String(filters.project_id) : ''}
               onChange={(val) => {
                 onFilter('project_id', val ? Number(val) : null);
                 onFilter('release_id', null);
               }}
-              placeholder="All projects"
+              placeholder={t('journal.all_projects')}
               className="w-full"
               disabled={isLocked('project_id')}
             />
           )}
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Release</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.release')}</Label>
           {filters.project_id !== null ? (
             loadingReleases ? (
               <Skeleton className="h-10 w-full" />
             ) : (
               <Combobox
-                options={[{ label: 'All releases', value: '' }, ...releaseOptions]}
+                options={[{ label: t('reports.all_releases'), value: '' }, ...releaseOptions]}
                 value={filters.release_id !== null ? String(filters.release_id) : ''}
                 onChange={(val) => onFilter('release_id', val ? Number(val) : null)}
-                placeholder="All releases"
+                placeholder={t('reports.all_releases')}
                 className="w-full"
               />
             )
           ) : (
-            <div className="text-[13px] text-muted-foreground italic h-10 flex items-center border rounded-md px-3 bg-muted/30">
-              Select a project to filter releases
+            <div className="h-10 items-center border rounded-md px-3 bg-muted/30 text-[13px] text-muted-foreground italic flex">
+              {t('reports.select_project_hint')}
             </div>
           )}
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Sprints</Label>
+          <Label className="mb-1.5 block text-sm">{t('common.sprint')}</Label>
           {loadingSprints ? (
             <Skeleton className="h-10 w-full" />
           ) : (
@@ -164,26 +162,25 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
               options={sprintOptions}
               selected={filters.sprint_ids.map(String)}
               onChange={(vals) => onFilter('sprint_ids', vals.map(Number))}
-              placeholder="All sprints"
+              placeholder={t('web.reports.all_sprints')}
               disabled={isLocked('sprint_ids')}
             />
           )}
         </div>
       </div>
 
-      {/* Col 3: Team (manager only) + Worklog type */}
       <div className="space-y-3">
         {isManager ? (
           <div>
-            <Label className="mb-1.5 block text-sm">Team</Label>
+            <Label className="mb-1.5 block text-sm">{t('common.team')}</Label>
             {loadingUnits ? (
               <Skeleton className="h-10 w-full" />
             ) : (
               <Combobox
-                options={[{ label: 'All teams', value: '' }, ...orgUnitOptions]}
+                options={[{ label: t('journal.all_teams'), value: '' }, ...orgUnitOptions]}
                 value={filters.org_unit_id !== null ? String(filters.org_unit_id) : ''}
                 onChange={(val) => onFilter('org_unit_id', val ? Number(val) : null)}
-                placeholder="All teams"
+                placeholder={t('journal.all_teams')}
                 className="w-full"
                 disabled={isLocked('org_unit_id')}
               />
@@ -191,29 +188,28 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
           </div>
         ) : (
           <div className="space-y-1.5">
-            <Label className="text-sm">Team</Label>
-            <div className="text-[13px] text-muted-foreground h-10 flex items-center border rounded-md px-3 bg-muted/50">
-              Filtered to your team automatically
+            <Label className="text-sm">{t('common.team')}</Label>
+            <div className="h-10 items-center border rounded-md px-3 bg-muted/50 text-[13px] text-muted-foreground flex">
+              {t('web.reports.filtered_team')}
             </div>
           </div>
         )}
         <div>
-          <Label className="mb-1.5 block text-sm">Worklog type</Label>
+          <Label className="mb-1.5 block text-sm">{t('reports.worklog_types')}</Label>
           <MultiSelect
-            options={WORKLOG_TYPE_OPTIONS}
+            options={worklogTypeOptions}
             selected={filters.worklog_types}
             onChange={(vals) => onFilter('worklog_types', vals as ('JIRA' | 'MANUAL')[])}
-            placeholder="All types"
+            placeholder={t('web.reports.all_types')}
             disabled={isLocked('worklog_types')}
           />
         </div>
       </div>
 
-      {/* Col 4: Employees (manager only) */}
       <div className="space-y-3">
         {isManager ? (
           <div>
-            <Label className="mb-1.5 block text-sm">Employees</Label>
+            <Label className="mb-1.5 block text-sm">{t('common.employees')}</Label>
             {loadingEmps ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -221,16 +217,16 @@ export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: Repo
                 options={employeeOptions}
                 selected={filters.user_ids.map(String)}
                 onChange={(vals) => onFilter('user_ids', vals.map(Number))}
-                placeholder="All employees"
+                placeholder={t('web.reports.all_employees')}
                 disabled={isLocked('user_ids')}
               />
             )}
           </div>
         ) : (
           <div className="space-y-1.5">
-            <Label className="text-sm">Employee</Label>
-            <div className="text-[13px] font-medium h-10 flex items-center border rounded-md px-3 bg-muted/50">
-              {user?.display_name || 'Loading...'}
+            <Label className="text-sm">{t('common.employee')}</Label>
+            <div className="h-10 items-center border rounded-md px-3 bg-muted/50 text-[13px] font-medium flex">
+              {user?.display_name || t('common.loading')}
             </div>
           </div>
         )}

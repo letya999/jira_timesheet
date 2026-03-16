@@ -11,8 +11,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useTranslation } from 'react-i18next';
 
 export function RoleManager() {
+  const { t } = useTranslation();
   const [newRoleName, setNewRoleName] = React.useState('');
   const { data: roles = [], isLoading } = useRoles();
   const createMutation = useCreateRole();
@@ -23,37 +25,37 @@ export function RoleManager() {
     createMutation.mutate({ name: newRoleName }, {
       onSuccess: () => {
         setNewRoleName('');
-        toast.success('Role created');
+        toast.success(t('web.org.role_created'));
       },
-      onError: () => toast.error('Failed to create role'),
+      onError: () => toast.error(t('web.org.role_create_failed')),
     });
   };
 
   const handleDelete = (id: number) => {
     deleteMutation.mutate(id, {
-      onSuccess: () => toast.success('Role deleted'),
-      onError: () => toast.error('Failed to delete role'),
+      onSuccess: () => toast.success(t('web.org.role_deleted')),
+      onError: () => toast.error(t('web.org.role_delete_failed')),
     });
   };
 
-  if (isLoading) return <div>Loading roles...</div>;
+  if (isLoading) return <div>{t('web.org.loading_roles')}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-medium">Manage Roles</h3>
-        <p className="text-sm text-muted-foreground">Define system and organizational roles.</p>
+        <h3 className="text-lg font-medium">{t('org.manage_roles')}</h3>
+        <p className="text-sm text-muted-foreground">{t('web.org.manage_roles_subtitle')}</p>
       </div>
 
       <div className="flex gap-2 max-w-sm">
         <Input
-          placeholder="New role name..."
+          placeholder={t('web.org.new_role_placeholder')}
           value={newRoleName}
           onChange={(e) => setNewRoleName(e.target.value)}
         />
         <Button onClick={handleCreate} disabled={createMutation.isPending || !newRoleName.trim()}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Role
+          {t('org.create_role')}
         </Button>
       </div>
 
@@ -67,7 +69,7 @@ export function RoleManager() {
               <span className="font-medium text-sm">{role.name}</span>
               {role.is_system && (
                 <Badge variant="outline" className="text-[10px] h-4 px-1">
-                  System
+                  {t('web.org.system')}
                 </Badge>
               )}
             </div>
@@ -87,7 +89,7 @@ export function RoleManager() {
                 </TooltipTrigger>
                 {role.is_system && (
                   <TooltipContent>
-                    <p>System roles cannot be deleted</p>
+                    <p>{t('org.cannot_delete_system_roles')}</p>
                   </TooltipContent>
                 )}
               </Tooltip>

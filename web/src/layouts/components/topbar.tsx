@@ -2,8 +2,10 @@ import { useRouter } from '@tanstack/react-router'
 import { useCurrentUser, useLogout } from '@/features/auth/hooks'
 import { useNotificationStats } from '@/features/notifications/hooks'
 import { AppHeader } from './app-header'
+import { useTranslation } from 'react-i18next'
 
 export function Topbar() {
+  const { t } = useTranslation()
   const { data: user } = useCurrentUser()
   const { mutate: logout } = useLogout()
   const router = useRouter()
@@ -23,7 +25,7 @@ export function Topbar() {
 
   return (
     <AppHeader
-      userName={user?.display_name ?? user?.email ?? 'User'}
+      userName={user?.display_name ?? user?.email ?? t('common.user')}
       userEmail={user?.email}
       userInitials={userInitials}
       unreadCount={unreadCount}

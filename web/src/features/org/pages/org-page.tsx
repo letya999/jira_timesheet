@@ -8,7 +8,6 @@ import { RoleManager } from '../components/role-manager';
 import { UnitRoleAssignments } from '../components/unit-role-assignments';
 import { ApprovalWorkflowConfig } from '../components/approval-workflow-config';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -22,8 +21,10 @@ import { Trash2, Edit, Network, Settings2, ShieldCheck } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 
 export function OrgPage() {
+  const { t } = useTranslation();
   const { data: currentUser, isLoading: authLoading } = useCurrentUser();
   const { data: units = [], isLoading: orgLoading } = useOrgTree();
   
@@ -33,7 +34,7 @@ export function OrgPage() {
   const updateMutation = useUpdateOrgUnit();
   const deleteMutation = useDeleteOrgUnit();
 
-  if (authLoading) return <div className="p-6">Loading permissions...</div>;
+  if (authLoading) return <div className="p-6">{t('web.org.loading_permissions')}</div>;
   if (currentUser?.role !== 'Admin') return <Navigate to="/" />;
 
   const rootUnits = (units as any[]).filter((u) => !u.parent_id);
@@ -41,8 +42,8 @@ export function OrgPage() {
 
   const handleCreate = (data: OrgUnitCreate) => {
     createMutation.mutate(data, {
-      onSuccess: () => toast.success('Unit created'),
-      onError: () => toast.error('Failed to create unit'),
+      onSuccess: () => toast.success(t('web.org.unit_created')),
+      onError: () => toast.error(t('web.org.unit_create_failed')),
     });
   };
 
@@ -53,21 +54,21 @@ export function OrgPage() {
       {
         onSuccess: () => {
           setEditingUnitId(null);
-          toast.success('Unit updated');
+          toast.success(t('web.org.unit_updated'));
         },
-        onError: () => toast.error('Failed to update unit'),
+        onError: () => toast.error(t('web.org.unit_update_failed')),
       }
     );
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this unit? All sub-units will be orphaned.')) {
+    if (confirm(t('web.org.confirm_delete_unit'))) {
       deleteMutation.mutate(id, {
         onSuccess: () => {
           if (editingUnitId === id) setEditingUnitId(null);
-          toast.success('Unit deleted');
+          toast.success(t('web.org.unit_deleted'));
         },
-        onError: () => toast.error('Failed to delete unit'),
+        onError: () => toast.error(t('web.org.unit_delete_failed')),
       });
     }
   };
@@ -75,23 +76,23 @@ export function OrgPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Organization Structure</h1>
-        <p className="text-muted-foreground">Manage hierarchy, departments, roles, and approval workflows.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('org.management_title')}</h1>
+        <p className="text-muted-foreground">{t('web.org.page_subtitle')}</p>
       </div>
 
       <Tabs defaultValue="hierarchy" className="w-full">
         <TabsList>
           <TabsTrigger value="hierarchy" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Company Hierarchy
+            {t('org.company_hierarchy_tab')}
           </TabsTrigger>
           <TabsTrigger value="manage" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            Manage Structure & Roles
+            {t('org.manage_structure_roles_tab')}
           </TabsTrigger>
           <TabsTrigger value="workflows" className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
-            Approval Workflows
+            {t('org.approval_workflows_tab')}
           </TabsTrigger>
         </TabsList>
 
@@ -109,7 +110,7 @@ export function OrgPage() {
                   <OrgTreeNode key={unit.id} unit={unit as any} allUnits={units as any} />
                 ))}
                 {rootUnits.length === 0 && (
-                  <p className="text-center py-8 text-muted-foreground italic">No organizational units defined yet.</p>
+                  <p className="text-center py-8 text-muted-foreground italic">{t('org.no_units')}</p>
                 )}
               </div>
             )}
@@ -126,15 +127,15 @@ export function OrgPage() {
               />
 
               <div className="space-y-4 border p-4 rounded-md bg-muted/30">
-                <h3 className="text-lg font-medium">Edit / Delete Unit</h3>
+                <h3 className="text-lg font-medium">{t('org.edit_delete_unit')}</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-unit-select">Select Unit</Label>
+                  <Label htmlFor="edit-unit-select">{t('org.select_unit')}</Label>
                   <Select
                     value={editingUnitId?.toString() || ''}
                     onValueChange={(val) => setEditingUnitId(Number(val))}
                   >
                     <SelectTrigger id="edit-unit-select">
-                      <SelectValue placeholder="Select unit to modify..." />
+                      <SelectValue placeholder={t('web.org.select_unit_to_modify')} />
                     </SelectTrigger>
                     <SelectContent>
                       {units.map((u) => (
@@ -155,7 +156,7 @@ export function OrgPage() {
                       className="flex-1"
                     >
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit Details
+                      {t('web.org.edit_details')}
                     </Button>
                     <Button
                       variant="destructive"

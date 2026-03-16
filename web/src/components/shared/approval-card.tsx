@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Calendar, Clock, Check, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface ApprovalCardProps {
   id: number
@@ -31,6 +32,7 @@ export function ApprovalCard({
   onReject,
   className,
 }: ApprovalCardProps) {
+  const { t } = useTranslation()
   const [isProcessing, setIsProcessing] = useState(false)
   const initials = userName.split(" ").map(n => n[0]).join("").toUpperCase()
 
@@ -75,7 +77,7 @@ export function ApprovalCard({
           </div>
           <div className="flex items-center gap-2 font-bold">
             <Clock className="size-4" />
-            <span>{totalHours}h</span>
+            <span>{totalHours}{t('common.hours_short')}</span>
           </div>
         </div>
       </CardContent>
@@ -89,7 +91,7 @@ export function ApprovalCard({
             disabled={isProcessing}
           >
             <X className="size-4" />
-            Reject
+            {t('common.reject')}
           </Button>
           <Button 
             size="sm" 
@@ -98,7 +100,7 @@ export function ApprovalCard({
             disabled={isProcessing}
           >
             <Check className="size-4" />
-            Approve
+            {t('common.approve')}
           </Button>
         </CardFooter>
       )}

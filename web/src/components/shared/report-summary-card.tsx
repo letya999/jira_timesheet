@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { Typography } from "@/components/ui/typography"
+import { useTranslation } from "react-i18next"
 
 interface ReportSummaryCardProps {
   title: string
@@ -26,6 +27,7 @@ export function ReportSummaryCard({
   opexHours,
   className,
 }: ReportSummaryCardProps) {
+  const { t } = useTranslation()
   const capexPercent = totalHours > 0 ? (capexHours / totalHours) * 100 : 0
   const opexPercent = totalHours > 0 ? (opexHours / totalHours) * 100 : 0
 
@@ -41,7 +43,7 @@ export function ReportSummaryCard({
             <Typography variant="h3" className="font-bold text-2xl leading-none tabular-nums whitespace-nowrap">
               {formatHours(totalHours)}h
             </Typography>
-            <p className="text-xs text-muted-foreground uppercase font-medium">Total logged</p>
+            <p className="text-xs text-muted-foreground uppercase font-medium">{t("web.report.total_logged")}</p>
           </div>
         </div>
       </CardHeader>
@@ -49,7 +51,7 @@ export function ReportSummaryCard({
         <div className="space-y-3">
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
-              <span className="font-medium">CapEx</span>
+              <span className="font-medium">{t("common.capex")}</span>
               <span className="text-muted-foreground tabular-nums">
                 {formatHours(capexHours)}h ({capexPercent.toFixed(1)}%)
               </span>
@@ -63,7 +65,7 @@ export function ReportSummaryCard({
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
-              <span className="font-medium">OpEx</span>
+              <span className="font-medium">{t("common.opex")}</span>
               <span className="text-muted-foreground tabular-nums">
                 {formatHours(opexHours)}h ({opexPercent.toFixed(1)}%)
               </span>

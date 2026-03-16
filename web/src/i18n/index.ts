@@ -1,31 +1,38 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import en from './locales/en.json';
+import ru from './locales/ru.json';
 
-// Placeholder translations - will mirror existing frontend/locales/
 const resources = {
   en: {
-    translation: {
-      "hello": "Hello World",
-      "dashboard": "Dashboard"
-    }
+    translation: en,
   },
   ru: {
-    translation: {
-      "hello": "Привет, мир",
-      "dashboard": "Дашборд"
-    }
-  }
+    translation: ru,
+  },
 };
+
+const savedLanguage =
+  typeof window !== 'undefined' ? window.localStorage.getItem('language') : null;
+const browserLanguage =
+  typeof navigator !== 'undefined' ? navigator.language.slice(0, 2).toLowerCase() : 'en';
+const initialLanguage = savedLanguage ?? (browserLanguage === 'ru' ? 'ru' : 'en');
 
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: "en",
-    fallbackLng: "en",
+    lng: initialLanguage,
+    fallbackLng: 'en',
     interpolation: {
-      escapeValue: false
-    }
+      escapeValue: false,
+    },
   });
+
+i18n.on('languageChanged', (lang) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('language', lang);
+  }
+});
 
 export default i18n;

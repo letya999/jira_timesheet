@@ -13,7 +13,7 @@ export interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ variant = "full" }: LanguageSwitcherProps) {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
 
   const toggleLanguage = (lang: string) => {
     i18n.changeLanguage(lang)
@@ -27,7 +27,11 @@ export function LanguageSwitcher({ variant = "full" }: LanguageSwitcherProps) {
         variant="ghost"
         size="icon"
         onClick={() => toggleLanguage(currentLanguage === "en" ? "ru" : "en")}
-        title={currentLanguage === "en" ? "Switch to Russian" : "Переключить на английский"}
+        title={
+          currentLanguage === "en"
+            ? t("web.language.switch_to_russian")
+            : t("web.language.switch_to_english")
+        }
       >
         <span className="text-xs font-bold uppercase">{currentLanguage.substring(0, 2)}</span>
       </Button>
@@ -44,10 +48,10 @@ export function LanguageSwitcher({ variant = "full" }: LanguageSwitcherProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => toggleLanguage("en")}>
-          English
+          {t("web.language.english")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => toggleLanguage("ru")}>
-          Русский
+          {t("web.language.russian")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

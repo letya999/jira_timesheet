@@ -23,6 +23,7 @@ import {
 import { useCurrentUser } from '@/features/auth/hooks'
 import { dateUtils } from '@/lib/date-utils'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { CollapsibleFilterBlock } from '@/components/shared/collapsible-filter-block'
 import { CollapsibleBlock } from '@/components/shared/collapsible-block'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -111,7 +112,15 @@ type EmployeeSummary = {
   tasks: TaskSummary[]
 }
 
-const RU_WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const WEEKDAY_KEYS = [
+  'web.control_sheet.weekday_mon',
+  'web.control_sheet.weekday_tue',
+  'web.control_sheet.weekday_wed',
+  'web.control_sheet.weekday_thu',
+  'web.control_sheet.weekday_fri',
+  'web.control_sheet.weekday_sat',
+  'web.control_sheet.weekday_sun',
+]
 
 function normalizeName(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -129,7 +138,7 @@ function normalizeStatus(status: string) {
   return status.toUpperCase()
 }
 
-function taskTitle(row: DashboardRow) {
+function taskTitle(row: DashboardRow, manualWorklogLabel: string) {
   const issueKey = row['Issue Key']?.trim()
   const task = row.Task?.trim()
   const description = row.Description?.trim()
@@ -140,10 +149,21 @@ function taskTitle(row: DashboardRow) {
 
   if (description) return description
   if (task) return task
-  return 'Manual worklog'
+  return manualWorklogLabel
+}
+
+function statusLabel(t: (key: string) => string, status: string) {
+  const upper = status.toUpperCase()
+  if (upper === 'OPEN') return t('common.status_open')
+  if (upper === 'SUBMITTED') return t('common.status_submitted')
+  if (upper === 'APPROVED') return t('common.status_approved')
+  if (upper === 'REJECTED') return t('common.status_rejected')
+  if (upper === 'CANCELLED') return t('common.status_cancelled')
+  return upper
 }
 
 function ControlSheet() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser()
 
@@ -171,10 +191,10 @@ function ControlSheet() {
         const day = addDays(weekStart, index)
         return {
           date: format(day, 'yyyy-MM-dd'),
-          label: `${RU_WEEKDAYS[index]} ${format(day, 'dd')}`,
+          label: `${t(WEEKDAY_KEYS[index] ?? 'web.control_sheet.weekday_mon')} ${format(day, 'dd')}`,
         }
       }),
-    [weekStart],
+    [weekStart, t],
   )
 
   const startDate = format(weekStart, 'yyyy-MM-dd')
@@ -270,14 +290,14 @@ function ControlSheet() {
       })
     },
     onSuccess: () => {
-      toast.success('Статус обновлен')
+      toast.success(t('web.control_sheet.status_updated'))
       queryClient.invalidateQueries({ queryKey: ['control-sheet', 'periods'] })
       setStatusDialogOpen(false)
       setStatusTarget(null)
       setStatusComment('')
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Не удалось обновить статус'
+      const message = error instanceof Error ? error.message : t('web.control_sheet.status_update_failed')
       toast.error(message)
     },
   })
@@ -335,15 +355,15 @@ function ControlSheet() {
       const period = typeof userId === 'number' ? periodByUserId.get(userId) : undefined
       const team =
         employee.org_unit_id !== null
-          ? teamNameById.get(employee.org_unit_id) ?? `Team #${employee.org_unit_id}`
-          : 'N/A'
+          ? teamNameById.get(employee.org_unit_id) ?? t('web.control_sheet.team_id', { id: employee.org_unit_id })
+          : t('common.na')
 
       const existing = summaryMap.get(key)
       if (existing) {
         if (typeof userId === 'number' && existing.userId === null) {
           existing.userId = userId
         }
-        if (existing.team === 'N/A' && team !== 'N/A') {
+        if (existing.team === t('common.na') && team !== t('common.na')) {
           existing.team = team
         }
         if (period && existing.periodId === null) {
@@ -381,7 +401,7 @@ function ControlSheet() {
           key,
           userId,
           name: row.User,
-          team: row.OrgUnit || 'N/A',
+          team: row.OrgUnit || t('common.na'),
           status: normalizeStatus(period?.status ?? 'OPEN'),
           periodId: period?.id ?? null,
           periodComment: period?.comment ?? null,
@@ -395,7 +415,7 @@ function ControlSheet() {
         if (typeof userId === 'number' && summary.userId === null) {
           summary.userId = userId
         }
-        if (summary.team === 'N/A' && row.OrgUnit) {
+        if (summary.team === t('common.na') && row.OrgUnit) {
           summary.team = row.OrgUnit
         }
         if (period && summary.periodId === null) {
@@ -414,7 +434,7 @@ function ControlSheet() {
       }
       summary.total += hours
 
-      const taskName = taskTitle(row)
+      const taskName = taskTitle(row, t('web.control_sheet.manual_worklog'))
       if (!summary.taskMap.has(taskName)) {
         summary.taskMap.set(taskName, {
           name: taskName,
@@ -438,7 +458,7 @@ function ControlSheet() {
         tasks: Array.from(summary.taskMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [dashboardQuery.data, periodsQuery.data, employeesQuery.data, weekColumns, teamNameById])
+  }, [dashboardQuery.data, periodsQuery.data, employeesQuery.data, weekColumns, teamNameById, t])
 
   const isLoading =
     isUserLoading || teamsQuery.isLoading || dashboardQuery.isLoading || periodsQuery.isLoading || employeesQuery.isLoading
@@ -468,10 +488,10 @@ function ControlSheet() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <ShieldAlert className="size-5" />
-            Нет доступа
+            {t('web.control_sheet.access_denied')}
           </CardTitle>
           <CardDescription>
-            Страница доступна только для ролей Admin, CEO, PM/Manager.
+            {t('web.control_sheet.access_denied_desc')}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -481,16 +501,16 @@ function ControlSheet() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Control Sheet</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('web.control_sheet.title')}</h1>
         <p className="text-muted-foreground">
-          Недельный контроль по командам: сводка команды и детальная сводка сотрудников.
+          {t('web.control_sheet.subtitle')}
         </p>
       </div>
 
-      <CollapsibleFilterBlock title="Фильтры Control Sheet" defaultOpen>
+      <CollapsibleFilterBlock title={t('web.control_sheet.filters')} defaultOpen>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="control-sheet-week">Неделя</Label>
+            <Label htmlFor="control-sheet-week">{t('web.control_sheet.week')}</Label>
             <Input
               id="control-sheet-week"
               type="date"
@@ -501,20 +521,20 @@ function ControlSheet() {
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Период: {format(weekStart, 'dd.MM.yyyy')} - {format(weekEnd, 'dd.MM.yyyy')}
+              {t('web.control_sheet.period')}: {format(weekStart, 'dd.MM.yyyy')} - {format(weekEnd, 'dd.MM.yyyy')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Команда</Label>
+            <Label>{t('common.team')}</Label>
             <Select value={selectedTeam} onValueChange={setSelectedTeam}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Выберите команду" />
+                <SelectValue placeholder={t('web.control_sheet.select_team')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectItem value="all">
-                    {isAdminRole ? 'Все команды' : 'Все мои команды'}
+                    {isAdminRole ? t('approvals.all_teams') : t('approvals.all_my_teams')}
                   </SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={String(team.id)}>
@@ -535,9 +555,9 @@ function ControlSheet() {
       ) : hasError ? (
         <Card>
           <CardHeader>
-            <CardTitle>Ошибка загрузки данных</CardTitle>
+            <CardTitle>{t('web.control_sheet.error_loading')}</CardTitle>
             <CardDescription>
-              Не удалось получить данные control sheet. Проверьте соединение и права доступа.
+              {t('web.control_sheet.error_loading_desc')}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -546,9 +566,9 @@ function ControlSheet() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TableProperties className="size-5" />
-              Нет данных за выбранную неделю
+              {t('web.control_sheet.no_data_week')}
             </CardTitle>
-            <CardDescription>Попробуйте изменить неделю или команду.</CardDescription>
+            <CardDescription>{t('web.control_sheet.try_change_week_team')}</CardDescription>
           </CardHeader>
         </Card>
       ) : (
@@ -557,10 +577,10 @@ function ControlSheet() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="size-5" />
-                Сводка команды
+                {t('web.control_sheet.team_summary')}
               </CardTitle>
               <CardDescription>
-                Недельная матрица по сотрудникам с итогом часов и статусом периода.
+                {t('web.control_sheet.team_summary_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -568,14 +588,14 @@ function ControlSheet() {
               <Table className="border-collapse [&_th]:font-semibold">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background">Сотрудник</TableHead>
+                    <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('common.employee')}</TableHead>
                     {weekColumns.map((col) => (
                       <TableHead key={col.date} className="sticky top-0 z-10 border border-border bg-background text-right">
                         {col.label}
                       </TableHead>
                     ))}
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">Всего</TableHead>
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background">Статус</TableHead>
+                    <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">{t('common.total')}</TableHead>
+                    <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('common.status')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -592,7 +612,7 @@ function ControlSheet() {
                       </TableCell>
                       <TableCell className="border border-border">
                         <Badge variant="outline" className={statusClass(employee.status)}>
-                          {employee.status}
+                          {statusLabel(t, employee.status)}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -607,10 +627,10 @@ function ControlSheet() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="size-5" />
-                Сводка сотрудников
+                {t('web.control_sheet.employee_summary')}
               </CardTitle>
               <CardDescription>
-                Отдельный лист на каждого сотрудника: статус недели и раскладка по задачам/дням.
+                {t('web.control_sheet.employee_summary_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -618,21 +638,21 @@ function ControlSheet() {
                 {summaries.map((employee, index) => (
                   <CollapsibleBlock
                     key={employee.key}
-                    title={`${employee.name} (${employee.total.toFixed(1)} ч)`}
+                    title={`${employee.name} (${employee.total.toFixed(1)} ${t('common.hours_short')})`}
                     defaultOpen={index === 0}
                   >
                     <div className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
                       <div className="space-y-1">
                         <h3 className="text-lg font-semibold">{employee.name}</h3>
-                        <p className="text-sm text-muted-foreground">Команда: {employee.team}</p>
+                        <p className="text-sm text-muted-foreground">{t('common.team')}: {employee.team}</p>
                         <p className="text-sm text-muted-foreground">
-                          Всего часов за неделю: <span className="font-semibold text-foreground">{employee.total.toFixed(1)}</span>
+                          {t('web.control_sheet.total_hours_week')}: <span className="font-semibold text-foreground">{employee.total.toFixed(1)}</span>
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={statusClass(employee.status)}>
-                          {employee.status}
+                          {statusLabel(t, employee.status)}
                         </Badge>
                         <Button
                           variant="outline"
@@ -640,7 +660,7 @@ function ControlSheet() {
                           onClick={() => openStatusDialog(employee)}
                         >
                           <MessageSquareText className="mr-2 size-4" />
-                          Изменить статус
+                          {t('web.control_sheet.change_status')}
                         </Button>
                       </div>
                     </div>
@@ -649,20 +669,20 @@ function ControlSheet() {
                     <Table className="border-collapse [&_th]:font-semibold">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="sticky top-0 z-10 border border-border bg-background">Задача / Worklog</TableHead>
+                          <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('web.control_sheet.task_worklog')}</TableHead>
                           {weekColumns.map((col) => (
                             <TableHead key={col.date} className="sticky top-0 z-10 border border-border bg-background text-right">
                               {col.label}
                             </TableHead>
                           ))}
-                          <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">Всего</TableHead>
+                          <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">{t('common.total')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {employee.tasks.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={weekColumns.length + 2} className="border border-border text-muted-foreground">
-                              У сотрудника нет worklog-записей за выбранную неделю.
+                              {t('web.control_sheet.no_worklogs_for_employee')}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -694,36 +714,36 @@ function ControlSheet() {
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Смена статуса периода</DialogTitle>
+            <DialogTitle>{t('web.control_sheet.dialog_title')}</DialogTitle>
             <DialogDescription>
               {statusTarget
-                ? `Сотрудник: ${statusTarget.name}. Выберите новый статус и добавьте комментарий.`
-                : 'Выберите новый статус и добавьте комментарий.'}
-              {statusTarget && !statusTarget.periodId ? ' Период за выбранную неделю еще не инициирован.' : ''}
+                ? t('web.control_sheet.dialog_desc_with_employee', { name: statusTarget.name })
+                : t('web.control_sheet.dialog_desc')}
+              {statusTarget && !statusTarget.periodId ? ` ${t('web.control_sheet.period_not_initiated')}` : ''}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label>Новый статус</Label>
+              <Label>{t('web.control_sheet.new_status')}</Label>
               <Select value={statusDraft} onValueChange={setStatusDraft}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите статус" />
+                  <SelectValue placeholder={t('web.control_sheet.select_status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OPEN">OPEN</SelectItem>
-                  <SelectItem value="SUBMITTED">SUBMITTED</SelectItem>
-                  <SelectItem value="APPROVED">APPROVED</SelectItem>
-                  <SelectItem value="REJECTED">REJECTED</SelectItem>
+                  <SelectItem value="OPEN">{statusLabel(t, 'OPEN')}</SelectItem>
+                  <SelectItem value="SUBMITTED">{statusLabel(t, 'SUBMITTED')}</SelectItem>
+                  <SelectItem value="APPROVED">{statusLabel(t, 'APPROVED')}</SelectItem>
+                  <SelectItem value="REJECTED">{statusLabel(t, 'REJECTED')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status-comment">Комментарий</Label>
+              <Label htmlFor="status-comment">{t('common.comment')}</Label>
               <Textarea
                 id="status-comment"
-                placeholder="Опционально: причина смены статуса"
+                placeholder={t('web.control_sheet.comment_placeholder')}
                 value={statusComment}
                 onChange={(event) => setStatusComment(event.target.value)}
               />
@@ -732,7 +752,7 @@ function ControlSheet() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
-              Отмена
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -740,7 +760,7 @@ function ControlSheet() {
               }}
               disabled={!statusTarget?.periodId || updateStatusMutation.isPending}
             >
-              {updateStatusMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+              {updateStatusMutation.isPending ? t('web.control_sheet.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

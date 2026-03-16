@@ -20,6 +20,7 @@ import { ReportDataTable } from '../components/report-data-table';
 import { ReportChartPanel } from '../components/report-chart-panel';
 import { ReportExportButton } from '../components/report-export-button';
 import type { ReportRequest } from '../schemas';
+import { useTranslation } from 'react-i18next';
 
 type Row = Record<string, unknown>;
 
@@ -32,8 +33,9 @@ interface ReportBuilderPageProps {
 export function ReportBuilderPage({
   initialFilters,
   lockedFields,
-  title = 'Report Builder',
+  title,
 }: ReportBuilderPageProps) {
+  const { t } = useTranslation();
   const { filters, setFilter, clearAll, toReportRequest, toFilterChips } = useReportFilters(initialFilters);
   const [reportBody, setReportBody] = useState<ReportRequest | null>(null);
 
@@ -73,10 +75,10 @@ export function ReportBuilderPage({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">{title}</h2>
+      <h2 className="text-xl font-semibold">{title ?? t('reports.title')}</h2>
 
       {/* Filter panel */}
-      <CollapsibleBlock title="Data filters" defaultOpen>
+      <CollapsibleBlock title={t('web.reports.data_filters')} defaultOpen>
         <div className="pt-1">
           <ReportFilterPanel
             filters={filters}
@@ -87,7 +89,7 @@ export function ReportBuilderPage({
       </CollapsibleBlock>
 
       {/* Pivot config */}
-      <CollapsibleBlock title="Pivot configuration" defaultOpen>
+      <CollapsibleBlock title={t('web.reports.pivot_configuration')} defaultOpen>
         <div className="pt-1">
           <PivotConfigPanel
             filters={filters}
@@ -115,13 +117,13 @@ export function ReportBuilderPage({
 
       {isError && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Failed to load report data. Check your filters and try again.
+          {t('web.reports.failed_load')}
         </div>
       )}
 
       {!isFetching && !isError && rows.length > 0 && (
         <div className="space-y-4">
-          <CollapsibleBlock title="Aggregated statistics" defaultOpen>
+          <CollapsibleBlock title={t('web.reports.aggregated_statistics')} defaultOpen>
             <ReportMetricsBar data={rows} format={filters.format} />
           </CollapsibleBlock>
 
@@ -130,7 +132,7 @@ export function ReportBuilderPage({
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Data table</CardTitle>
+                <CardTitle className="text-base">{t('reports.data_table')}</CardTitle>
                 <ReportExportButton
                   startDate={filters.start_date}
                   endDate={filters.end_date}
@@ -151,7 +153,7 @@ export function ReportBuilderPage({
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Chart</CardTitle>
+              <CardTitle className="text-base">{t('reports.chart_type')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ReportChartPanel
@@ -167,7 +169,7 @@ export function ReportBuilderPage({
 
       {!isFetching && !isError && reportBody !== null && rows.length === 0 && (
         <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-          No data found for the selected filters.
+          {t('reports.no_data')}
         </div>
       )}
     </div>

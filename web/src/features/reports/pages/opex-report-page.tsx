@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useOpexReport } from '../hooks';
 import { ReportBuilderPage } from './report-builder-page';
 import { dateUtils } from '@/lib/date-utils';
+import { useTranslation } from 'react-i18next';
 
 type DashboardRow = {
   Hours?: number;
@@ -17,6 +18,7 @@ function computeSummary(data: DashboardRow[]) {
 }
 
 export function OpexReportPage() {
+  const { t } = useTranslation();
   const now = dateUtils.now();
   const params = {
     start_date: dateUtils.formatPlain(startOfMonth(now), 'yyyy-MM-dd'),
@@ -33,8 +35,8 @@ export function OpexReportPage() {
         <Skeleton className="h-28 w-full max-w-sm" />
       ) : (
         <ReportSummaryCard
-          title="OpEx — current month"
-          period={`${params.start_date} — ${params.end_date}`}
+          title={t('web.reports.opex_current_month')}
+          period={`${params.start_date} - ${params.end_date}`}
           totalHours={summary.total}
           capexHours={summary.capex}
           opexHours={summary.opex}
@@ -43,7 +45,7 @@ export function OpexReportPage() {
       )}
 
       <ReportBuilderPage
-        title="OpEx Report"
+        title={t('web.reports.opex_report')}
         initialFilters={{
           start_date: params.start_date,
           end_date: params.end_date,

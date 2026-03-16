@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import type { DateGranularity } from '../hooks/use-report-filters';
+import { useTranslation } from 'react-i18next';
 
 type Row = Record<string, unknown>;
 
@@ -50,13 +51,14 @@ export function ReportChartPanel({
   groupByCols,
   dateGranularity,
 }: ReportChartPanelProps) {
+  const { t } = useTranslation();
   const [chartType, setChartType] = useState<ChartType>('bar');
   const [colorBy, setColorBy] = useState<string>(groupByRows[0] ?? '');
 
   const allDimensions = [...groupByRows, ...groupByCols].filter(Boolean);
 
   const colorByOptions = allDimensions.map((d) => ({
-    label: d.charAt(0).toUpperCase() + d.slice(1),
+    label: t(`web.reports.dimensions.${d}`, d),
     value: d,
   }));
 
@@ -75,7 +77,7 @@ export function ReportChartPanel({
     if (chartType === 'pie') {
       const totals: Record<string, number> = {};
       for (const row of data) {
-        const key = String(row[xField] ?? 'Unknown');
+        const key = String(row[xField] ?? t('common.not_found'));
         totals[key] = (totals[key] ?? 0) + (typeof row.value === 'number' ? row.value : 0);
       }
       return Object.entries(totals)
@@ -92,7 +94,7 @@ export function ReportChartPanel({
 
       for (const row of data) {
         const timeKey = String(row[timeField] ?? row.date ?? '');
-        const colorKey = String(row[effectiveColorBy] ?? 'Total');
+        const colorKey = String(row[effectiveColorBy] ?? t('common.total'));
         if (!timeKey || timeKey === 'undefined') continue;
         
         timeKeys.add(timeKey);
@@ -117,8 +119,8 @@ export function ReportChartPanel({
     const colorKeysSet = new Set<string>();
 
     for (const row of data) {
-      const xKey = String(row[xField] ?? 'Unknown');
-      const cKey = String(row[effectiveColorBy] ?? 'Total');
+      const xKey = String(row[xField] ?? t('common.not_found'));
+      const cKey = String(row[effectiveColorBy] ?? t('common.total'));
       colorKeysSet.add(cKey);
       if (!grouped[xKey]) grouped[xKey] = {};
       grouped[xKey][cKey] = (grouped[xKey][cKey] ?? 0) +
@@ -133,21 +135,21 @@ export function ReportChartPanel({
         return bTotal - aTotal;
       })
       .slice(0, 30);
-  }, [data, chartType, xField, effectiveColorBy, hasDateCol, dateCol]);
+  }, [data, chartType, xField, effectiveColorBy, hasDateCol, dateCol, t]);
 
   const colorKeys = useMemo(() => {
     if (chartType === 'pie' || data.length === 0) return [];
     const keys = new Set<string>();
     for (const row of data) {
-      keys.add(String(row[effectiveColorBy] ?? 'Total'));
+      keys.add(String(row[effectiveColorBy] ?? t('common.total')));
     }
     return Array.from(keys).slice(0, 10);
-  }, [data, effectiveColorBy, chartType]);
+  }, [data, effectiveColorBy, chartType, t]);
 
   const CHART_ICONS = [
-    { type: 'bar' as ChartType, icon: BarChart2, label: 'Bar' },
-    { type: 'line' as ChartType, icon: TrendingUp, label: 'Line' },
-    { type: 'pie' as ChartType, icon: PieIcon, label: 'Pie' },
+    { type: 'bar' as ChartType, icon: BarChart2, label: t('reports.chart_bar') },
+    { type: 'line' as ChartType, icon: TrendingUp, label: t('reports.chart_line') },
+    { type: 'pie' as ChartType, icon: PieIcon, label: t('reports.chart_pie') },
   ];
 
   return (
@@ -174,7 +176,7 @@ export function ReportChartPanel({
 
         {chartType !== 'pie' && colorByOptions.length > 1 && (
           <div className="flex items-center gap-2">
-            <Label className="text-sm whitespace-nowrap">Color by</Label>
+            <Label className="text-sm whitespace-nowrap">{t('reports.color_by')}</Label>
             <Combobox
               options={colorByOptions}
               value={effectiveColorBy}
@@ -186,7 +188,7 @@ export function ReportChartPanel({
 
         {chartType === 'line' && !hasDateCol && (
           <p className="text-xs text-muted-foreground">
-            Add &quot;Date&quot; to row or column dimensions for a line chart.
+            {t('reports.line_chart_info')}
           </p>
         )}
       </div>

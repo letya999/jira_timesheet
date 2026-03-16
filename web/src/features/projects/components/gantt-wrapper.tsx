@@ -2,12 +2,14 @@ import * as React from 'react';
 import { GanttChartWrapper, GanttTask } from '@/components/gantt/gantt-chart-wrapper';
 import { useProjectSprints } from '@/features/projects/hooks';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 
 interface GanttWrapperProps {
   projectId: number;
 }
 
 export function GanttWrapper({ projectId }: GanttWrapperProps) {
+  const { t } = useTranslation();
   const { data: sprints = [], isLoading } = useProjectSprints(projectId);
 
   const tasks = React.useMemo(() => {
@@ -34,22 +36,22 @@ export function GanttWrapper({ projectId }: GanttWrapperProps) {
   if (isLoading) return <Skeleton className="h-[400px] w-full" />;
   if (tasks.data.length === 0) return (
     <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/20 italic text-muted-foreground">
-      No sprints with dates found for this project.
+      {t('web.projects.no_sprints_with_dates')}
     </div>
   );
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold px-1">Sprint Roadmap</h3>
+      <h3 className="text-lg font-semibold px-1">{t('web.projects.sprint_roadmap')}</h3>
       <GanttChartWrapper 
         tasks={tasks} 
         className="h-[400px]"
         config={{
             readonly: true,
             columns: [
-                { name: "text", label: "Sprint Name", tree: true, width: 200 },
-                { name: "start_date", label: "Start", width: 100, align: "center" },
-                { name: "duration", label: "Days", width: 60, align: "center" }
+                { name: "text", label: t('web.projects.sprint_name'), tree: true, width: 200 },
+                { name: "start_date", label: t('common.from'), width: 100, align: "center" },
+                { name: "duration", label: t('common.days'), width: 60, align: "center" }
             ]
         }}
       />

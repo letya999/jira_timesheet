@@ -13,6 +13,7 @@ import { LanguageSwitcher } from '@/components/shared/language-switcher'
 import { ThemeSwitcher } from '@/components/shared/theme-switcher'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useTranslation } from 'react-i18next'
 
 export interface AppHeaderProps {
   userName: string
@@ -31,10 +32,12 @@ export function AppHeader({
   onOpenNotifications,
   onLogout,
 }: AppHeaderProps) {
+  const { t } = useTranslation()
+
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex items-center gap-2">
-        <SidebarTrigger aria-label="Toggle Sidebar" className="-ml-1" />
+        <SidebarTrigger aria-label={t('web.header.toggle_sidebar')} className="-ml-1" />
         <Separator orientation="vertical" className="h-4" />
         <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
           JT
@@ -49,7 +52,7 @@ export function AppHeader({
           size="icon"
           className="relative"
           onClick={onOpenNotifications}
-          aria-label="Open notifications"
+          aria-label={t('web.header.open_notifications')}
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
@@ -64,7 +67,12 @@ export function AppHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Open profile menu">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label={t('web.header.open_profile_menu')}
+            >
               <Avatar size="sm">
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
@@ -80,7 +88,7 @@ export function AppHeader({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout}>
               <LogOut className="mr-2 size-4" />
-              Logout
+              {t('common.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -7,28 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Play } from 'lucide-react';
 import type { ReportFilters, DateGranularity, ValueFormat } from '../hooks/use-report-filters';
-
-const PIVOT_DIMENSIONS = [
-  { label: 'User', value: 'user' },
-  { label: 'Project', value: 'project' },
-  { label: 'Task', value: 'task' },
-  { label: 'Release', value: 'release' },
-  { label: 'Sprint', value: 'sprint' },
-  { label: 'Team', value: 'team' },
-  { label: 'Division', value: 'division' },
-  { label: 'Department', value: 'department' },
-  { label: 'Date', value: 'date' },
-  { label: 'Category', value: 'category' },
-  { label: 'Type', value: 'type' },
-];
-
-const GRANULARITY_OPTIONS: { label: string; value: DateGranularity }[] = [
-  { label: 'Day', value: 'day' },
-  { label: 'Week', value: 'week' },
-  { label: '2 weeks', value: '2weeks' },
-  { label: 'Month', value: 'month' },
-  { label: 'Quarter', value: 'quarter' },
-];
+import { useTranslation } from 'react-i18next';
 
 interface PivotConfigPanelProps {
   filters: ReportFilters;
@@ -38,6 +17,30 @@ interface PivotConfigPanelProps {
 }
 
 export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotConfigPanelProps) {
+  const { t } = useTranslation();
+
+  const PIVOT_DIMENSIONS = [
+    { label: t('common.user'), value: 'user' },
+    { label: t('common.project'), value: 'project' },
+    { label: t('common.task'), value: 'task' },
+    { label: t('common.release'), value: 'release' },
+    { label: t('common.sprint'), value: 'sprint' },
+    { label: t('common.team'), value: 'team' },
+    { label: t('common.division'), value: 'division' },
+    { label: t('common.department'), value: 'department' },
+    { label: t('common.date'), value: 'date' },
+    { label: t('common.category'), value: 'category' },
+    { label: t('common.type'), value: 'type' },
+  ];
+
+  const GRANULARITY_OPTIONS: { label: string; value: DateGranularity }[] = [
+    { label: t('org.period_day'), value: 'day' },
+    { label: t('org.period_week'), value: 'week' },
+    { label: t('org.period_2weeks'), value: '2weeks' },
+    { label: t('org.period_month'), value: 'month' },
+    { label: t('org.period_quarter'), value: 'quarter' },
+  ];
+
   const overlap = filters.group_by_rows.filter((r) => filters.group_by_cols.includes(r));
   const directionConflict =
     !!filters.group_horizontally_by
@@ -57,59 +60,59 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
       {/* Dimensions */}
       <div className="space-y-3">
         <div>
-          <Label className="mb-1.5 block text-sm">Row dimensions</Label>
+          <Label className="mb-1.5 block text-sm">{t('reports.rows_vertical')}</Label>
           <MultiSelect
             options={rowOptions}
             selected={filters.group_by_rows}
             onChange={(vals) => onFilter('group_by_rows', vals)}
-            placeholder="Select row dimensions"
+            placeholder={t('web.reports.select_row_dimensions')}
           />
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Column dimensions</Label>
+          <Label className="mb-1.5 block text-sm">{t('reports.cols_horizontal')}</Label>
           <MultiSelect
             options={colOptions}
             selected={filters.group_by_cols}
             onChange={(vals) => onFilter('group_by_cols', vals)}
-            placeholder="None (flat table)"
+            placeholder={t('web.reports.none_flat_table')}
           />
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Group horizontally by</Label>
+          <Label className="mb-1.5 block text-sm">{t('web.reports.group_horizontally_by')}</Label>
           <Combobox
-            options={[{ label: 'None', value: '' }, ...horizontalOptions]}
+            options={[{ label: t('web.reports.none'), value: '' }, ...horizontalOptions]}
             value={filters.group_horizontally_by ?? ''}
             onChange={(val) => onFilter('group_horizontally_by', val || null)}
-            placeholder="None"
+            placeholder={t('web.reports.none')}
             className="w-full"
           />
         </div>
         <div>
-          <Label className="mb-1.5 block text-sm">Group vertically by</Label>
+          <Label className="mb-1.5 block text-sm">{t('web.reports.group_vertically_by')}</Label>
           <Combobox
-            options={[{ label: 'None', value: '' }, ...horizontalOptions]}
+            options={[{ label: t('web.reports.none'), value: '' }, ...horizontalOptions]}
             value={filters.group_vertically_by ?? ''}
             onChange={(val) => onFilter('group_vertically_by', val || null)}
-            placeholder="None"
+            placeholder={t('web.reports.none')}
             className="w-full"
           />
         </div>
         {overlap.length > 0 && (
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="size-3" />
-            Dimension conflict: {overlap.join(', ')}
+            {t('web.reports.dimension_conflict')}: {overlap.join(', ')}
           </p>
         )}
         {filters.group_by_rows.length === 0 && (
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="size-3" />
-            At least one row dimension is required.
+            {t('web.reports.one_row_required')}
           </p>
         )}
         {directionConflict && (
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="size-3" />
-            Horizontal and vertical grouping cannot use the same dimension.
+            {t('web.reports.horizontal_vertical_conflict')}
           </p>
         )}
       </div>
@@ -117,7 +120,7 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
       {/* Value format + granularity */}
       <div className="space-y-3">
         <div>
-          <Label className="mb-2 block text-sm">Value unit</Label>
+          <Label className="mb-2 block text-sm">{t('reports.value_unit')}</Label>
           <RadioGroup
             value={filters.format}
             onValueChange={(val) => onFilter('format', val as ValueFormat)}
@@ -125,18 +128,18 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem value="hours" id="fmt-hours" />
-              <Label htmlFor="fmt-hours" className="cursor-pointer">Hours</Label>
+              <Label htmlFor="fmt-hours" className="cursor-pointer">{t('common.hours')}</Label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem value="days" id="fmt-days" />
-              <Label htmlFor="fmt-days" className="cursor-pointer">Days</Label>
+              <Label htmlFor="fmt-days" className="cursor-pointer">{t('common.days')}</Label>
             </div>
           </RadioGroup>
         </div>
 
         {filters.format === 'days' && (
           <div>
-            <Label htmlFor="hours-per-day" className="mb-1.5 block text-sm">Hours per day</Label>
+            <Label htmlFor="hours-per-day" className="mb-1.5 block text-sm">{t('reports.hours_per_day')}</Label>
             <Input
               id="hours-per-day"
               type="number"
@@ -151,7 +154,7 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
 
         {showGranularity && (
           <div>
-            <Label className="mb-2 block text-sm">Date granularity</Label>
+            <Label className="mb-2 block text-sm">{t('reports.date_granularity')}</Label>
             <div className="flex flex-wrap gap-1">
               {GRANULARITY_OPTIONS.map((opt) => (
                 <button
@@ -182,7 +185,7 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
           size="lg"
         >
           <Play className="size-4 mr-2" />
-          {isLoading ? 'Loading…' : 'Run report'}
+          {isLoading ? t('common.loading') : t('reports.run_report')}
         </Button>
       </div>
     </div>

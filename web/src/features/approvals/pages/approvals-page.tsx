@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 
 interface TimesheetPeriod {
   id: number
@@ -15,7 +16,12 @@ interface TimesheetPeriod {
   status: string
 }
 
+type PaginatedPeriods = {
+  items: TimesheetPeriod[]
+}
+
 export default function ApprovalsPage() {
+  const { t } = useTranslation()
   const now = new Date()
   const startDate = format(startOfMonth(now), 'yyyy-MM-dd')
   const endDate = format(endOfMonth(now), 'yyyy-MM-dd')
@@ -26,7 +32,7 @@ export default function ApprovalsPage() {
     end_date: endDate
   })
   
-  const periods = (Array.isArray(rawData) ? rawData : (rawData as any)?.items || []) as TimesheetPeriod[]
+  const periods = Array.isArray(rawData) ? rawData : (rawData as PaginatedPeriods | undefined)?.items ?? []
   const approveMutation = useApproveEntry()
   const rejectMutation = useRejectEntry()
   const bulkApproveMutation = useBulkApprove()
@@ -34,18 +40,18 @@ export default function ApprovalsPage() {
   const handleApprove = async (id: number) => {
     try {
       await approveMutation.mutateAsync({ periodId: id })
-      toast.success('Period approved')
+      toast.success(t('web.approvals.period_approved'))
     } catch {
-      toast.error('Failed to approve period')
+      toast.error(t('web.approvals.approve_failed'))
     }
   }
 
   const handleReject = async (id: number) => {
     try {
       await rejectMutation.mutateAsync({ periodId: id })
-      toast.success('Period rejected')
+      toast.success(t('web.approvals.period_rejected'))
     } catch {
-      toast.error('Failed to reject period')
+      toast.error(t('web.approvals.reject_failed'))
     }
   }
 
@@ -54,9 +60,9 @@ export default function ApprovalsPage() {
     try {
       const ids = periods.map(p => p.id)
       await bulkApproveMutation.mutateAsync(ids)
-      toast.success(`Approved ${ids.length} periods`)
+      toast.success(t('web.approvals.approved_count', { count: ids.length }))
     } catch {
-      toast.error('Failed to approve all periods')
+      toast.error(t('web.approvals.approve_all_failed'))
     }
   }
 
@@ -72,9 +78,9 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Approvals</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('web.approvals.title')}</h1>
           <p className="text-muted-foreground">
-            Review and approve team timesheet submissions.
+            {t('web.approvals.subtitle')}
           </p>
         </div>
         {periods.length > 0 && (
@@ -84,7 +90,7 @@ export default function ApprovalsPage() {
             className="bg-success hover:bg-success/90"
           >
             <CheckCircle2 className="mr-2 size-4" />
-            Approve All ({periods.length})
+            {t('web.approvals.approve_all', { count: periods.length })}
           </Button>
         )}
       </div>
@@ -92,9 +98,9 @@ export default function ApprovalsPage() {
       {periods.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-muted/30 border-dashed">
           <AlertCircle className="size-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold">No pending approvals</h2>
+          <h2 className="text-lg font-semibold">{t('web.approvals.no_pending')}</h2>
           <p className="text-muted-foreground text-sm">
-            Everything is up to date. You'll see new submissions here.
+            {t('web.approvals.no_pending_hint')}
           </p>
         </div>
       ) : (

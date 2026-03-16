@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { DateGranularity } from '../hooks/use-report-filters';
 import { buildPivotTableModel } from '../utils/pivot-table';
+import { useTranslation } from 'react-i18next';
 
 type Row = Record<string, unknown>;
 
@@ -11,10 +12,6 @@ interface ReportDataTableProps {
   groupHorizontallyBy: string | null;
   groupVerticallyBy: string | null;
   dateGranularity: DateGranularity;
-}
-
-function prettyLabel(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
 }
 
 function buildRowSpanMatrix(rows: string[][]): number[][] {
@@ -68,6 +65,7 @@ export function ReportDataTable({
   groupVerticallyBy,
   dateGranularity,
 }: ReportDataTableProps) {
+  const { t } = useTranslation();
   const [isFocused, setIsFocused] = useState(false);
   const model = useMemo(
     () =>
@@ -82,19 +80,19 @@ export function ReportDataTable({
     [columnDimensions, data, dateGranularity, groupHorizontallyBy, groupVerticallyBy, rowDimensions]
   );
 
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-        No results.
-      </div>
-    );
-  }
-
   const headerDepth = model.headerRows.length;
   const rowSpans = useMemo(
     () => buildRowSpanMatrix(model.bodyRows.map((row) => row.rowValues)),
     [model.bodyRows]
   );
+
+  if (data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+        {t('common.not_found')}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -120,7 +118,7 @@ export function ReportDataTable({
                       className="sticky z-20 px-3 py-2 text-left bg-background border-b border-r whitespace-nowrap"
                       style={{ top: 0 }}
                     >
-                      {prettyLabel(dimension)}
+                      {t(`web.reports.dimensions.${dimension}`, dimension)}
                     </th>
                   ))}
                 {headerRow.map((cell, cellIndex) => (

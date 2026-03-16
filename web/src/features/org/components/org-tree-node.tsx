@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronRight, ChevronDown, Building2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 interface OrgTreeNodeProps {
   unit: OrgUnitResponse;
@@ -12,7 +13,8 @@ interface OrgTreeNodeProps {
   isLast?: boolean;
 }
 
-export function OrgTreeNode({ unit, allUnits, level = 0, isLast = false }: OrgTreeNodeProps) {
+export function OrgTreeNode({ unit, allUnits, level = 0, isLast: _isLast = false }: OrgTreeNodeProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(true);
   const children = allUnits.filter((u) => u.parent_id === unit.id);
   const hasChildren = children.length > 0;
@@ -78,7 +80,11 @@ export function OrgTreeNode({ unit, allUnits, level = 0, isLast = false }: OrgTr
             variant="outline" 
             className="ml-auto text-[10px] h-4 px-1 font-normal text-muted-foreground bg-muted/20"
           >
-            {unit.reporting_period}
+            {unit.reporting_period === 'weekly'
+              ? t('org.period_weekly')
+              : unit.reporting_period === 'biweekly'
+                ? t('org.period_biweekly')
+                : t('org.period_monthly')}
           </Badge>
         </div>
       </div>

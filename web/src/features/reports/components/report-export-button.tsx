@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useExportReport } from '../hooks';
+import { useTranslation } from 'react-i18next';
 
 interface ReportExportButtonProps {
   startDate: string;
@@ -8,6 +9,7 @@ interface ReportExportButtonProps {
 }
 
 export function ReportExportButton({ startDate, endDate }: ReportExportButtonProps) {
+  const { t } = useTranslation();
   const { mutate, isPending } = useExportReport();
 
   const handleExport = () => {
@@ -33,7 +35,7 @@ export function ReportExportButton({ startDate, endDate }: ReportExportButtonPro
   return (
     <Button variant="outline" onClick={handleExport} disabled={isPending}>
       <Download className="size-4 mr-2" />
-      {isPending ? 'Exporting…' : 'Export Excel'}
+      {isPending ? t('web.reports.exporting') : t('leaves.export_excel')}
     </Button>
   );
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { SyncIndicator } from "@/components/jira/sync-indicator"
 import { cn } from "@/lib/utils"
 import { dateUtils } from "@/lib/date-utils"
+import { useTranslation } from "react-i18next"
 
 interface SyncStatusWidgetProps {
   status: 'idle' | 'syncing' | 'success' | 'error'
@@ -21,6 +22,7 @@ export function SyncStatusWidget({
   onTriggerSync,
   className,
 }: SyncStatusWidgetProps) {
+  const { t } = useTranslation()
   const [isTriggering, setIsTriggering] = useState(false)
 
   const handleTrigger = async () => {
@@ -41,9 +43,15 @@ export function SyncStatusWidget({
             lastSync={lastSyncAt}
           />
           <div>
-            <h4 className="text-sm font-semibold">Jira Data Sync</h4>
+            <h4 className="text-sm font-semibold">{t("web.sync.title")}</h4>
             <p className="text-xs text-muted-foreground uppercase">
-              {status === 'syncing' ? 'Syncing in progress...' : `Last sync: ${lastSyncAt ? formatDistanceToNow(dateUtils.parse(lastSyncAt), { addSuffix: true }) : 'Never'}`}
+              {status === 'syncing'
+                ? t("web.sync.syncing_in_progress")
+                : `${t("web.sync.last_sync")}: ${
+                    lastSyncAt
+                      ? formatDistanceToNow(dateUtils.parse(lastSyncAt), { addSuffix: true })
+                      : t("web.sync.never")
+                  }`}
             </p>
           </div>
         </div>
@@ -55,14 +63,14 @@ export function SyncStatusWidget({
           disabled={status === 'syncing' || isTriggering}
         >
           <RefreshCcw className={cn("size-3.5", (status === 'syncing' || isTriggering) && "animate-spin")} />
-          Sync Now
+          {t("web.sync.sync_now")}
         </Button>
       </div>
 
       {status === 'syncing' && (
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Syncing projects and worklogs...</span>
+            <span>{t("web.sync.syncing_projects")}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           {/* Inline progress bar - no dependency on missing atom */}
@@ -78,14 +86,14 @@ export function SyncStatusWidget({
       {status === 'error' && (
         <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/5 p-2 rounded border border-destructive/10">
           <AlertCircle className="size-3.5" />
-          <span>Failed to connect to Jira API. Please check your settings.</span>
+          <span>{t("web.sync.failed_jira")}</span>
         </div>
       )}
 
       {status === 'success' && (
         <div className="flex items-center gap-2 text-xs text-success bg-success/5 p-2 rounded border border-success/10">
           <CheckCircle2 className="size-3.5" />
-          <span>Sync completed successfully.</span>
+          <span>{t("web.sync.success")}</span>
         </div>
       )}
     </div>

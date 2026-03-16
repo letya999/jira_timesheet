@@ -5,11 +5,13 @@ import { useInactivityTimer, useLogout } from '@/features/auth/hooks'
 import { toast } from '@/lib/toast'
 import { AppSidebar } from './components/sidebar'
 import { Topbar } from './components/topbar'
+import { useTranslation } from 'react-i18next'
 
 const WARN_MS = 25 * 60 * 1000
 const TIMEOUT_MS = 30 * 60 * 1000
 
 export function AppLayout() {
+  const { t } = useTranslation()
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
   const { mutate: logout } = useLogout()
@@ -19,7 +21,7 @@ export function AppLayout() {
     timeoutMs: TIMEOUT_MS,
     warnMs: WARN_MS,
     onWarn: () => {
-      toast.warning('You will be logged out in 5 minutes due to inactivity.')
+      toast.warning(t('web.app.inactivity_warning'))
     },
     onTimeout: () => {
       logout(undefined, {

@@ -1,5 +1,6 @@
 import { Clock, Users, CheckSquare, TrendingUp } from 'lucide-react';
 import { StatItem } from '@/components/ui/stat-item';
+import { useTranslation } from 'react-i18next';
 
 type Row = Record<string, unknown>;
 
@@ -20,6 +21,7 @@ function countUnique(data: Row[], field: string): number {
 }
 
 export function ReportMetricsBar({ data, format }: ReportMetricsBarProps) {
+  const { t } = useTranslation();
   const totalValue = sumField(data, 'value');
   const totalHours = sumField(data, 'hours');
   const uniqueEmployees = countUnique(data, 'user');
@@ -30,22 +32,22 @@ export function ReportMetricsBar({ data, format }: ReportMetricsBarProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatItem
-        label="Grand total"
+        label={t('reports.grand_total')}
         value={`${totalValue.toLocaleString(undefined, { maximumFractionDigits: 1 })}${unit}`}
         icon={<TrendingUp className="size-4" />}
       />
       <StatItem
-        label="Total hours"
+        label={t('reports.total_hours')}
         value={`${totalHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}h`}
         icon={<Clock className="size-4" />}
       />
       <StatItem
-        label="Employees"
+        label={t('common.employees')}
         value={uniqueEmployees}
         icon={<Users className="size-4" />}
       />
       <StatItem
-        label="Unique tasks"
+        label={t('web.reports.unique_tasks')}
         value={uniqueTasks}
         icon={<CheckSquare className="size-4" />}
       />
