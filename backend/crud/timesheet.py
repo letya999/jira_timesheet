@@ -33,6 +33,7 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
         user_id: int | None = None,
         category: str | None = None,
         org_unit_id: int | None = None,
+        org_unit_ids: list[int] | None = None,
         sort_order: str = "desc",
         skip: int = 0,
         limit: int = 50,
@@ -59,7 +60,9 @@ class CRUDWorklog(CRUDBase[Worklog, Any, Any]):
                 WorklogCategory.name == category
             )
 
-        if org_unit_id:
+        if org_unit_ids:
+            query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id.in_(org_unit_ids))
+        elif org_unit_id:
             query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id == org_unit_id)
 
         # Count total

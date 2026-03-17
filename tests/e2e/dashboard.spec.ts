@@ -110,7 +110,7 @@ test.describe('Dashboard page', () => {
   });
 
   test('renders collapsible dashboard filters', async ({ page }) => {
-    await expect(page.getByText('Dashboard filters')).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('button', { name: /hide filters|show filters/i })).toBeVisible({ timeout: 8_000 });
     await expect(page.getByLabel('Week')).toBeVisible();
     await expect(page.locator('label').filter({ hasText: /^Project$/ }).first()).toBeVisible();
     await expect(page.locator('label').filter({ hasText: /^Team$/ }).first()).toBeVisible();

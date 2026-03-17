@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
@@ -78,12 +77,15 @@ export function AiChatMessage({ message }: AiChatMessageProps) {
               <h4 className="text-xs font-mono text-muted-foreground flex items-center gap-1">
                 <Database className="size-3" /> {t('web.ai_chat.sql_query')}
               </h4>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  {isSqlOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                  <span className="sr-only">{t('web.ai_chat.toggle_sql')}</span>
-                </Button>
-              </CollapsibleTrigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setIsSqlOpen((prev) => !prev)}
+              >
+                {isSqlOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                <span className="sr-only">{t('web.ai_chat.toggle_sql')}</span>
+              </Button>
             </div>
             <CollapsibleContent className="space-y-2">
               <pre className="p-3 rounded-md bg-muted text-[10px] font-mono overflow-x-auto border">

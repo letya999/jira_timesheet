@@ -10,6 +10,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_current_user, require_role
+from api import deps
 
 router = APIRouter()
 
@@ -140,7 +141,7 @@ async def get_team_periods(
     """Fetch all period statuses for a team in a specific date range."""
     user_query = select(User).join(JiraUser)
 
-    if current_user.role in ["Admin", "CEO"]:
+    if deps.is_admin_role(current_user):
         if org_unit_id:
             user_query = user_query.where(JiraUser.org_unit_id == org_unit_id)
     else:
@@ -178,7 +179,7 @@ async def get_team_periods(
 async def _check_approval_permission(
     db: AsyncSession, user: User, period: TimesheetPeriod, org_unit_id: int | None
 ) -> bool:
-    if user.role in ["Admin", "CEO"]:
+    if deps.is_admin_role(user):
         return True
     if not org_unit_id:
         return False

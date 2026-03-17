@@ -12,6 +12,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
+def normalize_role_name(role: str | None) -> str:
+    if not role:
+        return "unknown"
+    token = " ".join(role.strip().lower().replace("_", " ").replace("-", " ").split())
+    if token in {"admin", "ceo"}:
+        return "admin"
+    if token in {"pm", "manager", "project manager", "projectmanager", "team lead", "teamlead"}:
+        return "manager"
+    if token == "employee":
+        return "employee"
+    return token
+
+
+def is_admin_role(user: User) -> bool:
+    return normalize_role_name(user.role) == "admin"
+
+
+def is_manager_role(user: User) -> bool:
+    return normalize_role_name(user.role) == "manager"
+
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,7 +58,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 
 def require_role(allowed_roles: list[str]):
     def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role not in allowed_roles:
+        allowed = {normalize_role_name(role) for role in allowed_roles}
+        if normalize_role_name(current_user.role) not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operation not permitted")
         return current_user
 

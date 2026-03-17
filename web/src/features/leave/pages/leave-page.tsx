@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { CalendarPlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FilterToggleButton } from '@/components/shared/filter-toggle-button';
 import { LeaveFiltersPanel } from '../components/leave-filters-panel';
 import { LeaveOverviewTab } from '../components/leave-overview-tab';
 import { LeaveAbsenceList } from '../components/leave-absence-list';
@@ -42,6 +44,8 @@ import { applyLeaveFilters, buildUserOrgUnitMap } from '../utils';
 import type { LeaveTab } from '../types';
 import { createDefaultLeaveFilters } from '../types';
 import { useTranslation } from 'react-i18next';
+import { canAccessManagerPages, isAdminRole } from '@/lib/rbac';
+import { getMyTeamsApiV1OrgMyTeamsGet } from '@/api/generated/sdk.gen';
 
 export default function LeavePage() {
   const { t } = useTranslation();
@@ -58,24 +62,28 @@ export default function LeavePage() {
   const createMutation = useCreateLeaveRequest();
   const updateStatusMutation = useUpdateLeaveStatus();
 
-  const role = String((currentUser as { role?: string } | undefined)?.role ?? '').toLowerCase();
-  const canManageLeaves =
-    role === 'admin' ||
-    role === 'manager' ||
-    role === 'pm' ||
-    role === 'ceo' ||
-    (currentUser as { is_admin?: boolean } | undefined)?.is_admin === true;
+  const rawRole = (currentUser as { role?: string } | undefined)?.role;
+  const canManageLeaves = canAccessManagerPages(rawRole);
+  const isAdmin = isAdminRole(rawRole);
 
   const allRequestsQuery = useAllLeaveRequests(
     {
       start_date: filters.dateRange.from ? format(filters.dateRange.from, 'yyyy-MM-dd') : undefined,
       end_date: filters.dateRange.to ? format(filters.dateRange.to, 'yyyy-MM-dd') : undefined,
     },
-    { enabled: canManageLeaves },
+    { enabled: isAdmin },
   );
 
-  const teamRequestsQuery = useTeamLeaveRequests({ enabled: !canManageLeaves });
+  const teamRequestsQuery = useTeamLeaveRequests({ enabled: !isAdmin });
   const { data: teams = [] } = useReportOrgUnits();
+  const myTeamsQuery = useQuery({
+    queryKey: ['leave', 'my-teams'],
+    enabled: canManageLeaves && !isAdmin,
+    queryFn: async () => {
+      const res = await getMyTeamsApiV1OrgMyTeamsGet({ throwOnError: true });
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
   const { data: employeesPage } = useJiraUsers({ page: 1, size: 500 });
 
   const employees = useMemo(() => {
@@ -85,10 +93,17 @@ export default function LeavePage() {
 
   const userOrgMap = useMemo(() => buildUserOrgUnitMap(employees), [employees]);
 
-  const teamOptions = useMemo(
-    () => teams.map((team) => ({ label: team.name, value: String(team.id) })),
-    [teams],
-  );
+  const teamOptions = useMemo(() => {
+    if (activeTab !== 'management') {
+      return teams.map((team) => ({ label: team.name, value: String(team.id) }));
+    }
+    if (!canManageLeaves) return [];
+    if (isAdmin) {
+      return teams.map((team) => ({ label: team.name, value: String(team.id) }));
+    }
+    const myTeams = myTeamsQuery.data ?? [];
+    return myTeams.map((team) => ({ label: team.name, value: String(team.id) }));
+  }, [activeTab, canManageLeaves, isAdmin, myTeamsQuery.data, teams]);
 
   const employeeOptions = useMemo(() => {
     const byId = new Map<number, string>();
@@ -106,15 +121,15 @@ export default function LeavePage() {
 
   const rawOverviewRequests = useMemo(
     () =>
-      canManageLeaves
+      isAdmin
         ? allRequestsQuery.data ?? []
         : teamRequestsQuery.data ?? myRequestsQuery.data ?? [],
-    [canManageLeaves, allRequestsQuery.data, teamRequestsQuery.data, myRequestsQuery.data],
+    [allRequestsQuery.data, isAdmin, myRequestsQuery.data, teamRequestsQuery.data],
   );
   const rawMyRequests = useMemo(() => myRequestsQuery.data ?? [], [myRequestsQuery.data]);
   const rawManagementRequests = useMemo(
-    () => (canManageLeaves ? allRequestsQuery.data ?? [] : []),
-    [canManageLeaves, allRequestsQuery.data],
+    () => (canManageLeaves ? (isAdmin ? allRequestsQuery.data ?? [] : teamRequestsQuery.data ?? []) : []),
+    [allRequestsQuery.data, canManageLeaves, isAdmin, teamRequestsQuery.data],
   );
 
   const overviewRequests = useMemo(
@@ -165,7 +180,7 @@ export default function LeavePage() {
     }
   };
 
-  const overviewLoading = canManageLeaves ? allRequestsQuery.isLoading : teamRequestsQuery.isLoading;
+  const overviewLoading = isAdmin ? allRequestsQuery.isLoading : teamRequestsQuery.isLoading;
   const currentUserId = (currentUser as { id?: number } | undefined)?.id;
 
   const handleSelfCancel = async (leaveId: number) => {
@@ -245,6 +260,14 @@ export default function LeavePage() {
       <LeaveFiltersPanel
         open={isFiltersOpen}
         onOpenChange={setIsFiltersOpen}
+        trigger={
+          <FilterToggleButton
+            isOpen={isFiltersOpen}
+            showLabel={t('employees.show_filters', 'Show Filters')}
+            hideLabel={t('employees.hide_filters', 'Hide Filters')}
+            onClick={() => setIsFiltersOpen((prev) => !prev)}
+          />
+        }
         activeTab={activeTab}
         filters={filters}
         teamOptions={teamOptions}
@@ -265,10 +288,10 @@ export default function LeavePage() {
       />
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as LeaveTab)}>
-        <TabsList className="grid w-full grid-cols-3 h-11">
+        <TabsList className={`grid w-full h-11 ${canManageLeaves ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="overview">{t('web.leave.overview_tab')}</TabsTrigger>
           <TabsTrigger value="my">{t('leaves.my_leaves')}</TabsTrigger>
-          <TabsTrigger value="management">{t('web.leave.management_tab')}</TabsTrigger>
+          {canManageLeaves ? <TabsTrigger value="management">{t('web.leave.management_tab')}</TabsTrigger> : null}
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -296,15 +319,11 @@ export default function LeavePage() {
           />
         </TabsContent>
 
-        <TabsContent value="management" className="mt-4">
-          {!canManageLeaves ? (
-            <div className="rounded-lg border bg-muted/20 p-8 text-center text-muted-foreground">
-              {t('web.leave.no_manage_permissions')}
-            </div>
-          ) : (
+        {canManageLeaves ? (
+          <TabsContent value="management" className="mt-4">
             <LeaveAbsenceList
               requests={managementRequests}
-              isLoading={allRequestsQuery.isLoading}
+              isLoading={isAdmin ? allRequestsQuery.isLoading : teamRequestsQuery.isLoading}
               emptyTitle={t('web.leave.no_requests_to_process')}
               emptySubtitle={t('web.leave.no_requests_to_process_hint')}
               canManage
@@ -312,8 +331,8 @@ export default function LeavePage() {
               onReject={(id) => handleStatusChange(id, 'REJECTED')}
               onCancel={(id) => handleStatusChange(id, 'CANCELLED')}
             />
-          )}
-        </TabsContent>
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   );

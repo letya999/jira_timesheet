@@ -86,6 +86,12 @@
         "first": "Первая",
         "last": "Последняя",
         "na": "Н/Д",
+        "columns": "Колонки",
+        "roles": {
+            "admin": "Админ",
+            "manager": "Менеджер",
+            "employee": "Сотрудник"
+        },
         "capex": "Capex",
         "opex": "Opex",
         "status_open": "ОТКРЫТО",
@@ -163,6 +169,7 @@
         "added_success": "Добавлено {{hours}}ч для {{category}}",
         "failed_to_add": "Ошибка при добавлении",
         "filters_search": "Фильтры и Поиск",
+        "filter_search": "Поиск по ключу или названию задачи...",
         "start_date": "Дата начала",
         "end_date": "Дата окончания",
         "all_projects": "Все проекты",
@@ -613,6 +620,8 @@
         "reports": {
             "data_filters": "Фильтры данных",
             "pivot_configuration": "Настройка сводной таблицы",
+            "show_config": "Показать настройки",
+            "hide_config": "Скрыть настройки",
             "failed_load": "Не удалось загрузить данные отчета.",
             "aggregated_statistics": "Агрегированная статистика",
             "exporting": "Экспорт...",

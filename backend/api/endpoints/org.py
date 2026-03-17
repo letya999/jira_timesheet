@@ -97,7 +97,7 @@ async def get_org_units(db: AsyncSession = Depends(get_db)):
 @router.get("/my-teams", response_model=list[OrgUnitResponse])
 async def get_my_teams(db: AsyncSession = Depends(get_db), current_user: User = Depends(deps.get_current_user)):
     """Return units where user has a role assigned."""
-    if current_user.role in ["Admin", "CEO"]:
+    if deps.is_admin_role(current_user):
         return await crud_org.get_multi(db, limit=1000)
 
     result = await db.execute(select(OrgUnit).join(UserOrgRole).where(UserOrgRole.user_id == current_user.id))
@@ -162,7 +162,7 @@ async def delete_role(
 # --- User Org Roles (Assignments) ---
 @router.get("/units/{unit_id}/roles", response_model=list[UserOrgRoleResponse])
 async def get_unit_roles(
-    unit_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin"]))
+    unit_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
 ):
     return await crud_uor.get_by_unit(db, org_unit_id=unit_id)
 

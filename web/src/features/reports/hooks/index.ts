@@ -111,7 +111,7 @@ export function useReportSprints() {
   });
 }
 
-export function useReportOrgUnits() {
+export function useReportOrgUnits(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: reportsKeys.orgUnits(),
     queryFn: async () => {
@@ -119,6 +119,7 @@ export function useReportOrgUnits() {
       return res.data as Array<{ id: number; name: string }>;
     },
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 }
 

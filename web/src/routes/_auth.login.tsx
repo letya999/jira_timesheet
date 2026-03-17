@@ -7,10 +7,13 @@ import { Loader2 } from 'lucide-react'
 import { authLayoutRoute } from './_auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FormField } from '@/components/shared/form-field'
+import { LanguageSwitcher } from '@/components/shared/language-switcher'
+import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { useLogin, useSsoLogin } from '@/features/auth/hooks'
 import { useTranslation } from 'react-i18next'
 
@@ -55,6 +58,10 @@ function LoginPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex justify-end gap-2 -mt-2">
+        <LanguageSwitcher />
+        <ThemeToggle />
+      </div>
       <div className="text-center">
         <h2 className="text-lg font-semibold">{t('web.auth.sign_in')}</h2>
         <p className="text-sm text-muted-foreground">{t('web.auth.to_your_account')}</p>
@@ -86,8 +93,7 @@ function LoginPage() {
           error={errors.password?.message ? t(errors.password.message) : undefined}
           required
         >
-          <Input
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             placeholder={t('web.auth.password_placeholder')}
             aria-invalid={!!errors.password}

@@ -8,10 +8,19 @@ import { queryClient } from '@/lib/query-client'
 import { timesheetKeys } from '@/features/timesheet/hooks'
 import { getAllWorklogsApiV1TimesheetGet } from '@/api/generated/sdk.gen'
 import { dateUtils } from '@/lib/date-utils'
+import { useAuthStore } from '@/stores/auth-store'
+import { canAccessManagerPages } from '@/lib/rbac'
+import { redirect } from '@tanstack/react-router'
 
 export const dashboardRoute = createRoute({
   path: 'dashboard',
   getParentRoute: () => appLayoutRoute,
+  beforeLoad: () => {
+    const role = (useAuthStore.getState().user as { role?: string } | null)?.role
+    if (!canAccessManagerPages(role)) {
+      throw redirect({ to: '/app/my-timesheet' })
+    }
+  },
   loader: () => {
     const now = dateUtils.now()
     const loaderWeekStart = startOfWeek(now, { weekStartsOn: 1 })

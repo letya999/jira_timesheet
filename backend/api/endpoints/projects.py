@@ -19,14 +19,14 @@ router = APIRouter()
 
 
 @router.post("/refresh")
-async def refresh_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)):
+async def refresh_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))):
     """Sync projects, releases, and sprints from Jira."""
     count = await sync_jira_projects_to_db(db)
     return {"status": "success", "synced": count}
 
 
 @router.post("/sync-all")
-async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)):
+async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))):
     """Sync worklogs for all active projects via background queue."""
     # Fetch active projects just to count them or show they exist if needed
     result = await db.execute(select(Project).where(Project.is_active))
@@ -41,7 +41,7 @@ async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_u
 
 @router.post("/{project_id}/sync")
 async def sync_single_project(
-    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
+    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Sync worklogs for a specific project via background queue."""
     project = await crud_project.get(db, id=project_id)
@@ -55,7 +55,7 @@ async def sync_single_project(
 @router.get("/", response_model=PaginatedResponse[ProjectResponse])
 async def get_projects(
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(deps.get_current_user),
+    current_user=Depends(deps.require_role(["Admin", "CEO", "PM"])),
     page: int = 1,
     size: int = 50,
     search: str | None = None,
@@ -74,7 +74,7 @@ async def update_project(
     project_id: int,
     project_in: ProjectUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(deps.get_current_user),
+    current_user=Depends(deps.require_role(["Admin", "CEO", "PM"])),
 ):
     """Update project status or details."""
     project = await crud_project.get(db, id=project_id)
@@ -85,7 +85,7 @@ async def update_project(
 
 @router.get("/{project_id}/sprints", response_model=list[SprintResponse])
 async def get_project_sprints(
-    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
+    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Get sprints for a specific project (via issues)."""
     # Note: In our model, sprints are linked to issues.
@@ -96,7 +96,7 @@ async def get_project_sprints(
 
 @router.get("/{project_id}/releases", response_model=list[ReleaseResponse])
 async def get_project_releases(
-    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
+    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Get releases for a specific project."""
     return await crud_release.get_multi_by_project(db, project_id=project_id)
@@ -104,7 +104,7 @@ async def get_project_releases(
 
 @router.get("/issues")
 async def search_project_issues(
-    search: str, db: AsyncSession = Depends(get_db), current_user=Depends(deps.get_current_user)
+    search: str, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Search for issues by key or summary."""
     from models.project import Issue

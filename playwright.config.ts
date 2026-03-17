@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const AUTH_STATE_PATH = 'playwright/.auth/user.json';
+const WEB_PORT = process.env.PW_WEB_PORT ?? '5173';
+const WEB_BASE_URL = `http://localhost:${WEB_PORT}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -10,7 +12,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: WEB_BASE_URL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -43,8 +45,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'cd web && bun run dev',
-    url: 'http://localhost:5173',
+    command: `cd web && bun run dev -- --port ${WEB_PORT} --strictPort`,
+    url: WEB_BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

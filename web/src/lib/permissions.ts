@@ -52,9 +52,16 @@ export const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
 };
 
 function normalizeRole(role: string): Role | null {
-  const normalized = role.trim().toLowerCase();
+  const normalized = role.trim().toLowerCase().replace(/[_-]+/g, ' ');
   if (normalized === 'admin' || normalized === 'ceo') return 'admin';
-  if (normalized === 'manager' || normalized === 'pm') return 'manager';
+  if (
+    normalized === 'manager' ||
+    normalized === 'pm' ||
+    normalized === 'project manager' ||
+    normalized === 'projectmanager' ||
+    normalized === 'team lead' ||
+    normalized === 'teamlead'
+  ) return 'manager';
   if (normalized === 'employee') return 'employee';
   if (normalized === 'hr') return 'hr';
   return null;

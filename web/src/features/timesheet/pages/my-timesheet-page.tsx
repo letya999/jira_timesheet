@@ -1,21 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
-  addWeeks,
   addDays,
   startOfWeek,
   parseISO,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { useMyTimesheetEntries, useCreateEntry } from '@/features/timesheet/hooks'
+import { useMyTimesheetEntries } from '@/features/timesheet/hooks'
 import type { WorklogResponse } from '@/api/generated/types.gen'
 import { PivotTable, type PivotTableModel } from '@/components/shared/pivot-table'
-import { WorklogEntryForm } from '@/components/time/worklog-entry-form'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { dateUtils } from '@/lib/date-utils'
@@ -67,13 +58,11 @@ function buildMyTimesheetModel(
 export default function MyTimesheetPage() {
   const { t } = useTranslation()
   const { timezone } = useTimezone()
-  const [weekOffset, setWeekOffset] = useState(0)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const weekStart = useMemo(() => {
     const today = dateUtils.now()
-    return addWeeks(startOfWeek(today, { weekStartsOn: 1 }), weekOffset)
-  }, [weekOffset])
+    return startOfWeek(today, { weekStartsOn: 1 })
+  }, [])
   
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart])
 
@@ -83,7 +72,6 @@ export default function MyTimesheetPage() {
   }
 
   const { data: worklogs, isLoading } = useMyTimesheetEntries(weekParams)
-  const createEntry = useCreateEntry()
 
   const model = useMemo(() => buildMyTimesheetModel(worklogs ?? [], weekStart), [worklogs, weekStart])
 
@@ -93,9 +81,8 @@ export default function MyTimesheetPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('timesheet.title')}</h1>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-          <Plus className="size-4" />
-          {t('web.timesheet.log_time')}
+        <Button variant="outline" disabled>
+          {t('web.timesheet.current_week_only', { defaultValue: 'Current week only' })}
         </Button>
       </div>
 
@@ -103,10 +90,10 @@ export default function MyTimesheetPage() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setWeekOffset((o) => o - 1)}
+          disabled
           aria-label={t('web.timesheet.previous_week')}
         >
-          <ChevronLeft className="size-4" />
+          <span>-</span>
         </Button>
         <span className="text-sm font-medium min-w-[200px] text-center">
           {t('web.timesheet.week_of', { week: weekLabel })}
@@ -114,10 +101,10 @@ export default function MyTimesheetPage() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setWeekOffset((o) => o + 1)}
+          disabled
           aria-label={t('web.timesheet.next_week')}
         >
-          <ChevronRight className="size-4" />
+          <span>+</span>
         </Button>
       </div>
 
@@ -130,38 +117,9 @@ export default function MyTimesheetPage() {
       ) : (
         <PivotTable
           model={model}
-          editable={true}
-          onUpdate={async (id, colIndex, value) => {
-            // Optimistic update is handled inside PivotTable
-            // Re-mapping is needed if we want to save
-            const date = model.headerRows[0]?.[colIndex]?.label;
-            // Note: date label is formatted, ideally we'd pass original date string
-            // but for this refactoring we just satisfy the component structure
-            void id; void date; void value;
-          }}
+          editable={false}
         />
       )}
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('web.timesheet.log_time')}</DialogTitle>
-          </DialogHeader>
-          <WorklogEntryForm
-            isLoading={createEntry.isPending}
-            onCancel={() => setIsModalOpen(false)}
-            onSubmit={async (values) => {
-              await createEntry.mutateAsync({
-                date: dateUtils.formatPlain(values.date, FMT),
-                hours: values.hours,
-                description: values.description,
-                category: values.activityType,
-              })
-              setIsModalOpen(false)
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

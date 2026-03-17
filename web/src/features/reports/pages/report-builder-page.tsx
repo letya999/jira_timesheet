@@ -3,6 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FilterBar } from '@/components/shared/filter-bar';
+import { 
+  Collapsible, 
+  CollapsibleContent 
+} from '@/components/ui/collapsible';
+import { FilterToggleButton } from '@/components/shared/filter-toggle-button';
 import { CollapsibleBlock } from '@/components/shared/collapsible-block';
 import { useReportFilters, type ReportFilters } from '../hooks/use-report-filters';
 import {
@@ -38,6 +43,8 @@ export function ReportBuilderPage({
   const { t } = useTranslation();
   const { filters, setFilter, clearAll, toReportRequest, toFilterChips } = useReportFilters(initialFilters);
   const [reportBody, setReportBody] = useState<ReportRequest | null>(null);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  const [isPivotConfigOpen, setIsPivotConfigOpen] = useState(true);
 
   // Pre-fetch label data for filter chips
   const { data: categories } = useReportCategories();
@@ -78,27 +85,49 @@ export function ReportBuilderPage({
       <h2 className="text-xl font-semibold">{title ?? t('reports.title')}</h2>
 
       {/* Filter panel */}
-      <CollapsibleBlock title={t('web.reports.data_filters')} defaultOpen>
-        <div className="pt-1">
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            {t('web.reports.data_filters')}
+          </h3>
+          <FilterToggleButton
+            isOpen={isFiltersOpen}
+            showLabel={t('employees.show_filters', 'Show Filters')}
+            hideLabel={t('employees.hide_filters', 'Hide Filters')}
+            onClick={() => setIsFiltersOpen((prev) => !prev)}
+          />
+        </div>
+        <CollapsibleContent className="rounded-md border p-4 bg-muted/20">
           <ReportFilterPanel
             filters={filters}
             onFilter={setFilter}
             lockedFields={lockedFields}
           />
-        </div>
-      </CollapsibleBlock>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Pivot config */}
-      <CollapsibleBlock title={t('web.reports.pivot_configuration')} defaultOpen>
-        <div className="pt-1">
+      <Collapsible open={isPivotConfigOpen} onOpenChange={setIsPivotConfigOpen} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            {t('web.reports.pivot_configuration')}
+          </h3>
+          <FilterToggleButton
+            isOpen={isPivotConfigOpen}
+            showLabel={t('web.reports.show_config', 'Show Configuration')}
+            hideLabel={t('web.reports.hide_config', 'Hide Configuration')}
+            onClick={() => setIsPivotConfigOpen((prev) => !prev)}
+          />
+        </div>
+        <CollapsibleContent className="rounded-md border p-4 bg-muted/20">
           <PivotConfigPanel
             filters={filters}
             onFilter={setFilter}
             onRun={handleRun}
             isLoading={isFetching}
           />
-        </div>
-      </CollapsibleBlock>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Active filter chips */}
       <FilterBar

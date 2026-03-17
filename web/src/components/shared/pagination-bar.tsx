@@ -58,7 +58,7 @@ export function PaginationBar({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+        <div className="flex items-center justify-center text-sm font-medium whitespace-nowrap px-2">
           {t("common.page")} {page} {t("common.of")} {totalPages || 1}
         </div>
         <div className="flex items-center space-x-2">

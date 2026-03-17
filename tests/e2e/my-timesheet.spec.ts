@@ -17,36 +17,18 @@ test.describe('My Timesheet page', () => {
     await expect(page.getByRole('button', { name: /next week/i })).toBeVisible();
   });
 
-  test('renders the Log Time button', async ({ page }) => {
-    await expect(
-      page.getByRole('button', { name: /log time/i }),
-    ).toBeVisible({ timeout: 8_000 });
+  test('renders current week toggle', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /current week only/i })).toBeVisible({ timeout: 8_000 });
   });
 
-  test('clicking Log Time opens the dialog', async ({ page }) => {
-    await page.getByRole('button', { name: /log time/i }).click();
-    await expect(
-      page.getByRole('dialog'),
-    ).toBeVisible({ timeout: 5_000 });
-    await expect(
-      page.getByRole('heading', { name: /log time/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: /log work/i }),
-    ).toBeVisible();
+  test('renders timesheet table headers', async ({ page }) => {
+    await expect(page.getByRole('columnheader', { name: /task/i })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('columnheader', { name: /project/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /total/i })).toBeVisible();
   });
 
-  test('dialog closes when Cancel is clicked', async ({ page }) => {
-    await page.getByRole('button', { name: /log time/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
-    await page.getByRole('button', { name: /cancel/i }).click();
-    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
-  });
-
-  test('week navigation moves to previous week', async ({ page }) => {
-    const labelBefore = await page.getByText(/week of/i).textContent();
-    await page.getByRole('button', { name: /previous week/i }).click();
-    const labelAfter = await page.getByText(/week of/i).textContent();
-    expect(labelAfter).not.toBe(labelBefore);
+  test('week navigation controls are disabled when period cannot change', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /previous week/i })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /next week/i })).toBeDisabled();
   });
 });

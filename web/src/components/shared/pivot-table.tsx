@@ -151,13 +151,13 @@ export function PivotTable({
             <table className="w-full text-sm border-separate border-spacing-0">
               <thead className={cn(stickyHeader && "sticky top-0 z-20")}>
                 {model.headerRows.map((headerRow, headerIndex) => (
-                  <tr key={`header-${headerIndex}`} className="bg-muted/50 font-medium">
+                  <tr key={`header-${headerIndex}`} className="bg-muted font-medium">
                     {headerIndex === 0 &&
                       model.rowDimensions.map((dimension) => (
                         <th
                           key={dimension}
                           rowSpan={headerDepth}
-                          className="sticky left-0 z-30 px-3 py-2 text-left bg-muted/50 border-b border-r whitespace-nowrap font-bold"
+                          className="sticky left-0 z-30 px-3 py-2 text-left bg-muted border-b border-r whitespace-nowrap font-bold"
                           style={{ top: 0 }}
                         >
                           {t(`web.reports.dimensions.${dimension}`, dimension)}
@@ -167,7 +167,7 @@ export function PivotTable({
                       <th
                         key={`cell-${headerIndex}-${cellIndex}`}
                         colSpan={cell.colSpan}
-                        className="px-3 py-2 text-center bg-muted/50 border-b border-r whitespace-nowrap font-bold"
+                        className="px-3 py-2 text-center bg-muted border-b border-r whitespace-nowrap font-bold"
                       >
                         {cell.label}
                       </th>
@@ -175,7 +175,7 @@ export function PivotTable({
                     {headerIndex === 0 && showTotals && (
                       <th
                         rowSpan={headerDepth}
-                        className="px-3 py-2 text-center bg-muted/50 border-b whitespace-nowrap font-bold"
+                        className="px-3 py-2 text-center bg-muted border-b whitespace-nowrap font-bold"
                       >
                         {t('common.total')}
                       </th>

@@ -9,6 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useTranslation } from "react-i18next";
+
 interface TableColumnsToggleProps<TData> {
   table: TanstackTable<TData>;
   label?: string;
@@ -16,14 +18,17 @@ interface TableColumnsToggleProps<TData> {
 
 export function TableColumnsToggle<TData>({
   table,
-  label = "Columns",
+  label,
 }: TableColumnsToggleProps<TData>) {
+  const { t } = useTranslation();
+  const displayLabel = label ?? t("common.columns", "Columns");
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-auto">
-          <Settings2 data-icon="inline-start" />
-          {label}
+        <Button variant="outline" size="sm" className="ml-auto gap-2">
+          <Settings2 className="h-4 w-4" />
+          {displayLabel}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from api import deps
 from api.deps import get_current_user, require_role
 
 router = APIRouter()
@@ -45,7 +46,7 @@ async def get_dashboard_data(
 ):
     """Returns aggregated data for PM/CEO dashboards."""
     # Stealth filter for regular users (Employee role)
-    if current_user.role == "Employee":
+    if deps.normalize_role_name(current_user.role) == "employee":
         res = await db.execute(select(JiraUser).where(JiraUser.id == current_user.jira_user_id))
         jira_user = res.scalar_one_or_none()
         org_unit_id = jira_user.org_unit_id if jira_user and jira_user.org_unit_id else -1
@@ -64,13 +65,13 @@ async def get_dashboard_data(
     )
 
     if org_unit_id:
-        if current_user.role == "PM":
+        if deps.is_manager_role(current_user):
             res = await db.execute(select(OrgUnit.id).join(UserOrgRole).where(UserOrgRole.user_id == current_user.id))
             my_unit_ids = [row[0] for row in res.all()]
             if org_unit_id not in my_unit_ids:
                 return {"data": []}
         query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id == org_unit_id)
-    elif current_user.role == "PM":
+    elif deps.is_manager_role(current_user):
         query = (
             query.join(JiraUser, Worklog.jira_user_id == JiraUser.id)
             .join(OrgUnit, JiraUser.org_unit_id == OrgUnit.id)
@@ -166,10 +167,10 @@ async def _apply_custom_filters(query, payload: CustomReportRequest, current_use
     joined_issue = False
     joined_jira_user = False
 
-    if current_user.role == "Employee":
+    if deps.normalize_role_name(current_user.role) == "employee":
         payload.user_ids = [current_user.jira_user_id] if current_user.jira_user_id else [-1]
         payload.org_unit_id = None
-    elif current_user.role == "PM" and not payload.user_ids and not payload.org_unit_id:
+    elif deps.is_manager_role(current_user) and not payload.user_ids and not payload.org_unit_id:
         res = await db.execute(select(OrgUnit.id).join(UserOrgRole).where(UserOrgRole.user_id == current_user.id))
         my_unit_ids = [row[0] for row in res.all()]
         if not my_unit_ids:

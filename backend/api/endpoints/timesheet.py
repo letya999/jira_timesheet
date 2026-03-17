@@ -7,6 +7,7 @@ from crud.timesheet import worklog as crud_worklog
 from fastapi import APIRouter, Depends, Request
 from fastapi_cache import FastAPICache
 from models.category import WorklogCategory
+from models.org import UserOrgRole
 from models.project import Issue
 from models.timesheet import TimesheetPeriod, Worklog
 from models.user import JiraUser, User
@@ -65,21 +66,25 @@ async def get_all_worklogs(
 ):
     """Get all worklogs with advanced filtering and pagination."""
     # Logic for filtering based on roles and provided parameters
-    if current_user.role == "Employee":
+    org_unit_ids: list[int] | None = None
+    if deps.normalize_role_name(current_user.role) == "employee":
         # Regular users can only see their own logs
         user_id = current_user.jira_user_id
-    elif current_user.role in ["Admin", "CEO"]:
+    elif deps.is_admin_role(current_user):
         # Admins and CEOs see all logs by default if no filters are provided
         pass
     else:
-        # For PM (or others):
-        # If no specific filters (user, team) are provided,
-        # default to showing ONLY their own worklogs.
-        if user_id is None and org_unit_id is None:
-            user_id = current_user.jira_user_id if current_user.jira_user_id is not None else -1
+        # Managers can only work within units where they are assigned.
+        uor_res = await db.execute(select(UserOrgRole.org_unit_id).where(UserOrgRole.user_id == current_user.id))
+        manager_unit_ids = list(dict.fromkeys(uor_res.scalars().all()))
 
-        # Note: If they provide org_unit_id, the crud will filter by that team.
-        # If they provide user_id, it will filter by that user.
+        if not manager_unit_ids:
+            user_id = current_user.jira_user_id if current_user.jira_user_id is not None else -1
+        else:
+            if org_unit_id is not None and org_unit_id not in manager_unit_ids:
+                return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
+            if org_unit_id is None:
+                org_unit_ids = manager_unit_ids
 
     skip = (page - 1) * size
     items, total = await crud_worklog.get_multi_with_filters(
@@ -90,6 +95,7 @@ async def get_all_worklogs(
         project_id=project_id,
         category=category,
         org_unit_id=org_unit_id,
+        org_unit_ids=org_unit_ids,
         sort_order=sort_order,
         skip=skip,
         limit=size,

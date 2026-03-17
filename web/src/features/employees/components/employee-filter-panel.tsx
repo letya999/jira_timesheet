@@ -16,7 +16,6 @@ import {
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { FilterToggleButton } from '@/components/shared/filter-toggle-button';
 import type { OrgUnitResponse, UserType } from '@/api/generated/types.gen';
@@ -77,13 +76,12 @@ export function EmployeeFilterPanel({
             {t('apply', 'Apply')}
           </Button>
         </div>
-        <CollapsibleTrigger asChild>
-          <FilterToggleButton
-            isOpen={isOpen}
-            showLabel={t('show_filters', 'Show Filters')}
-            hideLabel={t('hide_filters', 'Hide Filters')}
-          />
-        </CollapsibleTrigger>
+        <FilterToggleButton
+          isOpen={isOpen}
+          showLabel={t('show_filters', 'Show Filters')}
+          hideLabel={t('hide_filters', 'Hide Filters')}
+          onClick={() => setIsOpen((prev) => !prev)}
+        />
       </div>
       <CollapsibleContent className="space-y-4 rounded-md border p-4 bg-muted/20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -23,7 +23,6 @@ import { controlSheetRoute } from './routes/_app.control-sheet.tsx'
 import { leaveRoute } from './routes/_app.leave.tsx'
 import { notificationsRoute } from './routes/_app.notifications.tsx'
 import { settingsRoute } from './routes/_app.settings.tsx'
-import { hrRoute } from './routes/_app.hr.tsx'
 import { aiChatRoute } from './routes/_app.ai-chat.tsx'
 
 const routeTree = rootRoute.addChildren([
@@ -45,7 +44,6 @@ const routeTree = rootRoute.addChildren([
     leaveRoute,
     notificationsRoute,
     settingsRoute,
-    hrRoute,
     aiChatRoute,
   ]),
 ])

@@ -56,6 +56,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { isAdminRole } from '@/lib/rbac'
 
 const COUNTRY_NAMES: Record<string, string> = {
   RU: 'Russia',
@@ -71,6 +72,21 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 const COUNTRY_OPTIONS = Object.keys(COUNTRY_NAMES)
 const USER_PAGE_SIZE = 20
+
+const ACCESS_MATRIX = [
+  { page: '/app/dashboard', admin: true, manager: true, employee: false },
+  { page: '/app/journal', admin: true, manager: true, employee: false },
+  { page: '/app/my-timesheet', admin: true, manager: true, employee: true },
+  { page: '/app/employees', admin: true, manager: true, employee: true },
+  { page: '/app/projects', admin: true, manager: true, employee: false },
+  { page: '/app/reports', admin: true, manager: true, employee: false },
+  { page: '/app/approvals', admin: true, manager: true, employee: false },
+  { page: '/app/leave (overview)', admin: true, manager: true, employee: true },
+  { page: '/app/leave (management)', admin: true, manager: true, employee: false },
+  { page: '/app/settings: Profile', admin: true, manager: true, employee: true },
+  { page: '/app/settings: Notifications', admin: true, manager: true, employee: true },
+  { page: '/app/settings: Admin/Org/Jira/Access', admin: true, manager: false, employee: false },
+]
 
 type UserColumn = {
   key: 'id' | 'full_name' | 'email' | 'role' | 'jira_user_id' | 'weekly_quota'
@@ -91,9 +107,9 @@ export default function SettingsPage() {
   const { data: user } = useCurrentUser()
   const storeUser = useAuthStore((state) => state.user)
   const permissions = useAuthStore((state) => state.permissions)
-  const roleFromProfile = ((user as { role?: string } | undefined)?.role ?? '').toLowerCase()
-  const roleFromStore = ((storeUser as { role?: string } | null)?.role ?? '').toLowerCase()
-  const hasAdminRole = roleFromProfile === 'admin' || roleFromProfile === 'ceo' || roleFromStore === 'admin' || roleFromStore === 'ceo'
+  const roleFromProfile = (user as { role?: string } | undefined)?.role
+  const roleFromStore = (storeUser as { role?: string } | null)?.role
+  const hasAdminRole = isAdminRole(roleFromProfile) || isAdminRole(roleFromStore)
   const canManageSettings =
     permissions.includes('settings.manage') || Boolean(storeUser?.is_admin) || hasAdminRole
   const { data: orgUnits = [] } = useOrgTree()
@@ -318,7 +334,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue={canManageSettings ? 'admin' : 'profile'} className="w-full">
+      <Tabs defaultValue="profile" className="w-full">
         <TabsList>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <UserRound className="size-4" />
@@ -340,10 +356,18 @@ export default function SettingsPage() {
               {t('web.settings.jira_integration')}
             </TabsTrigger>
           )}
-          <TabsTrigger value="admin" className="flex items-center gap-2">
-            <Shield className="size-4" />
-            {t('web.settings.admin_settings')}
-          </TabsTrigger>
+          {canManageSettings && (
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <Shield className="size-4" />
+              {t('web.settings.admin_settings')}
+            </TabsTrigger>
+          )}
+          {canManageSettings && (
+            <TabsTrigger value="access" className="flex items-center gap-2">
+              <Shield className="size-4" />
+              {t('web.settings.access_matrix', { defaultValue: 'Access' })}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="pt-4">
@@ -754,6 +778,43 @@ export default function SettingsPage() {
             </Card>
           )}
         </TabsContent>
+
+        {canManageSettings && (
+          <TabsContent value="access" className="pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('web.settings.access_matrix', { defaultValue: 'Access Matrix' })}</CardTitle>
+                <CardDescription>
+                  {t('web.settings.access_matrix_desc', {
+                    defaultValue: 'RBAC visibility and access rules by role.',
+                  })}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('common.page')}</TableHead>
+                      <TableHead>{t('common.roles.admin', 'Admin')}</TableHead>
+                      <TableHead>{t('common.roles.manager', 'Manager')}</TableHead>
+                      <TableHead>{t('common.roles.employee', 'Employee')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ACCESS_MATRIX.map((row) => (
+                      <TableRow key={row.page}>
+                        <TableCell className="font-mono text-xs">{row.page}</TableCell>
+                        <TableCell>{row.admin ? t('common.yes') : t('common.no')}</TableCell>
+                        <TableCell>{row.manager ? t('common.yes') : t('common.no')}</TableCell>
+                        <TableCell>{row.employee ? t('common.yes') : t('common.no')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
     </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   endOfMonth,
   endOfWeek,
@@ -10,12 +10,13 @@ import {
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTimesheetEntries } from '@/features/timesheet/hooks'
 import { useReportOrgUnits, useReportProjects } from '@/features/reports/hooks'
+import { useCurrentUser } from '@/features/auth/hooks'
 import { useTriggerSync, useSyncStatus } from '@/features/sync/hooks'
 import type { WorklogResponse } from '@/api/generated/types.gen'
+import { getMyTeamsApiV1OrgMyTeamsGet } from '@/api/generated/sdk.gen'
 import { ReportSummaryCard } from '@/components/shared/report-summary-card'
 import { SyncStatusWidget } from '@/components/shared/sync-status-widget'
 import { DataTableOrganism } from '@/components/shared/data-table-organism'
-import { CollapsibleBlock } from '@/components/shared/collapsible-block'
 import { JiraKeyLink } from '@/components/jira/jira-key-link'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,9 +31,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
+import { FilterToggleButton } from '@/components/shared/filter-toggle-button'
 import { useTimezone } from '@/hooks/use-timezone'
 import { dateUtils } from '@/lib/date-utils'
 import { useTranslation } from 'react-i18next'
+import { isAdminRole } from '@/lib/rbac'
+import { useQuery } from '@tanstack/react-query'
 
 const FMT = 'yyyy-MM-dd'
 
@@ -81,14 +89,34 @@ function extractWorklogs(data: FilteredTimesheetResponse): WorklogResponse[] {
 export default function DashboardPage() {
   const { t } = useTranslation()
   const [jobId, setJobId] = useState<string | null>(null)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
   const { timezone } = useTimezone()
 
   const [weekAnchor, setWeekAnchor] = useState(() => dateUtils.now())
   const [projectFilter, setProjectFilter] = useState<string>('all')
   const [teamFilter, setTeamFilter] = useState<string>('all')
+  const { data: currentUser } = useCurrentUser()
+  const role = (currentUser as { role?: string } | undefined)?.role
+  const isAdmin = isAdminRole(role)
 
   const { data: projects = [] } = useReportProjects()
-  const { data: teams = [] } = useReportOrgUnits()
+  const { data: allTeams = [] } = useReportOrgUnits({ enabled: isAdmin })
+  const myTeamsQuery = useQuery({
+    queryKey: ['dashboard', 'my-teams'],
+    enabled: !isAdmin,
+    queryFn: async () => {
+      const res = await getMyTeamsApiV1OrgMyTeamsGet({ throwOnError: true })
+      return Array.isArray(res.data) ? res.data : []
+    },
+  })
+  const teams = useMemo(() => (isAdmin ? allTeams : (myTeamsQuery.data ?? [])), [allTeams, isAdmin, myTeamsQuery.data])
+  useEffect(() => {
+    if (teamFilter !== 'all' && !teams.some((team) => String(team.id) === teamFilter)) {
+      setTeamFilter('all')
+    }
+  }, [teamFilter, teams])
+
+  const effectiveTeamFilter = !isAdmin && teamFilter === 'all' ? undefined : (teamFilter !== 'all' ? Number(teamFilter) : undefined)
 
   const weekStart = startOfWeek(weekAnchor, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(weekAnchor, { weekStartsOn: 1 })
@@ -99,11 +127,11 @@ export default function DashboardPage() {
   const commonFilters = useMemo(
     () => ({
       project_id: projectFilter !== 'all' ? Number(projectFilter) : undefined,
-      org_unit_id: teamFilter !== 'all' ? Number(teamFilter) : undefined,
+      org_unit_id: effectiveTeamFilter,
       page: 1,
       size: 500,
     }),
-    [projectFilter, teamFilter],
+    [effectiveTeamFilter, projectFilter],
   )
 
   const weekParams = useMemo(
@@ -221,71 +249,80 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
-
-      <CollapsibleBlock title={t('web.dashboard.filters_title')} defaultOpen>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="dashboard-week">{t('web.dashboard.week')}</Label>
-            <Input
-              id="dashboard-week"
-              type="date"
-              value={dateUtils.formatPlain(weekAnchor, FMT)}
-              onChange={(e) => {
-                if (!e.target.value) return
-                setWeekAnchor(parseISO(e.target.value))
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {dateUtils.format(weekStart, 'MMM d, yyyy', timezone)} - {dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('common.project')}</Label>
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('journal.all_projects')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">{t('journal.all_projects')}</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={String(project.id)}>
-                      {project.key} - {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('common.team')}</Label>
-            <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('journal.all_teams')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={String(team.id)}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+          <FilterToggleButton
+            isOpen={isFiltersOpen}
+            showLabel={t('employees.show_filters', 'Show Filters')}
+            hideLabel={t('employees.hide_filters', 'Hide Filters')}
+            onClick={() => setIsFiltersOpen((prev) => !prev)}
+          />
         </div>
+        <CollapsibleContent className="space-y-4 rounded-md border p-4 bg-muted/20">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="dashboard-week">{t('web.dashboard.week')}</Label>
+              <Input
+                id="dashboard-week"
+                type="date"
+                value={dateUtils.formatPlain(weekAnchor, FMT)}
+                onChange={(e) => {
+                  if (!e.target.value) return
+                  setWeekAnchor(parseISO(e.target.value))
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                {dateUtils.format(weekStart, 'MMM d, yyyy', timezone)} - {dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}
+              </p>
+            </div>
 
-        <div className="mt-4">
-          <Button type="button" variant="outline" onClick={resetFilters}>
-            {t('web.dashboard.reset_filters')}
-          </Button>
-        </div>
-      </CollapsibleBlock>
+            <div className="space-y-2">
+              <Label>{t('common.project')}</Label>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('journal.all_projects')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">{t('journal.all_projects')}</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={String(project.id)}>
+                        {project.key} - {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('common.team')}</Label>
+              <Select value={teamFilter} onValueChange={setTeamFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('journal.all_teams')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={String(team.id)}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <Button type="button" variant="outline" onClick={resetFilters}>
+              {t('web.dashboard.reset_filters')}
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

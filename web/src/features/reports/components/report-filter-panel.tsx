@@ -6,6 +6,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/stores/auth-store';
+import { canAccessManagerPages } from '@/lib/rbac';
 import {
   useReportCategories,
   useReportSprints,
@@ -25,8 +26,9 @@ interface ReportFilterPanelProps {
 
 export function ReportFilterPanel({ filters, onFilter, lockedFields = [] }: ReportFilterPanelProps) {
   const { t } = useTranslation();
-  const { user, permissions } = useAuthStore();
-  const isManager = user?.is_admin || permissions.includes('reports.manage') || permissions.includes('org.view');
+  const user = useAuthStore((s) => s.user);
+  const userRole = useAuthStore((s) => (s.user as { role?: string } | null)?.role);
+  const isManager = canAccessManagerPages(userRole);
 
   const { data: categories, isLoading: loadingCats } = useReportCategories();
   const { data: sprints, isLoading: loadingSprints } = useReportSprints();

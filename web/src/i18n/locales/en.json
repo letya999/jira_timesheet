@@ -84,6 +84,12 @@
         "first": "First",
         "last": "Last",
         "na": "N/A",
+        "columns": "Columns",
+        "roles": {
+            "admin": "Admin",
+            "manager": "Manager",
+            "employee": "Employee"
+        },
         "capex": "Capex",
         "opex": "Opex",
         "status_open": "OPEN",
@@ -171,6 +177,7 @@
         "added_success": "Added {{hours}}h for {{category}}",
         "failed_to_add": "Failed to add log",
         "filters_search": "Filters & Search",
+        "filter_search": "Search by task key or summary...",
         "start_date": "Start Date",
         "end_date": "End Date",
         "all_projects": "All Projects",
@@ -620,6 +627,8 @@
         "reports": {
             "data_filters": "Data Filters",
             "pivot_configuration": "Pivot Configuration",
+            "show_config": "Show Configuration",
+            "hide_config": "Hide Configuration",
             "failed_load": "Failed to load report data.",
             "aggregated_statistics": "Aggregated Statistics",
             "exporting": "Exporting...",

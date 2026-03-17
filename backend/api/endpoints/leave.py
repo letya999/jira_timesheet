@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from api.deps import get_current_user, require_role
+from api import deps
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ router = APIRouter()
 async def _get_leave_approval_permission(
     db: AsyncSession, user: User, leave: LeaveRequest, org_unit_id: int | None
 ) -> bool:
-    if user.role in ["Admin", "CEO"]:
+    if deps.is_admin_role(user):
         return True
     if not org_unit_id:
         return False
@@ -202,7 +203,7 @@ async def get_team_leave_requests(
     current_user: User = Depends(require_role(["Admin", "CEO", "PM", "Employee"])),  # noqa: B008
 ):
     """Fetch leave requests for units where the current user is an approver based on roles."""
-    if current_user.role in ["Admin", "CEO"]:
+    if deps.is_admin_role(current_user):
         query = select(LeaveRequest).join(User, LeaveRequest.user_id == User.id)
     else:
         # Complex filtering: user has a role X in unit Y.
@@ -242,6 +243,13 @@ async def get_all_leave_requests(
     current_user: User = Depends(get_current_user),
 ):
     query = select(LeaveRequest).join(User, LeaveRequest.user_id == User.id)
+
+    if not deps.is_admin_role(current_user):
+        uor_res = await db.execute(select(UserOrgRole.org_unit_id).where(UserOrgRole.user_id == current_user.id))
+        unit_ids = list(dict.fromkeys(uor_res.scalars().all()))
+        if not unit_ids:
+            return []
+        query = query.join(JiraUser, User.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id.in_(unit_ids))
 
     if start_date:
         query = query.where(LeaveRequest.start_date >= start_date)

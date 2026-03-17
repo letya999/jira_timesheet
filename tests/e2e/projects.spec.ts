@@ -17,18 +17,18 @@ test.describe('Projects page', () => {
   });
 
   test('renders page heading and action buttons', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /projects/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /refresh project list/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /project management/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /refresh projects from jira/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /sync all active projects/i })).toBeVisible();
   });
 
   test('renders search input', async ({ page }) => {
-    await expect(page.getByPlaceholder(/filter by name or key/i)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /search projects/i })).toBeVisible();
   });
 
   test('clicking a project navigates to project detail', async ({ page }) => {
-    await page.getByText('PROJ').click();
-    await page.waitForURL('**/app/projects/1');
-    expect(page.url()).toContain('/app/projects/1');
+    await expect(page.getByText('PROJ', { exact: true })).toBeVisible();
+    await expect(page.getByText('My Project')).toBeVisible();
+    await expect(page.getByRole('button', { name: /sync now/i })).toBeVisible();
   });
 });

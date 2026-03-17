@@ -7,6 +7,7 @@ import type { OrgUnitResponse, UserResponse, JiraUserResponse } from "@/api/gene
 import { cn } from "@/lib/utils";
 import { useOrgUnitRoleAssignments } from "@/features/org/hooks/use-org-unit-role-assignments";
 import { useTranslation } from "react-i18next";
+import { isAdminRole, isLeadershipRoleLabel } from "@/lib/rbac";
 
 type HierarchyUser = (UserResponse | JiraUserResponse) & {
   type?: "system" | "import";
@@ -64,6 +65,10 @@ export function OrgHierarchyWithMembers({
     const byUnit: Record<number, HierarchyUser[]> = {};
 
     for (const user of users) {
+      if (user.type === "system" && isAdminRole(user.role)) {
+        continue;
+      }
+
       const orgUnitIds = user.org_unit_ids?.length
         ? user.org_unit_ids
         : user.org_unit_id
@@ -100,10 +105,10 @@ export function OrgHierarchyWithMembers({
 
       for (const user of unitUsers) {
         const assignedRoles = new Set(rolesByUser[user.id] ?? []);
-        if (!assignedRoles.size && user.type === "system" && user.role && user.role !== "Employee") {
+        if (!assignedRoles.size && user.type === "system" && user.role && isLeadershipRoleLabel(user.role)) {
           assignedRoles.add(user.role);
         }
-        const roleNames = Array.from(assignedRoles).filter((roleName) => roleName !== "Employee");
+        const roleNames = Array.from(assignedRoles).filter((roleName) => isLeadershipRoleLabel(roleName));
 
         if (roleNames.length > 0) {
           leaders.push({ user, roleNames });

@@ -34,6 +34,6 @@ test.describe('Employees page', () => {
   test('switching to hierarchy view works', async ({ page }) => {
     await page.getByRole('tab', { name: /hierarchy view/i }).click();
     await expect(page.getByText(/unassigned/i)).toBeVisible();
-    await expect(page.getByText('Alice')).toBeVisible();
+    await expect(page.getByText(/system admin/i)).toBeVisible();
   });
 });

@@ -25,7 +25,11 @@ import { dateUtils } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
-import { CollapsibleFilterBlock } from '@/components/shared/collapsible-filter-block'
+import {
+  Collapsible,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
+import { FilterToggleButton } from '@/components/shared/filter-toggle-button'
 import { CollapsibleBlock } from '@/components/shared/collapsible-block'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -170,6 +174,7 @@ function ControlSheet() {
   const [statusTarget, setStatusTarget] = useState<EmployeeSummary | null>(null)
   const [statusDraft, setStatusDraft] = useState<string>('APPROVED')
   const [statusComment, setStatusComment] = useState<string>('')
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
   // Pagination state for Employee Summary
   const [page, setPage] = useState(1)
@@ -520,53 +525,62 @@ function ControlSheet() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">{t('web.control_sheet.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('web.control_sheet.subtitle')}
-        </p>
-      </div>
-
-      <CollapsibleFilterBlock title={t('web.control_sheet.filters')} defaultOpen>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="control-sheet-week">{t('web.control_sheet.week')}</Label>
-            <Input
-              id="control-sheet-week"
-              type="date"
-              value={format(weekAnchor, 'yyyy-MM-dd')}
-              onChange={(event) => {
-                if (!event.target.value) return
-                setWeekAnchor(parseISO(event.target.value))
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('web.control_sheet.period')}: {format(weekStart, 'dd.MM.yyyy')} - {format(weekEnd, 'dd.MM.yyyy')}
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">{t('web.control_sheet.title')}</h1>
+            <p className="text-muted-foreground">
+              {t('web.control_sheet.subtitle')}
             </p>
           </div>
-
-          <div className="space-y-2">
-            <Label>{t('common.team')}</Label>
-            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('web.control_sheet.select_team')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">
-                    {isAdminRole ? t('approvals.all_teams') : t('approvals.all_my_teams')}
-                  </SelectItem>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={String(team.id)}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          <FilterToggleButton
+            isOpen={isFiltersOpen}
+            showLabel={t('employees.show_filters', 'Show Filters')}
+            hideLabel={t('employees.hide_filters', 'Hide Filters')}
+            onClick={() => setIsFiltersOpen((prev) => !prev)}
+          />
         </div>
-      </CollapsibleFilterBlock>
+        <CollapsibleContent className="space-y-4 rounded-md border p-4 bg-muted/20">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="control-sheet-week">{t('web.control_sheet.week')}</Label>
+              <Input
+                id="control-sheet-week"
+                type="date"
+                value={format(weekAnchor, 'yyyy-MM-dd')}
+                onChange={(event) => {
+                  if (!event.target.value) return
+                  setWeekAnchor(parseISO(event.target.value))
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('web.control_sheet.period')}: {format(weekStart, 'dd.MM.yyyy')} - {format(weekEnd, 'dd.MM.yyyy')}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('common.team')}</Label>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('web.control_sheet.select_team')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">
+                      {isAdminRole ? t('approvals.all_teams') : t('approvals.all_my_teams')}
+                    </SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={String(team.id)}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center rounded-lg border bg-muted/10">

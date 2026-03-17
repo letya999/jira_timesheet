@@ -168,10 +168,12 @@ export function EmployeesPage() {
               </DropdownMenu>
             </div>
           )}
-          <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} variant="outline">
-            <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {t('sync_jira', 'Sync from Jira')}
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} variant="outline">
+              <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              {t('sync_jira', 'Sync from Jira')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -207,8 +209,8 @@ export function EmployeesPage() {
               columns={columns} 
               data={employees as UnifiedUser[]}
               getRowId={(row) => `${(row as UnifiedUser).type}:${(row as UnifiedUser).id}`}
-              onRowSelectionChange={setSelectedRows}
-              rowSelection={selectedRows}
+              onRowSelectionChange={isAdmin ? setSelectedRows : undefined}
+              rowSelection={isAdmin ? selectedRows : undefined}
               total={total}
               page={page}
               pageSize={20}

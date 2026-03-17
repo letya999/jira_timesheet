@@ -1,8 +1,8 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 
 interface CollapsibleBlockProps {
   title: string
@@ -22,25 +22,33 @@ export function CollapsibleBlock({
   onOpenChange,
 }: CollapsibleBlockProps) {
   const titleId = useId()
+  const isControlled = open !== undefined
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const isOpen = isControlled ? open : internalOpen
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!isControlled) {
+      setInternalOpen(nextOpen)
+    }
+    onOpenChange?.(nextOpen)
+  }
 
   return (
-    <Collapsible defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange}>
+    <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
       <Card className="bg-card/70">
         <CardHeader className="border-b pb-4">
-          <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              aria-labelledby={titleId}
-              className="group/collapsible flex w-full items-center justify-start gap-2 text-left text-base font-semibold"
-            >
-              <ChevronUp className="size-4 group-data-[state=closed]/collapsible:hidden" />
-              <ChevronDown className="hidden size-4 group-data-[state=closed]/collapsible:block" />
-              {icon}
-              <CardTitle id={titleId} className="text-base font-semibold">
-                {title}
-              </CardTitle>
-            </button>
-          </CollapsibleTrigger>
+          <button
+            type="button"
+            aria-labelledby={titleId}
+            onClick={() => handleOpenChange(!isOpen)}
+            className="flex w-full items-center justify-start gap-2 text-left text-base font-semibold"
+          >
+            {isOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+            {icon}
+            <CardTitle id={titleId} className="text-base font-semibold">
+              {title}
+            </CardTitle>
+          </button>
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="pt-5">{children}</CardContent>

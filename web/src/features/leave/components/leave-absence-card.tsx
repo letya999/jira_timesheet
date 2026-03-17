@@ -7,6 +7,8 @@ import { Calendar, Check, X, Ban } from 'lucide-react';
 import type { LeaveResponse, LeaveType } from '@/api/generated/types.gen';
 import { LEAVE_TYPE_LABELS } from '@/components/leave/leave-absence-badge';
 
+import { useTranslation } from 'react-i18next';
+
 interface LeaveAbsenceCardProps {
   request: LeaveResponse;
   canApproveReject?: boolean;
@@ -17,10 +19,10 @@ interface LeaveAbsenceCardProps {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-800 border-amber-300',
-  APPROVED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  REJECTED: 'bg-rose-100 text-rose-800 border-rose-300',
-  CANCELLED: 'bg-slate-100 text-slate-700 border-slate-300',
+  PENDING: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+  APPROVED: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+  REJECTED: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
+  CANCELLED: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700',
 };
 
 export function LeaveAbsenceCard({
@@ -31,6 +33,7 @@ export function LeaveAbsenceCard({
   onReject,
   onCancel,
 }: LeaveAbsenceCardProps) {
+  const { t } = useTranslation();
   const initials = (request.user_full_name || `U${request.user_id}`)
     .split(' ')
     .map((n) => n[0])
@@ -88,7 +91,7 @@ export function LeaveAbsenceCard({
                 onClick={() => onReject?.(request.id)}
               >
                 <X className="size-3.5" />
-                Reject
+                {t('common.reject', 'Reject')}
               </Button>
               <Button
                 size="sm"
@@ -96,7 +99,7 @@ export function LeaveAbsenceCard({
                 onClick={() => onApprove?.(request.id)}
               >
                 <Check className="size-3.5" />
-                Approve
+                {t('common.approve', 'Approve')}
               </Button>
             </>
           )}
@@ -108,7 +111,7 @@ export function LeaveAbsenceCard({
               onClick={() => onCancel?.(request.id)}
             >
               <Ban className="size-3.5" />
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
           )}
         </CardFooter>

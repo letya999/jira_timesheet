@@ -6,6 +6,9 @@ export interface UserProfile {
   username: string;
   email: string;
   display_name: string | null;
+  role?: string;
+  org_unit_id?: number | null;
+  org_unit_ids?: number[];
   is_active: boolean;
   is_admin: boolean;
   timezone: string;
