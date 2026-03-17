@@ -9,8 +9,9 @@ import {
 import { useOrgTree } from '@/features/org/hooks';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { getEmployeeColumns, UnifiedUser } from '../components/employee-columns';
-import { DataTable } from '@/components/ui/data-table';
-import { EmployeeHierarchy } from '../components/employee-hierarchy';
+import { ActionTable } from '@/components/shared/action-table';
+import { OrgHierarchyWithMembers } from '@/components/shared/org-hierarchy-with-members';
+import { UnassignedUsersCardList } from '@/components/shared/unassigned-users-card-list';
 import { TempPasswordDialog } from '../components/temp-password-dialog';
 import { UserEditDialog } from '../components/user-edit-dialog';
 import { MergeUserDialog } from '../components/merge-user-dialog';
@@ -59,6 +60,10 @@ export function EmployeesPage() {
     page,
     size: 20,
     ...filters,
+  });
+  const { data: hierarchyData, isLoading: hierarchyLoading } = useUsers({
+    page: 1,
+    size: 500,
   });
 
   const { data: orgUnits = [], isLoading: orgLoading } = useOrgTree();
@@ -125,6 +130,7 @@ export function EmployeesPage() {
 
   const employees = employeesData?.items || [];
   const total = employeesData?.total || 0;
+  const hierarchyUsers = hierarchyData?.items || [];
 
   const selectedCount = selectedUserIds.length;
 
@@ -197,48 +203,36 @@ export function EmployeesPage() {
               <Skeleton className="h-20 w-full" />
             </div>
           ) : (
-            <DataTable 
+            <ActionTable 
               columns={columns} 
               data={employees as UnifiedUser[]}
               getRowId={(row) => `${(row as UnifiedUser).type}:${(row as UnifiedUser).id}`}
               onRowSelectionChange={setSelectedRows}
               rowSelection={selectedRows}
-              showPagination={false}
+              total={total}
+              page={page}
+              pageSize={20}
+              onPageChange={setPage}
+              itemLabel="employees"
             />
           )}
-          
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{t('total_employees', { count: total })}</span>
-            <div className="flex gap-2">
-               <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-               >
-                 {t('previous')}
-               </Button>
-               <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setPage(p => p + 1)}
-                disabled={employees.length < 20}
-               >
-                 {t('next')}
-               </Button>
-            </div>
-          </div>
         </TabsContent>
 
         <TabsContent value="hierarchy" className="pt-4">
-          {orgLoading || employeesLoading ? (
+          {orgLoading || hierarchyLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
           ) : (
-            <EmployeeHierarchy units={orgUnits as any} employees={employees as UnifiedUser[]} />
+            <div className="space-y-4">
+              <OrgHierarchyWithMembers units={orgUnits as any} users={hierarchyUsers as UnifiedUser[]} />
+              <div className="space-y-2 border-t pt-4">
+                <h3 className="text-sm font-semibold">{t('unassigned', 'Unassigned')}</h3>
+                <UnassignedUsersCardList users={hierarchyUsers as UnifiedUser[]} />
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>

@@ -3,9 +3,9 @@ import { subDays } from 'date-fns'
 import { dateUtils } from '@/lib/date-utils'
 import type { WorklogResponse } from '@/api/generated/types.gen'
 import { JournalWorklogCard } from '@/components/time/journal-worklog-card'
+import { CardList } from '@/components/shared/card-list'
 import { CollapsibleFilterBlock } from '@/components/shared/collapsible-filter-block'
 import { SortOrderControl, type SortOrder } from '@/components/shared/sort-order-control'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
-import { Card, CardContent } from '@/components/ui/card'
 import { useReportCategories, useReportOrgUnits, useReportProjects } from '@/features/reports/hooks'
 import { useTimesheetEntries } from '@/features/timesheet/hooks'
 import { useAuthStore } from '@/stores/auth-store'
@@ -72,7 +71,6 @@ export default function JournalPage() {
   const { data, isLoading, isFetching } = useTimesheetEntries(queryParams)
   const worklogs: WorklogResponse[] = data?.items ?? []
   const total = data?.total ?? 0
-  const pages = Math.max(1, data?.pages ?? Math.ceil(total / pageSize))
   const pageSizeIndex = Math.max(0, PAGE_SIZE_OPTIONS.findIndex((v) => v === pageSize))
 
   return (
@@ -171,43 +169,19 @@ export default function JournalPage() {
         </div>
       </CollapsibleFilterBlock>
 
-      <div className="text-xl font-semibold">
-        {t('web.journal.showing_logs', { count: worklogs.length, total })}
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {isLoading || isFetching ? (
-          <div className="text-sm text-muted-foreground">{t('journal.loading_logs')}</div>
-        ) : null}
-
-        {!isLoading && worklogs.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-sm text-muted-foreground">{t('journal.no_logs_found')}</CardContent>
-          </Card>
-        ) : (
-          worklogs.map((log) => <JournalWorklogCard key={log.id} log={log} />)
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
-          {t('common.page')} {page} {t('common.of')} {pages}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setPage(1)} disabled={page <= 1}>
-            {t('common.first')}
-          </Button>
-          <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-            {t('common.prev')}
-          </Button>
-          <Button variant="outline" onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page >= pages}>
-            {t('common.next')}
-          </Button>
-          <Button variant="outline" onClick={() => setPage(pages)} disabled={page >= pages}>
-            {t('common.last')}
-          </Button>
-        </div>
-      </div>
+      <CardList
+        items={worklogs}
+        renderItem={(log) => <JournalWorklogCard log={log} />}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        itemLabel="logs"
+        loadingMessage={t('journal.loading_logs')}
+        emptyMessage={t('journal.no_logs_found')}
+      />
     </div>
   )
 }

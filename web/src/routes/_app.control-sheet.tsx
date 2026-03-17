@@ -22,6 +22,7 @@ import {
 } from '@/api/generated/sdk.gen'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { dateUtils } from '@/lib/date-utils'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { CollapsibleFilterBlock } from '@/components/shared/collapsible-filter-block'
@@ -48,14 +49,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { PivotTable } from '@/components/shared/pivot-table'
+import { CardList } from '@/components/shared/card-list'
 
 export const controlSheetRoute = createRoute({
   path: 'control-sheet',
@@ -584,42 +579,29 @@ function ControlSheet() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="max-h-[60vh] overflow-auto rounded-md border border-border">
-              <Table className="border-collapse [&_th]:font-semibold">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('common.employee')}</TableHead>
-                    {weekColumns.map((col) => (
-                      <TableHead key={col.date} className="sticky top-0 z-10 border border-border bg-background text-right">
-                        {col.label}
-                      </TableHead>
-                    ))}
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">{t('common.total')}</TableHead>
-                    <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('common.status')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summaries.map((employee) => (
-                    <TableRow key={employee.key}>
-                      <TableCell className="border border-border font-medium">{employee.name}</TableCell>
-                      {weekColumns.map((col) => (
-                        <TableCell key={col.date} className="border border-border text-right tabular-nums">
-                          {employee.dayHours[col.date]?.toFixed(1) ?? '0.0'}
-                        </TableCell>
-                      ))}
-                      <TableCell className="border border-border text-right font-semibold tabular-nums">
-                        {employee.total.toFixed(1)}
-                      </TableCell>
-                      <TableCell className="border border-border">
-                        <Badge variant="outline" className={statusClass(employee.status)}>
-                          {statusLabel(t, employee.status)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
+              <PivotTable
+                model={{
+                  rowDimensions: ['employee', 'status'],
+                  headerRows: [weekColumns.map(col => ({ label: col.label, colSpan: 1 }))],
+                  bodyRows: summaries.map(employee => ({
+                    rowValues: [employee.name, employee.status],
+                    values: weekColumns.map(col => employee.dayHours[col.date] ?? 0),
+                    originalData: employee
+                  }))
+                }}
+                renderRowValue={(value, dimension) => {
+                  if (dimension === 'status') {
+                    return (
+                      <Badge variant="outline" className={cn("w-fit", statusClass(value))}>
+                        {statusLabel(t, value)}
+                      </Badge>
+                    )
+                  }
+                  return <span className="font-medium">{value}</span>
+                }}
+                showTotals={true}
+                maxHeight="40vh"
+              />
             </CardContent>
           </Card>
 
@@ -634,14 +616,16 @@ function ControlSheet() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {summaries.map((employee, index) => (
+              <CardList
+                items={summaries}
+                showPagination={false}
+                renderItem={(employee) => (
                   <CollapsibleBlock
                     key={employee.key}
                     title={`${employee.name} (${employee.total.toFixed(1)} ${t('common.hours_short')})`}
-                    defaultOpen={index === 0}
+                    defaultOpen={false}
                   >
-                    <div className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between mb-4">
                       <div className="space-y-1">
                         <h3 className="text-lg font-semibold">{employee.name}</h3>
                         <p className="text-sm text-muted-foreground">{t('common.team')}: {employee.team}</p>
@@ -665,47 +649,21 @@ function ControlSheet() {
                       </div>
                     </div>
 
-                    <div className="max-h-[55vh] overflow-auto rounded-md border border-border">
-                    <Table className="border-collapse [&_th]:font-semibold">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="sticky top-0 z-10 border border-border bg-background">{t('web.control_sheet.task_worklog')}</TableHead>
-                          {weekColumns.map((col) => (
-                            <TableHead key={col.date} className="sticky top-0 z-10 border border-border bg-background text-right">
-                              {col.label}
-                            </TableHead>
-                          ))}
-                          <TableHead className="sticky top-0 z-10 border border-border bg-background text-right">{t('common.total')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {employee.tasks.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={weekColumns.length + 2} className="border border-border text-muted-foreground">
-                              {t('web.control_sheet.no_worklogs_for_employee')}
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          employee.tasks.map((task) => (
-                            <TableRow key={task.name}>
-                              <TableCell className="max-w-[520px] whitespace-normal border border-border">{task.name}</TableCell>
-                              {weekColumns.map((col) => (
-                                <TableCell key={col.date} className="border border-border text-right tabular-nums">
-                                  {task.dayHours[col.date]?.toFixed(1) ?? '0.0'}
-                                </TableCell>
-                              ))}
-                              <TableCell className="border border-border text-right font-semibold tabular-nums">
-                                {task.total.toFixed(1)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                    </div>
+                    <PivotTable
+                      model={{
+                        rowDimensions: ['task'],
+                        headerRows: [weekColumns.map(col => ({ label: col.label, colSpan: 1 }))],
+                        bodyRows: employee.tasks.map(task => ({
+                          rowValues: [task.name],
+                          values: weekColumns.map(col => task.dayHours[col.date] ?? 0),
+                        }))
+                      }}
+                      showTotals={true}
+                      maxHeight="40vh"
+                    />
                   </CollapsibleBlock>
-                ))}
-              </div>
+                )}
+              />
             </CardContent>
           </Card>
         </>

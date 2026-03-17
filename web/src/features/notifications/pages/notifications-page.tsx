@@ -6,10 +6,9 @@ import {
 } from '@/features/notifications/hooks'
 import type { NotificationResponse } from '@/api/generated/types.gen'
 import { NotificationItem, type NotificationType } from '@/components/shared/notification-item'
-import { EmptyState } from '@/components/shared/empty-state'
+import { CardList } from '@/components/shared/card-list'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Bell, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 function toNotificationType(type?: string): NotificationType {
@@ -78,32 +77,24 @@ export default function NotificationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          {isLoading ? (
-            <div className="flex h-48 items-center justify-center">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : visibleNotifications.length === 0 ? (
-            <EmptyState
-              icon={Bell}
-              title={t('notifications.no_notifications')}
-              description={t('notifications.caught_up')}
-              className="py-16"
-            />
-          ) : (
-            <div>
-              {visibleNotifications.map((item) => (
-                <NotificationItem
-                  key={item.id}
-                  id={item.id}
-                  type={toNotificationType(item.type)}
-                  message={item.message}
-                  createdAt={item.created_at}
-                  isRead={item.is_read ?? false}
-                  onRead={() => void handleMarkRead(item)}
-                />
-              ))}
-            </div>
-          )}
+          <CardList
+            items={visibleNotifications}
+            renderItem={(item) => (
+              <NotificationItem
+                key={item.id}
+                id={item.id}
+                type={toNotificationType(item.type)}
+                message={item.message}
+                createdAt={item.created_at}
+                isRead={item.is_read ?? false}
+                onRead={() => void handleMarkRead(item)}
+              />
+            )}
+            isLoading={isLoading}
+            isFetching={markAsRead.isPending || markAllRead.isPending}
+            showPagination={false}
+            emptyMessage={t('notifications.no_notifications')}
+          />
         </CardContent>
       </Card>
     </div>

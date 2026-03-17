@@ -1,7 +1,8 @@
 import { useApprovals, useApproveEntry, useRejectEntry, useBulkApprove } from '@/features/approvals/hooks'
 import { ApprovalCard } from '@/components/shared/approval-card'
+import { CardList } from '@/components/shared/card-list'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
@@ -95,32 +96,28 @@ export default function ApprovalsPage() {
         )}
       </div>
 
-      {periods.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-muted/30 border-dashed">
-          <AlertCircle className="size-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold">{t('web.approvals.no_pending')}</h2>
-          <p className="text-muted-foreground text-sm">
-            {t('web.approvals.no_pending_hint')}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {periods.map((period) => (
-            <ApprovalCard
-              key={period.id}
-              id={period.id}
-              userName={period.user_name}
-              userEmail={period.user_email}
-              startDate={period.start_date}
-              endDate={period.end_date}
-              totalHours={period.total_hours}
-              status={period.status}
-              onApprove={handleApprove}
-              onReject={handleReject}
-            />
-          ))}
-        </div>
-      )}
+      <CardList
+        items={periods}
+        renderItem={(period) => (
+          <ApprovalCard
+            key={period.id}
+            id={period.id}
+            userName={period.user_name}
+            userEmail={period.user_email}
+            startDate={period.start_date}
+            endDate={period.end_date}
+            totalHours={period.total_hours}
+            status={period.status}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        )}
+        isLoading={isLoading}
+        total={periods.length}
+        showPagination={false}
+        listClassName="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+        emptyMessage={t('web.approvals.no_pending')}
+      />
     </div>
   )
 }

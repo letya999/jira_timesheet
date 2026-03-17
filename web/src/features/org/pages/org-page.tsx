@@ -2,11 +2,11 @@ import * as React from 'react';
 import { OrgUnitCreate, OrgUnitResponse } from '@/features/org/schemas';
 import { useOrgTree, useCreateOrgUnit, useUpdateOrgUnit, useDeleteOrgUnit } from '@/features/org/hooks';
 import { useCurrentUser } from '@/features/auth/hooks';
-import { OrgTreeNode } from '../components/org-tree-node';
 import { UnitForm } from '../components/unit-form';
 import { RoleManager } from '../components/role-manager';
 import { UnitRoleAssignments } from '../components/unit-role-assignments';
 import { ApprovalWorkflowConfig } from '../components/approval-workflow-config';
+import { OrgHierarchyWithMembers } from '@/components/shared/org-hierarchy-with-members';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +22,13 @@ import { toast } from '@/lib/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { useUsers } from '@/features/users/hooks';
 
 export function OrgPage() {
   const { t } = useTranslation();
   const { data: currentUser, isLoading: authLoading } = useCurrentUser();
   const { data: units = [], isLoading: orgLoading } = useOrgTree();
+  const { data: usersData, isLoading: usersLoading } = useUsers({ page: 1, size: 500 });
   
   const [editingUnitId, setEditingUnitId] = React.useState<number | null>(null);
 
@@ -38,7 +40,7 @@ export function OrgPage() {
   if (currentUser?.role !== 'Admin') return <Navigate to="/" />;
 
   const typedUnits = units as OrgUnitResponse[];
-  const rootUnits = typedUnits.filter((u) => !u.parent_id);
+  const orgUsers = usersData?.items ?? [];
   const editingUnit = typedUnits.find((u) => u.id === editingUnitId);
 
   const handleCreate = (data: OrgUnitCreate) => {
@@ -99,21 +101,14 @@ export function OrgPage() {
 
         <TabsContent value="hierarchy" className="pt-4">
           <div className="max-w-3xl border rounded-md p-6 bg-card">
-            {orgLoading ? (
+            {orgLoading || usersLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <div className="space-y-2">
-                {rootUnits.map((unit) => (
-                  <OrgTreeNode key={unit.id} unit={unit} allUnits={typedUnits} />
-                ))}
-                {rootUnits.length === 0 && (
-                  <p className="text-center py-8 text-muted-foreground italic">{t('org.no_units')}</p>
-                )}
-              </div>
+              <OrgHierarchyWithMembers units={typedUnits as any} users={orgUsers as any} />
             )}
           </div>
         </TabsContent>

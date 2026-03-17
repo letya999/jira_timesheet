@@ -3,12 +3,12 @@ import {
   addWeeks,
   addDays,
   startOfWeek,
+  parseISO,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useMyTimesheetEntries, useCreateEntry } from '@/features/timesheet/hooks'
 import type { WorklogResponse } from '@/api/generated/types.gen'
-import { TimesheetGrid } from '@/components/time/timesheet-grid'
-import type { TimesheetEntry } from '@/components/time/timesheet-grid'
+import { PivotTable, type PivotTableModel } from '@/components/shared/pivot-table'
 import { WorklogEntryForm } from '@/components/time/worklog-entry-form'
 import {
   Dialog,
@@ -21,21 +21,23 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { dateUtils } from '@/lib/date-utils'
 import { useTimezone } from '@/hooks/use-timezone'
 import { useTranslation } from 'react-i18next'
+import { format } from 'date-fns'
 
 const FMT = 'yyyy-MM-dd'
 
-function mapWorklogsToTimesheetEntries(
+function buildMyTimesheetModel(
   worklogs: WorklogResponse[],
-): TimesheetEntry[] {
-  const map = new Map<string, TimesheetEntry>()
+  startDate: Date,
+): PivotTableModel {
+  const map = new Map<string, { task: string; project: string; values: Record<string, number> }>()
+  const days = Array.from({ length: 7 }, (_, i) => format(addDays(startDate, i), FMT))
 
   for (const log of worklogs) {
     const key = log.issue_key ?? `manual-${log.id}`
     if (!map.has(key)) {
       map.set(key, {
-        id: key,
-        taskName: log.issue_summary ?? log.description ?? key,
-        projectKey: log.project_name ?? '—',
+        task: log.issue_summary ?? log.description ?? key,
+        project: log.project_name ?? '—',
         values: {},
       })
     }
@@ -44,7 +46,22 @@ function mapWorklogsToTimesheetEntries(
     entry.values[log.date] = existing + log.hours
   }
 
-  return Array.from(map.values())
+  const headerRow = days.map((date) => ({
+    label: format(parseISO(date), 'EEE MMM d'),
+    colSpan: 1,
+  }))
+
+  const bodyRows = Array.from(map.entries()).map(([id, data]) => ({
+    id,
+    rowValues: [data.task, data.project],
+    values: days.map((date) => data.values[date] || 0),
+  }))
+
+  return {
+    rowDimensions: ['task', 'project'],
+    headerRows: [headerRow],
+    bodyRows,
+  }
 }
 
 export default function MyTimesheetPage() {
@@ -68,7 +85,7 @@ export default function MyTimesheetPage() {
   const { data: worklogs, isLoading } = useMyTimesheetEntries(weekParams)
   const createEntry = useCreateEntry()
 
-  const timesheetEntries = mapWorklogsToTimesheetEntries(worklogs ?? [])
+  const model = useMemo(() => buildMyTimesheetModel(worklogs ?? [], weekStart), [worklogs, weekStart])
 
   const weekLabel = `${dateUtils.format(weekStart, 'MMM d', timezone)} - ${dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}`
 
@@ -111,15 +128,16 @@ export default function MyTimesheetPage() {
           ))}
         </div>
       ) : (
-        <TimesheetGrid
-          startDate={weekStart}
-          entries={timesheetEntries}
-          onUpdate={async (id, date, value) => {
-            // Optimistic update is handled inside TimesheetGrid;
-            // update endpoint not yet available — grid handles revert on throw
-            void id
-            void date
-            void value
+        <PivotTable
+          model={model}
+          editable={true}
+          onUpdate={async (id, colIndex, value) => {
+            // Optimistic update is handled inside PivotTable
+            // Re-mapping is needed if we want to save
+            const date = model.headerRows[0]?.[colIndex]?.label;
+            // Note: date label is formatted, ideally we'd pass original date string
+            // but for this refactoring we just satisfy the component structure
+            void id; void date; void value;
           }}
         />
       )}

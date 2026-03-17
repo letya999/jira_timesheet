@@ -90,6 +90,14 @@ export const getEmployeeColumns = ({
     },
   },
   {
+    accessorKey: 'role',
+    header: t('columns.role', 'Role'),
+    cell: ({ row }) => {
+      const role = row.original.type === 'system' ? (row.original as any).role : t('import', 'Import');
+      return <span className="text-sm">{role || t('roles.employee', 'Employee')}</span>;
+    },
+  },
+  {
     accessorKey: 'org_unit_id',
     header: t('columns.org_unit', 'Org Unit'),
     cell: ({ row }) => {

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { OrgPage } from './org-page';
 import * as authHooks from '../../auth/hooks';
 import * as orgHooks from '../hooks';
+import * as usersHooks from '@/features/users/hooks';
 
 // Mock hooks
 vi.mock('../../auth/hooks', () => ({
@@ -16,9 +17,13 @@ vi.mock('../hooks', () => ({
   useDeleteOrgUnit: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }));
 
+vi.mock('@/features/users/hooks', () => ({
+  useUsers: vi.fn(() => ({ data: { items: [] }, isLoading: false })),
+}));
+
 // Mock child components
-vi.mock('../components/org-tree-node', () => ({
-  OrgTreeNode: ({ unit }: any) => <div data-testid="org-tree-node">Unit: {unit.name}</div>
+vi.mock('@/components/shared/org-hierarchy-with-members', () => ({
+  OrgHierarchyWithMembers: () => <div data-testid="org-hierarchy">Org Hierarchy</div>,
 }));
 
 vi.mock('../components/unit-form', () => ({
@@ -47,6 +52,7 @@ describe('OrgPage', () => {
     vi.clearAllMocks();
     vi.mocked(authHooks.useCurrentUser).mockReturnValue({ data: { role: 'Admin' }, isLoading: false } as any);
     vi.mocked(orgHooks.useOrgTree).mockReturnValue({ data: [], isLoading: false } as any);
+    vi.mocked(usersHooks.useUsers).mockReturnValue({ data: { items: [] }, isLoading: false } as any);
   });
 
   it('redirects to root when user is not Admin', () => {
@@ -73,14 +79,13 @@ describe('OrgPage', () => {
     expect(screen.getByText('Loading permissions...')).toBeDefined();
   });
 
-  it('renders tree nodes in hierarchy tab', () => {
+  it('renders hierarchy component in hierarchy tab', () => {
     vi.mocked(orgHooks.useOrgTree).mockReturnValue({
       data: [{ id: 1, name: 'Root Unit', parent_id: null, reporting_period: 'weekly' }],
       isLoading: false
     } as any);
     
     render(<OrgPage />);
-    expect(screen.getByTestId('org-tree-node')).toBeDefined();
-    expect(screen.getByText('Unit: Root Unit')).toBeDefined();
+    expect(screen.getByTestId('org-hierarchy')).toBeDefined();
   });
 });

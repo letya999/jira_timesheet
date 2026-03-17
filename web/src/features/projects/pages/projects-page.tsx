@@ -4,11 +4,11 @@ import { ProjectRow } from '../components/project-row';
 import { SyncAllButton } from '../components/sync-all-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation } from 'react-i18next';
 import type { ProjectResponse } from '@/features/projects/schemas';
+import { CardList } from '@/components/shared/card-list';
 
 type PaginatedProjects = {
   items: ProjectResponse[];
@@ -52,7 +52,6 @@ export function ProjectsPage() {
   const total = Array.isArray(projectsData)
     ? projects.length
     : ((projectsData as PaginatedProjects | undefined)?.total ?? 0);
-  const totalPages = Math.ceil(total / pageSize) || 1;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -83,72 +82,20 @@ export function ProjectsPage() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-[72px] w-full" />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {projects.map((project) => (
-              <ProjectRow key={project.id} project={project} />
-            ))}
-            {projects.length === 0 && (
-              <div className="text-center py-12 border rounded-lg bg-muted/20 italic text-muted-foreground">
-                {t('projects.no_projects_hint')}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t">
-          <p className="text-sm text-muted-foreground">
-            {t('web.projects.showing', {
-              from: Math.min(total, (page - 1) * pageSize + 1),
-              to: Math.min(total, page * pageSize),
-              total,
-            })}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium px-2">
-              {t('common.page')} {page} {t('common.of')} {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <CardList
+          items={projects}
+          renderItem={(project) => <ProjectRow key={project.id} project={project} />}
+          isLoading={isLoading}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          itemLabel="projects"
+          emptyMessage={t('projects.no_projects_hint')}
+          skeletonCount={5}
+          skeletonHeight="h-[72px]"
+        />
       </div>
     </div>
-  );
+  )
 }
