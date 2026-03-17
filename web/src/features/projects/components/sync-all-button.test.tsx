@@ -34,10 +34,10 @@ describe('SyncAllButton', () => {
 
   it('shows syncing state when mutation is pending', () => {
     vi.mocked(projectsHooks.useSyncProjects).mockReturnValue({ mutate: vi.fn(), isPending: true } as any);
-    
+
     render(<SyncAllButton />);
     expect(screen.getByText('Syncing...')).toBeDefined();
-    expect(screen.getByText('Syncing All Projects...')).toBeDefined();
+    expect(screen.getByText('Syncing all projects')).toBeDefined();
   });
 
   it('shows progress when job is running', () => {

@@ -4,13 +4,14 @@ from hashlib import md5
 from io import BytesIO
 from typing import Any
 
+from core.config import settings
 from core.database import get_db
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from fastapi_cache.decorator import cache
 from models.category import WorklogCategory
 from models.org import OrgUnit, UserOrgRole
-from models.project import Issue, Sprint
+from models.project import Issue, IssueType, Sprint
 from models.timesheet import Worklog
 from models.user import JiraUser, User
 from schemas.reports import CustomReportRequest
@@ -224,6 +225,7 @@ async def get_custom_report(
         .options(
             joinedload(Worklog.jira_user).joinedload(JiraUser.org_unit).joinedload(OrgUnit.parent),
             joinedload(Worklog.issue).joinedload(Issue.project),
+            joinedload(Worklog.issue).joinedload(Issue.issue_type_obj),
             joinedload(Worklog.issue).selectinload(Issue.releases),
             joinedload(Worklog.issue).selectinload(Issue.sprints),
             joinedload(Worklog.category),
@@ -245,6 +247,23 @@ async def get_custom_report(
         if w.jira_user and w.jira_user.org_unit and w.jira_user.org_unit.parent:
             parent_name = w.jira_user.org_unit.parent.name
 
+        issue_key = w.issue.key if w.issue else None
+        issue_link = f"{settings.JIRA_URL}/browse/{issue_key}" if issue_key else "N/A"
+
+        if w.issue and w.issue.issue_type_obj:
+            issue_type_val = w.issue.issue_type_obj.name
+        elif w.issue and w.issue.issue_type:
+            issue_type_val = w.issue.issue_type
+        else:
+            issue_type_val = "N/A"
+
+        if w.type == "MANUAL":
+            issue_name = (w.description.strip() if w.description and w.description.strip() else None) or (
+                w.issue.summary if w.issue else "N/A"
+            )
+        else:
+            issue_name = w.issue.summary if w.issue else "N/A"
+
         item = {
             "date": str(w.date),
             "hours": w.hours,
@@ -253,7 +272,10 @@ async def get_custom_report(
             "user": w.jira_user.display_name if w.jira_user else "N/A",
             "project": w.issue.project.name if w.issue and w.issue.project else "N/A",
             "task": w.issue.summary if w.issue else "N/A",
-            "issue_key": w.issue.key if w.issue else "N/A",
+            "issue_key": issue_key or "N/A",
+            "issue_link": issue_link,
+            "issue_name": issue_name,
+            "issue_type": issue_type_val,
             "release": _join_unique_names(w.issue.releases if w.issue else None),
             "sprint": _join_unique_names(w.issue.sprints if w.issue else None),
             "category": w.category.name if w.category else "N/A",

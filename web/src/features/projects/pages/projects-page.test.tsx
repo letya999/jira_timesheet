@@ -30,17 +30,17 @@ describe('ProjectsPage', () => {
 
   it('renders "Projects" heading', () => {
     render(<ProjectsPage />);
-    expect(screen.getByText('Projects')).toBeDefined();
+    expect(screen.getByText('Project Management')).toBeDefined();
   });
 
   it('renders search input', () => {
     render(<ProjectsPage />);
-    expect(screen.getByPlaceholderText('Filter by name or key...')).toBeDefined();
+    expect(screen.getByPlaceholderText('Search Projects (Name or Key)')).toBeDefined();
   });
 
-  it('renders "Refresh Project List" button', () => {
+  it('renders "Refresh Projects from Jira" button', () => {
     render(<ProjectsPage />);
-    expect(screen.getByText('Refresh Project List')).toBeDefined();
+    expect(screen.getByText('Refresh Projects from Jira')).toBeDefined();
   });
 
   it('shows skeleton when loading', () => {
@@ -74,12 +74,12 @@ describe('ProjectsPage', () => {
       isLoading: false
     } as any);
     render(<ProjectsPage />);
-    expect(screen.getByText('No projects found.')).toBeDefined();
+    expect(screen.getByText(/No projects found/)).toBeDefined();
   });
 
   it('updates search state when input changes', () => {
     render(<ProjectsPage />);
-    const input = screen.getByPlaceholderText('Filter by name or key...') as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Search Projects (Name or Key)') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'TEST' } });
     expect(input.value).toBe('TEST');
   });

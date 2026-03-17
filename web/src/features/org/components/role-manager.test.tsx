@@ -35,17 +35,17 @@ describe('RoleManager', () => {
     expect(screen.getByText('System')).toBeDefined();
   });
 
-  it('calls createRole mutation when Add Role button clicked', () => {
+  it('calls createRole mutation when Create Role button clicked', () => {
     const mutate = vi.fn();
     vi.mocked(orgHooks.useCreateRole).mockReturnValue({ mutate, isPending: false } as any);
-    
+
     render(<RoleManager />);
     const input = screen.getByPlaceholderText('New role name...') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'New Role' } });
-    
-    const addButton = screen.getByText('Add Role');
+
+    const addButton = screen.getByText('Create Role');
     fireEvent.click(addButton);
-    
+
     expect(mutate).toHaveBeenCalledWith({ name: 'New Role' }, expect.any(Object));
   });
 

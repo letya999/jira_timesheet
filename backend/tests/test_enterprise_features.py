@@ -54,22 +54,26 @@ async def test_audit_log_user_update(client: AsyncClient, db: AsyncSession):
 async def test_rate_limiting(client: AsyncClient):
     """Test that rate limiting is working (simplified)."""
     # We use a lower limit in main.py for /login: 5 times per 60 seconds
+    import os
+    os.environ["TEST_RATE_LIMITING"] = "1"
+    try:
+        # Try multiple requests to trigger 429
+        # If it's already triggered by previous tests, we might get 429 immediately.
+        triggered_429 = False
+        for i in range(10):
+            response = await client.post(
+                "/api/v1/auth/login",
+                data={"username": f"user_rl_{i}@example.com", "password": "pass"}
+            )
+            if response.status_code == 429:
+                triggered_429 = True
+                break
+            else:
+                assert response.status_code == 401
 
-    # Try multiple requests to trigger 429
-    # If it's already triggered by previous tests, we might get 429 immediately.
-    triggered_429 = False
-    for i in range(10):
-        response = await client.post(
-            "/api/v1/auth/login",
-            data={"username": f"user_rl_{i}@example.com", "password": "pass"}
-        )
-        if response.status_code == 429:
-            triggered_429 = True
-            break
-        else:
-            assert response.status_code == 401
-
-    assert triggered_429, "Rate limit (429) was not triggered after 10 requests"
+        assert triggered_429, "Rate limit (429) was not triggered after 10 requests"
+    finally:
+        del os.environ["TEST_RATE_LIMITING"]
 
 @pytest.mark.asyncio
 async def test_cache_reports(client: AsyncClient, db: AsyncSession):

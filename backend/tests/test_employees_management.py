@@ -2,7 +2,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
-from models.user import User, JiraUser, UserType
+from sqlalchemy.orm import selectinload
+from models.user import User, JiraUser
+from schemas.user import UserType
 from models.org import OrgUnit
 from core.security import get_password_hash
 
@@ -288,3 +290,143 @@ async def test_bulk_update_org_units(client: AsyncClient, auth_headers: dict, db
     updated_user = res.scalar_one()
     assert len(updated_user.org_units) == 2
     assert updated_user.role == "PM"
+
+
+@pytest.mark.asyncio
+async def test_promote_to_system_user_success_and_copies_org_unit(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    unit = OrgUnit(name="Promote Unit")
+    jira_user = JiraUser(
+        jira_account_id="jira_promote_1",
+        display_name="Promoted User",
+        email="promoted@example.com",
+        org_unit_id=None,
+    )
+    db.add_all([unit, jira_user])
+    await db.commit()
+    await db.refresh(unit)
+    jira_user.org_unit_id = unit.id
+    db.add(jira_user)
+    await db.commit()
+    await db.refresh(jira_user)
+
+    response = await client.post(f"/api/v1/users/promote/{jira_user.id}", headers=auth_headers)
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["type"] == "system"
+    assert payload["jira_user_id"] == jira_user.id
+    assert "temporary_password" in payload
+    assert unit.id in payload["org_unit_ids"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_updates_email_role_and_org_units(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    unit1 = OrgUnit(name="Patch Unit 1")
+    unit2 = OrgUnit(name="Patch Unit 2")
+    jira_user = JiraUser(
+        jira_account_id="jira_patch_1",
+        display_name="Patch Target",
+        email="jira_patch@example.com",
+    )
+    user = User(
+        email="before_patch@example.com",
+        hashed_password="pw",
+        full_name="Before Patch",
+        role="Employee",
+        jira_user_id=None,
+    )
+    db.add_all([unit1, unit2, jira_user, user])
+    await db.commit()
+    await db.refresh(unit1)
+    await db.refresh(unit2)
+    await db.refresh(jira_user)
+    await db.refresh(user)
+
+    # Link jira user so display_name serialization path is also exercised.
+    user.jira_user_id = jira_user.id
+    db.add(user)
+    await db.commit()
+    user_id = user.id
+
+    payload = {
+        "email": "after_patch@example.com",
+        "role": "PM",
+        "org_unit_ids": [unit1.id, unit2.id],
+    }
+    response = await client.patch(f"/api/v1/users/{user_id}", json=payload, headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "after_patch@example.com"
+    assert data["role"] == "PM"
+    assert sorted(data["org_unit_ids"]) == sorted([unit1.id, unit2.id])
+    # API contract: org_unit_id should point to one of assigned units for system users.
+    assert data["org_unit_id"] in [unit1.id, unit2.id]
+
+    db.expire_all()
+    res = await db.execute(select(User).where(User.id == user_id).options(selectinload(User.org_units)))
+    updated_user = res.scalar_one()
+    assert updated_user.email == "after_patch@example.com"
+    assert updated_user.role == "PM"
+    assert sorted([u.id for u in updated_user.org_units]) == sorted([unit1.id, unit2.id])
+
+
+@pytest.mark.asyncio
+async def test_get_users_system_org_unit_filter_uses_user_org_units(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    unit_match = OrgUnit(name="Filter Unit Match")
+    unit_other = OrgUnit(name="Filter Unit Other")
+    db.add_all([unit_match, unit_other])
+    await db.commit()
+    await db.refresh(unit_match)
+    await db.refresh(unit_other)
+
+    jira_a = JiraUser(
+        jira_account_id="jira_filter_match",
+        display_name="Filter Match",
+        email="filter_match@example.com",
+        org_unit_id=unit_other.id,  # different from system assignment on purpose
+    )
+    jira_b = JiraUser(
+        jira_account_id="jira_filter_other",
+        display_name="Filter Other",
+        email="filter_other@example.com",
+        org_unit_id=unit_match.id,  # opposite to system assignment on purpose
+    )
+    db.add_all([jira_a, jira_b])
+    await db.commit()
+    await db.refresh(jira_a)
+    await db.refresh(jira_b)
+
+    user_match = User(
+        email="sys_filter_match@example.com",
+        hashed_password="pw",
+        full_name="System Match",
+        role="Employee",
+        jira_user_id=jira_a.id,
+        org_units=[unit_match],
+    )
+    user_other = User(
+        email="sys_filter_other@example.com",
+        hashed_password="pw",
+        full_name="System Other",
+        role="Employee",
+        jira_user_id=jira_b.id,
+        org_units=[unit_other],
+    )
+    db.add_all([user_match, user_other])
+    await db.commit()
+
+    response = await client.get(
+        f"/api/v1/users/?type=system&org_unit_id={unit_match.id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    payload = response.json()
+
+    emails = {item["email"] for item in payload["items"]}
+    assert "sys_filter_match@example.com" in emails
+    assert "sys_filter_other@example.com" not in emails

@@ -140,13 +140,27 @@ export function ReportDataTable({
                 {row.rowValues.map((value, valueIndex) => {
                   const span = rowSpans[rowIndex]?.[valueIndex] ?? 1;
                   if (span === 0) return null;
+                  const dimension = model.rowDimensions[valueIndex];
+                  const isIssueLink = dimension === 'issue_link' && value !== 'N/A';
+                  const issueKey = isIssueLink ? value.split('/').pop() ?? value : value;
                   return (
                     <td
                       key={`row-value-${rowIndex}-${valueIndex}`}
                       rowSpan={span}
                       className="px-3 py-2 border-b border-r whitespace-nowrap align-top"
                     >
-                      {value}
+                      {isIssueLink ? (
+                        <a
+                          href={value}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          {issueKey}
+                        </a>
+                      ) : (
+                        value
+                      )}
                     </td>
                   );
                 })}

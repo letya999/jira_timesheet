@@ -22,7 +22,7 @@ describe('ReportExportButton', () => {
   it('renders Export Excel button', () => {
     vi.mocked(useExportReport).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
     render(<ReportExportButton startDate={startDate} endDate={endDate} />);
-    expect(screen.getByRole('button', { name: /export excel/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /export to excel/i })).toBeDefined();
   });
 
   it('calls mutate with start_date and end_date on click', () => {
@@ -30,7 +30,7 @@ describe('ReportExportButton', () => {
     vi.mocked(useExportReport).mockReturnValue({ mutate, isPending: false } as any);
     render(<ReportExportButton startDate={startDate} endDate={endDate} />);
     
-    fireEvent.click(screen.getByRole('button', { name: /export excel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /export to excel/i }));
     expect(mutate).toHaveBeenCalledWith(
       { start_date: startDate, end_date: endDate },
       expect.any(Object)
@@ -41,7 +41,7 @@ describe('ReportExportButton', () => {
     vi.mocked(useExportReport).mockReturnValue({ mutate: vi.fn(), isPending: true } as any);
     render(<ReportExportButton startDate={startDate} endDate={endDate} />);
     
-    expect(screen.getByText('Exporting…')).toBeDefined();
+    expect(screen.getByText('Exporting...')).toBeDefined();
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
@@ -60,7 +60,7 @@ describe('ReportExportButton', () => {
     });
 
     render(<ReportExportButton startDate={startDate} endDate={endDate} />);
-    fireEvent.click(screen.getByRole('button', { name: /export excel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /export to excel/i }));
 
     expect(URL.createObjectURL).toHaveBeenCalled();
     expect(mockAnchor.download).toContain(`timesheet_export_${startDate}_${endDate}.xlsx`);

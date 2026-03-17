@@ -28,25 +28,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { OrgUnitResponse, UserResponse, UserType } from '@/api/generated/types.gen';
+import type { OrgUnitResponse, UserResponse } from '@/api/generated/types.gen';
 import { UnifiedUser } from '@/features/employees/components/employee-columns';
 import { useUpdateUser, usePromoteUser } from '@/features/users/hooks';
 import { toast } from '@/lib/toast';
-
-const userSchema = z.object({
-  full_name: z.string().min(2, 'Name too short'),
-  email: z.string().email('Invalid email'),
-  role: z.string(),
-  org_unit_ids: z.array(z.number()).optional(),
-});
-
-interface UserEditDialogProps {
-  user: UnifiedUser | null;
-  orgUnits: OrgUnitResponse[];
-  isOpen: boolean;
-  onClose: () => void;
-  onPromoteSuccess?: (credentials: UserResponse) => void;
-}
 
 export function UserEditDialog({
   user,
@@ -56,7 +41,15 @@ export function UserEditDialog({
   onPromoteSuccess,
 }: UserEditDialogProps) {
   const { t } = useTranslation('employees');
-  const isImport = user?.type === UserType.IMPORT;
+
+  const userSchema = React.useMemo(() => z.object({
+    full_name: z.string().min(2, t('validation.name_short', 'Name too short')),
+    email: z.string().email(t('validation.invalid_email', 'Invalid email')),
+    role: z.string(),
+    org_unit_ids: z.array(z.number()).optional(),
+  }), [t]);
+
+  const isImport = user?.type === 'import';
   const updateMutation = useUpdateUser();
   const promoteMutation = usePromoteUser();
 
@@ -155,10 +148,10 @@ export function UserEditDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Admin">Admin</SelectItem>
-                          <SelectItem value="CEO">CEO</SelectItem>
-                          <SelectItem value="PM">Project Manager</SelectItem>
-                          <SelectItem value="Employee">Employee</SelectItem>
+                          <SelectItem value="Admin">{t('roles.admin', 'Admin')}</SelectItem>
+                          <SelectItem value="CEO">{t('roles.ceo', 'CEO')}</SelectItem>
+                          <SelectItem value="PM">{t('roles.pm', 'Project Manager')}</SelectItem>
+                          <SelectItem value="Employee">{t('roles.employee', 'Employee')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -177,8 +170,8 @@ export function UserEditDialog({
                             label: u.name,
                             value: u.id.toString(),
                           }))}
-                          value={field.value?.map((v) => v.toString()) || []}
-                          onValueChange={(vals) =>
+                          selected={field.value?.map((v) => v.toString()) ?? []}
+                          onChange={(vals) =>
                             field.onChange(vals.map(Number))
                           }
                           placeholder={t('select_units')}

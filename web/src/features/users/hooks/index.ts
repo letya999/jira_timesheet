@@ -11,7 +11,7 @@ import {
   mergeUsersApiV1UsersMergePost,
   deleteUserApiV1UsersUserIdDelete,
 } from '../../../api/generated/sdk.gen';
-import { UserType } from '@/api/generated/types.gen';
+import type { UserType } from '@/api/generated/types.gen';
 
 export const usersKeys = {
   all: () => ['users'] as const,

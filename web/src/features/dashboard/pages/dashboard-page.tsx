@@ -296,6 +296,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <ReportSummaryCard
+            testId="kpi-selected-week"
             title={t('web.dashboard.selected_week')}
             period={`${dateUtils.format(weekStart, 'MMM d', timezone)} - ${dateUtils.format(weekEnd, 'MMM d, yyyy', timezone)}`}
             totalHours={weekKpi.total}
@@ -303,6 +304,7 @@ export default function DashboardPage() {
             opexHours={weekKpi.opex}
           />
           <ReportSummaryCard
+            testId="kpi-selected-month"
             title={t('web.dashboard.selected_month')}
             period={`${dateUtils.format(monthStart, 'MMM d', timezone)} - ${dateUtils.format(monthEnd, 'MMM d, yyyy', timezone)}`}
             totalHours={monthKpi.total}
@@ -310,6 +312,7 @@ export default function DashboardPage() {
             opexHours={monthKpi.opex}
           />
           <ReportSummaryCard
+            testId="kpi-capex-total"
             title={t('web.dashboard.capex_total')}
             period={`MTD - ${dateUtils.format(monthStart, 'MMMM yyyy', timezone)}`}
             totalHours={monthKpi.total}
@@ -317,6 +320,7 @@ export default function DashboardPage() {
             opexHours={0}
           />
           <ReportSummaryCard
+            testId="kpi-opex-total"
             title={t('web.dashboard.opex_total')}
             period={`MTD - ${dateUtils.format(monthStart, 'MMMM yyyy', timezone)}`}
             totalHours={monthKpi.total}

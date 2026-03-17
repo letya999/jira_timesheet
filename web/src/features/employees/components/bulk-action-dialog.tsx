@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { OrgUnitResponse } from '@/api/generated/types.gen';
+import type { OrgUnitResponse } from '@/api/generated/types.gen';
 import { useBulkUpdateUsers, usePromoteUser } from '@/features/users/hooks';
 import { toast } from '@/lib/toast';
 
@@ -104,10 +104,10 @@ export function BulkActionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="CEO">CEO</SelectItem>
-                  <SelectItem value="PM">Project Manager</SelectItem>
-                  <SelectItem value="Employee">Employee</SelectItem>
+                  <SelectItem value="Admin">{t('roles.admin', 'Admin')}</SelectItem>
+                  <SelectItem value="CEO">{t('roles.ceo', 'CEO')}</SelectItem>
+                  <SelectItem value="PM">{t('roles.pm', 'Project Manager')}</SelectItem>
+                  <SelectItem value="Employee">{t('roles.employee', 'Employee')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -119,8 +119,8 @@ export function BulkActionDialog({
                   label: u.name,
                   value: u.id.toString(),
                 }))}
-                value={selectedUnits.map(String)}
-                onValueChange={(vals) => setSelectedUnits(vals.map(Number))}
+                selected={selectedUnits.map(String)}
+                onChange={(vals) => setSelectedUnits(vals.map(Number))}
                 placeholder={t('select_units')}
               />
             </div>

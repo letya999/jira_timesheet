@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const VALID_USERNAME = process.env.E2E_USERNAME ?? 'admin';
-const VALID_PASSWORD = process.env.E2E_PASSWORD ?? 'admin';
+const VALID_USERNAME = process.env.E2E_USERNAME ?? 'testadmin@example.com';
+const VALID_PASSWORD = process.env.E2E_PASSWORD ?? 'testpass';
 
 test.describe('Login page', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,12 +13,12 @@ test.describe('Login page', () => {
     await expect(page.getByRole('textbox', { name: /username/i })).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
     await expect(page.getByLabel(/remember me/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
     await expect(page.getByTestId('sso-button')).toBeVisible();
   });
 
   test('shows validation errors when submitted empty', async ({ page }) => {
-    await page.getByRole('button', { name: /^sign in$/i }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByText(/username is required/i)).toBeVisible();
     await expect(page.getByText(/password is required/i)).toBeVisible();
   });
@@ -26,14 +26,14 @@ test.describe('Login page', () => {
   test('shows error message on invalid credentials', async ({ page }) => {
     await page.getByRole('textbox', { name: /username/i }).fill('wrong_user');
     await page.getByLabel(/password/i).fill('wrong_password');
-    await page.getByRole('button', { name: /^sign in$/i }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('alert')).toBeVisible({ timeout: 8_000 });
   });
 
   test('happy path: valid credentials redirect to dashboard', async ({ page }) => {
     await page.getByRole('textbox', { name: /username/i }).fill(VALID_USERNAME);
     await page.getByLabel(/password/i).fill(VALID_PASSWORD);
-    await page.getByRole('button', { name: /^sign in$/i }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/app\/dashboard/, { timeout: 10_000 });
   });
 

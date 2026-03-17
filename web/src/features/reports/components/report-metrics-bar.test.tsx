@@ -11,10 +11,10 @@ describe('ReportMetricsBar', () => {
 
   it('renders 4 stat cards', () => {
     render(<ReportMetricsBar data={mockRows} format="hours" />);
-    expect(screen.getByText('Grand total')).toBeDefined();
-    expect(screen.getByText('Total hours')).toBeDefined();
+    expect(screen.getByText('Grand Total')).toBeDefined();
+    expect(screen.getByText('Total Hours')).toBeDefined();
     expect(screen.getByText('Employees')).toBeDefined();
-    expect(screen.getByText('Unique tasks')).toBeDefined();
+    expect(screen.getByText('Unique Tasks')).toBeDefined();
   });
 
   it('calculates metrics correctly for hours format', () => {

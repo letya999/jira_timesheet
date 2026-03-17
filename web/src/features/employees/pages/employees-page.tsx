@@ -4,8 +4,7 @@ import {
   useUsers, 
   useResetPassword, 
   useSyncUsersFromJira, 
-  useDeleteUser,
-  useBulkUpdateUsers 
+  useDeleteUser
 } from '@/features/users/hooks';
 import { useOrgTree } from '@/features/org/hooks';
 import { useCurrentUser } from '@/features/auth/hooks';
@@ -29,7 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UserType, UserPromoteResponse, UserResponse, JiraUserResponse } from '@/api/generated/types.gen';
+import type { UserType, UserPromoteResponse, UserResponse, JiraUserResponse } from '@/api/generated/types.gen';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -87,10 +86,13 @@ export function EmployeesPage() {
     }
   }, [deleteMutation, t]);
 
-  const selectedUserIds = React.useMemo(
-    () => Object.keys(selectedRows).filter((id) => selectedRows[id]).map(Number),
-    [selectedRows]
-  );
+  const selectedUserIds = React.useMemo(() => {
+    const ids = Object.keys(selectedRows)
+      .filter((rowId) => selectedRows[rowId])
+      .map((rowId) => Number(rowId.split(':').at(-1)))
+      .filter((id) => Number.isFinite(id));
+    return Array.from(new Set(ids));
+  }, [selectedRows]);
 
   const handleBulkDelete = React.useCallback(async () => {
     if (selectedUserIds.length === 0) return;
@@ -116,8 +118,9 @@ export function EmployeesPage() {
         onMerge: (user) => setMergingUser(user),
         onDelete: handleDelete,
         isAdmin,
+        t,
       }),
-    [orgUnits, isAdmin, handleResetPassword, handleDelete]
+    [orgUnits, isAdmin, handleResetPassword, handleDelete, t]
   );
 
   const employees = employeesData?.items || [];
@@ -161,7 +164,7 @@ export function EmployeesPage() {
           )}
           <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} variant="outline">
             <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            {t('common:sync', 'Sync from Jira')}
+            {t('sync_jira', 'Sync from Jira')}
           </Button>
         </div>
       </div>
@@ -197,13 +200,15 @@ export function EmployeesPage() {
             <DataTable 
               columns={columns} 
               data={employees as UnifiedUser[]}
+              getRowId={(row) => `${(row as UnifiedUser).type}:${(row as UnifiedUser).id}`}
               onRowSelectionChange={setSelectedRows}
               rowSelection={selectedRows}
+              showPagination={false}
             />
           )}
           
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{t('total_employees', { count: total }, `Total: ${total} employees`)}</span>
+            <span>{t('total_employees', { count: total })}</span>
             <div className="flex gap-2">
                <Button 
                 variant="outline" 

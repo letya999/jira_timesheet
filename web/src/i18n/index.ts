@@ -3,14 +3,20 @@ import { initReactI18next } from 'react-i18next';
 import en from './locales/en.json';
 import ru from './locales/ru.json';
 
-const resources = {
-  en: {
-    translation: en,
-  },
-  ru: {
-    translation: ru,
-  },
-};
+type LocaleData = Record<string, Record<string, unknown>>;
+
+function buildResources(enData: LocaleData, ruData: LocaleData) {
+  const enNs: Record<string, unknown> = { translation: enData };
+  const ruNs: Record<string, unknown> = { translation: ruData };
+  for (const ns of Object.keys(enData)) {
+    enNs[ns] = enData[ns];
+    ruNs[ns] = (ruData[ns] as unknown) ?? enData[ns];
+  }
+  return { en: enNs, ru: ruNs };
+}
+
+const resources = buildResources(en as LocaleData, ru as LocaleData);
+const availableNS = ['translation', ...Object.keys(en)];
 
 const savedLanguage =
   typeof window !== 'undefined' ? window.localStorage.getItem('language') : null;
@@ -22,6 +28,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    ns: availableNS,
+    defaultNS: 'translation',
     lng: initialLanguage,
     fallbackLng: 'en',
     interpolation: {

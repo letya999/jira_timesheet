@@ -31,8 +31,8 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.getByText('Row dimensions')).toBeDefined();
-    expect(screen.getByText('Column dimensions')).toBeDefined();
+    expect(screen.getByText('Rows (Vertical)')).toBeDefined();
+    expect(screen.getByText('Columns (Horizontal)')).toBeDefined();
     expect(screen.getByText('Group horizontally by')).toBeDefined();
     expect(screen.getByText('Group vertically by')).toBeDefined();
   });
@@ -45,7 +45,7 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: /run report/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /run pivot report/i })).toBeDefined();
   });
 
   it('Run button is disabled when group_by_rows is empty', () => {
@@ -57,7 +57,7 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: /run report/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /run pivot report/i })).toBeDisabled();
     expect(screen.getByText(/at least one row dimension is required/i)).toBeDefined();
   });
 
@@ -70,8 +70,8 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: /run report/i })).toBeDisabled();
-    expect(screen.getByText(/dimension conflict: user/i)).toBeDefined();
+    expect(screen.getByRole('button', { name: /run pivot report/i })).toBeDisabled();
+    expect(screen.getByText(/row and column dimensions overlap.*user/i)).toBeDefined();
   });
 
   it('shows date granularity controls when "date" is in group_by_cols', () => {
@@ -82,7 +82,7 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.getByText('Date granularity')).toBeDefined();
+    expect(screen.getByText('Date Granularity')).toBeDefined();
     expect(screen.getByText('Week')).toBeDefined();
   });
 
@@ -96,7 +96,7 @@ describe('PivotConfigPanel', () => {
       />
     );
     expect(screen.queryByText(/horizontal group dimension cannot overlap/i)).toBeNull();
-    expect(screen.getByRole('button', { name: /run report/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /run pivot report/i })).not.toBeDisabled();
   });
 
   it('blocks run when same dimension selected for horizontal and vertical grouping', () => {
@@ -109,7 +109,7 @@ describe('PivotConfigPanel', () => {
       />
     );
     expect(screen.getByText(/horizontal and vertical grouping cannot use the same dimension/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /run report/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /run pivot report/i })).toBeDisabled();
   });
 
   it('hides date granularity controls when "date" is not in rows or cols', () => {
@@ -121,7 +121,7 @@ describe('PivotConfigPanel', () => {
         onRun={vi.fn()}
       />
     );
-    expect(screen.queryByText('Date granularity')).toBeNull();
+    expect(screen.queryByText('Date Granularity')).toBeNull();
   });
 
   it('shows hours_per_day input when format is "days"', () => {
@@ -156,7 +156,7 @@ describe('PivotConfigPanel', () => {
         onRun={onRun}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /run report/i }));
+    fireEvent.click(screen.getByRole('button', { name: /run pivot report/i }));
     expect(onRun).toHaveBeenCalled();
   });
 

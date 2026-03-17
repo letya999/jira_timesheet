@@ -22,28 +22,33 @@ def test_create_access_token():
 
 @pytest.mark.asyncio
 async def test_rate_limit_middleware():
-    app = FastAPI()
-    app.add_middleware(AdvancedMiddleware)
+    import os
+    os.environ["TEST_RATE_LIMITING"] = "1"
+    try:
+        app = FastAPI()
+        app.add_middleware(AdvancedMiddleware)
 
-    @app.get("/")
-    async def root():
-        return {"ok": True}
+        @app.get("/")
+        async def root():
+            return {"ok": True}
 
-    from collections import defaultdict
+        from collections import defaultdict
 
-    from httpx import ASGITransport, AsyncClient
+        from httpx import ASGITransport, AsyncClient
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        with (
-            patch("core.middleware.RATE_LIMIT_MAX_REQUESTS", 2),
-            patch("core.middleware.request_counts", defaultdict(lambda: {"count": 0, "reset_time": time.time() + 60})),
-        ):
-            resp = await ac.get("/")
-            assert resp.status_code == 200
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            with (
+                patch("core.middleware.RATE_LIMIT_MAX_REQUESTS", 2),
+                patch("core.middleware.request_counts", defaultdict(lambda: {"count": 0, "reset_time": time.time() + 60})),
+            ):
+                resp = await ac.get("/")
+                assert resp.status_code == 200
 
-            resp = await ac.get("/")
-            assert resp.status_code == 200
+                resp = await ac.get("/")
+                assert resp.status_code == 200
 
-            # 3rd request should fail
-            resp = await ac.get("/")
-            assert resp.status_code == 429
+                # 3rd request should fail
+                resp = await ac.get("/")
+                assert resp.status_code == 429
+    finally:
+        del os.environ["TEST_RATE_LIMITING"]

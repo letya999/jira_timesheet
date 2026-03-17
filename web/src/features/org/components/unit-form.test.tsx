@@ -11,7 +11,7 @@ describe('UnitForm', () => {
 
   it('renders create mode correctly', () => {
     render(<UnitForm units={mockUnits} onSubmit={mockOnSubmit} isPending={false} />);
-    expect(screen.getByText('Create New Org Unit')).toBeDefined();
+    expect(screen.getByText('Add New Unit')).toBeDefined();
     expect(screen.getByPlaceholderText('e.g. Engineering, Sales')).toBeDefined();
     expect(screen.getByText('Create Unit')).toBeDefined();
   });
@@ -19,7 +19,7 @@ describe('UnitForm', () => {
   it('renders edit mode correctly', () => {
     const initialData = { id: 1, name: 'Engineering', parent_id: null, reporting_period: 'weekly' } as any;
     render(<UnitForm initialData={initialData} units={mockUnits} onSubmit={mockOnSubmit} isPending={false} />);
-    expect(screen.getByText('Edit Org Unit')).toBeDefined();
+    expect(screen.getByText('Edit / Delete Unit')).toBeDefined();
     const input = screen.getByDisplayValue('Engineering');
     expect(input).toBeDefined();
     expect(screen.getByText('Update Unit')).toBeDefined();
@@ -27,13 +27,13 @@ describe('UnitForm', () => {
 
   it('calls onSubmit with form data', async () => {
     render(<UnitForm units={mockUnits} onSubmit={mockOnSubmit} isPending={false} />);
-    
+
     const input = screen.getByPlaceholderText('e.g. Engineering, Sales');
     fireEvent.change(input, { target: { value: 'Sales' } });
-    
+
     const submitButton = screen.getByText('Create Unit');
     fireEvent.click(submitButton);
-    
+
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Sales',

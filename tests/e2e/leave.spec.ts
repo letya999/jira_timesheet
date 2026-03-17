@@ -1,22 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Leave page', () => {
-  test.beforeEach(async ({ context, page }) => {
-    // Seed auth state
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'user@example.com', role: 'EMPLOYEE' },
-            permissions: ['leave:read', 'leave:create'],
-          },
-        }),
-      );
-      localStorage.setItem('auth_token', 'fake-token');
-    });
+  test.beforeEach(async ({ page }) => {
     await page.goto('/app/leave');
   });
 

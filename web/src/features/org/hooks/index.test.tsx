@@ -131,7 +131,7 @@ describe('org hooks', () => {
     await act(async () => {
       await result.current.mutateAsync(data);
     });
-    expect(sdk.assignUserRoleApiV1OrgUnitsRolesPost).toHaveBeenCalledWith({ throwOnError: true, body: data });
+    expect(sdk.assignUserRoleApiV1OrgUnitsRolesPost).toHaveBeenCalledWith({ throwOnError: true, body: { org_unit_id: data.unit_id, user_id: data.user_id, role_id: data.role_id } });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: orgKeys.unitRoles(1) });
   });
 
@@ -165,7 +165,7 @@ describe('org hooks', () => {
     await act(async () => {
       await result.current.mutateAsync(data);
     });
-    expect(sdk.createApprovalRouteApiV1OrgUnitsApprovalRoutesPost).toHaveBeenCalledWith({ throwOnError: true, body: data });
+    expect(sdk.createApprovalRouteApiV1OrgUnitsApprovalRoutesPost).toHaveBeenCalledWith({ throwOnError: true, body: { org_unit_id: data.unit_id, target_type: data.target_type, step_order: data.step_order, role_id: data.role_id } });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: orgKeys.approvalRoutes(1, 'leave') });
   });
 

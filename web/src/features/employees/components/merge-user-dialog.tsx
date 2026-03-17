@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useUsers, useMergeUsers } from '@/features/users/hooks';
-import { JiraUserResponse, UserResponse, UserType } from '@/api/generated/types.gen';
+import type { JiraUserResponse, UserResponse, UserType } from '@/api/generated/types.gen';
 import { toast } from '@/lib/toast';
 
 interface MergeUserDialogProps {
@@ -29,7 +29,7 @@ export function MergeUserDialog({
   const [search, setSearch] = React.useState('');
   const { data: usersData, isLoading } = useUsers({
     search: search || undefined,
-    type: UserType.SYSTEM,
+    type: 'system' as UserType,
     enabled: isOpen,
   });
   const mergeMutation = useMergeUsers();

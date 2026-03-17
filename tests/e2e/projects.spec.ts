@@ -1,22 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Projects page', () => {
-  test.beforeEach(async ({ context, page }) => {
-    // Auth setup
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'admin@example.com', role: 'Admin' },
-            permissions: ['admin'],
-          },
-        }),
-      );
-    });
-
+  test.beforeEach(async ({ page }) => {
     // Mock API responses
     await page.route('**/api/v1/projects**', route => route.fulfill({
       json: { 

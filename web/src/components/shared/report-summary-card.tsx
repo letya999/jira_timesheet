@@ -9,6 +9,7 @@ interface ReportSummaryCardProps {
   totalHours: number
   capexHours: number
   opexHours: number
+  testId?: string
   className?: string
 }
 
@@ -25,6 +26,7 @@ export function ReportSummaryCard({
   totalHours,
   capexHours,
   opexHours,
+  testId,
   className,
 }: ReportSummaryCardProps) {
   const { t } = useTranslation()
@@ -32,7 +34,7 @@ export function ReportSummaryCard({
   const opexPercent = totalHours > 0 ? (opexHours / totalHours) * 100 : 0
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full", className)} data-testid={testId}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>

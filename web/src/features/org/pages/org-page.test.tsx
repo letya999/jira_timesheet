@@ -60,7 +60,7 @@ describe('OrgPage', () => {
   it('renders heading and tabs when user is Admin', () => {
     vi.mocked(authHooks.useCurrentUser).mockReturnValue({ data: { role: 'Admin' }, isLoading: false } as any);
     render(<OrgPage />);
-    expect(screen.getByText('Organization Structure')).toBeDefined();
+    expect(screen.getByText('Organization & Roles Management')).toBeDefined();
     expect(screen.getByText('Company Hierarchy')).toBeDefined();
     expect(screen.getByText('Manage Structure & Roles')).toBeDefined();
     expect(screen.getByText('Approval Workflows')).toBeDefined();

@@ -1,23 +1,6 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Supporting pages (P5)', () => {
-  test.beforeEach(async ({ context }) => {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'admin@example.com' },
-            permissions: ['hr:read', 'settings.manage'],
-          },
-        }),
-      );
-      localStorage.setItem('auth_token', 'fake-token');
-    });
-  });
-
   test('Notifications page: renders inbox controls', async ({ page }) => {
     await page.goto('/app/notifications');
     await expect(page.getByRole('heading', { name: /notifications/i })).toBeVisible({ timeout: 8_000 });

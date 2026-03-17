@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 
 interface EmployeeCardProps {
   employee: JiraUserResponse;
@@ -31,6 +32,7 @@ interface EmployeeCardProps {
 }
 
 export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps) {
+  const { t } = useTranslation('employees');
   const updateMutation = useUpdateJiraUser();
 
   const {
@@ -79,15 +81,15 @@ export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps)
 
       <div className="grid gap-6 py-4">
         <div className="flex items-center justify-between">
-          <Label>System Access</Label>
+          <Label>{t('system_access')}</Label>
           <Badge variant={employee.user_id ? 'default' : 'secondary'}>
-            {employee.user_id ? 'Access Granted' : 'No Access'}
+            {employee.user_id ? t('access_granted') : t('no_access')}
           </Badge>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="org_unit">Organization Unit</Label>
+            <Label htmlFor="org_unit">{t('org_unit')}</Label>
             <Select
               value={orgUnitId?.toString() || 'unassigned'}
               onValueChange={(val) =>
@@ -97,10 +99,10 @@ export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps)
               }
             >
               <SelectTrigger id="org_unit">
-                <SelectValue placeholder="Unassigned" />
+                <SelectValue placeholder={t('unassigned')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
+                <SelectItem value="unassigned">{t('unassigned')}</SelectItem>
                 {orgUnits.map((unit) => (
                   <SelectItem key={unit.id} value={unit.id.toString()}>
                     {unit.name}
@@ -111,7 +113,7 @@ export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="weekly_quota">Weekly Quota (hours)</Label>
+            <Label htmlFor="weekly_quota">{t('weekly_quota')}</Label>
             <Input
               id="weekly_quota"
               type="number"
@@ -123,7 +125,7 @@ export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps)
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="is_active">Active Employee</Label>
+            <Label htmlFor="is_active">{t('active_employee')}</Label>
             <Switch
               id="is_active"
               checked={isActive}
@@ -133,10 +135,10 @@ export function EmployeeCard({ employee, orgUnits, onClose }: EmployeeCardProps)
 
           <div className="pt-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={!isDirty || updateMutation.isPending}>
-              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              {updateMutation.isPending ? t('saving') : t('save_changes')}
             </Button>
           </div>
         </form>

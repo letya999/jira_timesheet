@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 
 interface EmployeeHierarchyProps {
   units: OrgUnitResponse[];
@@ -15,6 +16,8 @@ interface EmployeeHierarchyProps {
 }
 
 export function EmployeeHierarchy({ units, employees }: EmployeeHierarchyProps) {
+  const { t } = useTranslation('employees');
+  
   // Build a map of employees by org unit
   const employeesByUnit = employees.reduce((acc, emp) => {
     const unitId = emp.org_unit_id || 'unassigned';
@@ -39,13 +42,13 @@ export function EmployeeHierarchy({ units, employees }: EmployeeHierarchyProps) 
             <span className="text-sm">{emp.display_name}</span>
             {emp.user_id && (
               <Badge variant="outline" className="text-[10px] h-4 px-1">
-                System Access
+                {t('system_access')}
               </Badge>
             )}
           </div>
         ))}
         {unitEmployees.length === 0 && unitId === 'unassigned' && (
-          <span className="text-xs text-muted-foreground italic">No unassigned employees</span>
+          <span className="text-xs text-muted-foreground italic">{t('no_unassigned')}</span>
         )}
       </div>
     );
@@ -90,7 +93,7 @@ export function EmployeeHierarchy({ units, employees }: EmployeeHierarchyProps) 
       </Accordion>
 
       <div className="mt-8">
-        <h3 className="text-sm font-bold mb-2 border-b pb-1">Unassigned</h3>
+        <h3 className="text-sm font-bold mb-2 border-b pb-1">{t('unassigned')}</h3>
         {renderEmployees('unassigned')}
       </div>
     </div>

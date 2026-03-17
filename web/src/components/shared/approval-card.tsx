@@ -3,6 +3,15 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { Calendar, Clock, Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -16,7 +25,7 @@ interface ApprovalCardProps {
   totalHours: number
   status: string
   onApprove: (id: number) => Promise<void>
-  onReject: (id: number) => Promise<void>
+  onReject: (id: number, comment?: string) => Promise<void>
   className?: string
 }
 
@@ -34,6 +43,8 @@ export function ApprovalCard({
 }: ApprovalCardProps) {
   const { t } = useTranslation()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectComment, setRejectComment] = useState('')
   const initials = userName.split(" ").map(n => n[0]).join("").toUpperCase()
 
   const handleApprove = async () => {
@@ -45,10 +56,12 @@ export function ApprovalCard({
     }
   }
 
-  const handleReject = async () => {
+  const handleRejectConfirm = async () => {
     setIsProcessing(true)
     try {
-      await onReject(id)
+      await onReject(id, rejectComment.trim() || undefined)
+      setIsRejectDialogOpen(false)
+      setRejectComment('')
     } finally {
       setIsProcessing(false)
     }
@@ -87,7 +100,7 @@ export function ApprovalCard({
             variant="outline" 
             size="sm" 
             className="text-destructive hover:text-destructive gap-1"
-            onClick={handleReject}
+            onClick={() => setIsRejectDialogOpen(true)}
             disabled={isProcessing}
           >
             <X className="size-4" />
@@ -104,6 +117,28 @@ export function ApprovalCard({
           </Button>
         </CardFooter>
       )}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('common.reject')}</DialogTitle>
+            <DialogDescription>{t('web.control_sheet.dialog_desc')}</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={rejectComment}
+            onChange={(event) => setRejectComment(event.target.value)}
+            placeholder={t('web.approvals.comment')}
+            data-testid="approval-reject-comment"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)} disabled={isProcessing}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleRejectConfirm} disabled={isProcessing}>
+              {t('common.reject')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

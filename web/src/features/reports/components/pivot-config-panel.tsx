@@ -31,6 +31,9 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
     { label: t('common.date'), value: 'date' },
     { label: t('common.category'), value: 'category' },
     { label: t('common.type'), value: 'type' },
+    { label: t('web.reports.dimensions.issue_link'), value: 'issue_link' },
+    { label: t('web.reports.dimensions.issue_name'), value: 'issue_name' },
+    { label: t('web.reports.dimensions.issue_type'), value: 'issue_type' },
   ];
 
   const GRANULARITY_OPTIONS: { label: string; value: DateGranularity }[] = [

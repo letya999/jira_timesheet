@@ -1,21 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Journal page', () => {
-  test.beforeEach(async ({ context, page }) => {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'user@example.com' },
-            permissions: ['timesheet:read'],
-          },
-        }),
-      );
-      localStorage.setItem('auth_token', 'fake-token');
-    });
+  test.beforeEach(async ({ page }) => {
     await page.goto('/app/journal');
   });
 

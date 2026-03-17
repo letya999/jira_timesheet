@@ -1,21 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('My Timesheet page', () => {
-  test.beforeEach(async ({ context, page }) => {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'user@example.com' },
-            permissions: ['timesheet:read', 'timesheet:write'],
-          },
-        }),
-      );
-      localStorage.setItem('auth_token', 'fake-token');
-    });
+  test.beforeEach(async ({ page }) => {
     await page.goto('/app/my-timesheet');
   });
 

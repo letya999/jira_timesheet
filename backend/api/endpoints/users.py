@@ -32,6 +32,10 @@ router = APIRouter()
 def _serialize_user(user: User | JiraUser, **extra: Any) -> dict:
     """Helper to serialize User or JiraUser to a dict consistently."""
     if isinstance(user, User):
+        # Avoid triggering lazy loads from sync context; endpoints should prefetch when needed.
+        jira_user = user.__dict__.get("jira_user")
+        org_units = user.__dict__.get("org_units") or []
+        primary_org_unit_id = org_units[0].id if org_units else (jira_user.org_unit_id if jira_user else None)
         return {
             "id": user.id,
             "email": user.email,
@@ -41,9 +45,9 @@ def _serialize_user(user: User | JiraUser, **extra: Any) -> dict:
             "needs_password_change": user.needs_password_change,
             "timezone": user.timezone,
             "jira_user_id": user.jira_user_id,
-            "org_unit_id": user.jira_user.org_unit_id if user.jira_user else None,
-            "org_unit_ids": [o.id for o in user.org_units] if hasattr(user, "org_units") and user.org_units else [],
-            "display_name": user.jira_user.display_name if user.jira_user else user.full_name,
+            "org_unit_id": primary_org_unit_id,
+            "org_unit_ids": [o.id for o in org_units],
+            "display_name": jira_user.display_name if jira_user else user.full_name,
             "type": UserType.SYSTEM,
             **extra,
         }
@@ -91,7 +95,7 @@ async def get_users(
         )
 
     if org_unit_id:
-        system_query = system_query.join(User.jira_user).where(JiraUser.org_unit_id == org_unit_id)
+        system_query = system_query.join(User.org_units).where(OrgUnit.id == org_unit_id).distinct()
         import_query = import_query.where(JiraUser.org_unit_id == org_unit_id)
 
     items = []
@@ -226,8 +230,12 @@ async def reset_user_password(
 
     db.add(user)
     await db.commit()
-    await db.refresh(user)
 
+    # Re-fetch with eager relations to keep serializer async-safe.
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.org_units), joinedload(User.jira_user))
+    )
+    user = result.scalar_one()
     return _serialize_user(user, temporary_password=temp_password)
 
 
@@ -354,6 +362,11 @@ async def promote_bulk_users(
                 jira_user_id=jid,
                 timezone="UTC",
             )
+            if jira_user.org_unit_id:
+                unit_result = await db.execute(select(OrgUnit).where(OrgUnit.id == jira_user.org_unit_id))
+                unit = unit_result.scalar_one_or_none()
+                if unit:
+                    new_user.org_units = [unit]
             db.add(new_user)
             promoted_count += 1
         except Exception:
@@ -394,12 +407,21 @@ async def promote_to_system_user(
         jira_user_id=jira_user_id,
         timezone="UTC",
     )
+    if jira_user.org_unit_id:
+        unit_result = await db.execute(select(OrgUnit).where(OrgUnit.id == jira_user.org_unit_id))
+        unit = unit_result.scalar_one_or_none()
+        if unit:
+            new_user.org_units = [unit]
 
     db.add(new_user)
     await db.commit()
-    await db.refresh(new_user)
 
-    return _serialize_user(new_user, temporary_password=temp_password)
+    # Re-fetch with eager relations to avoid lazy-loading errors in serializer.
+    result = await db.execute(
+        select(User).where(User.jira_user_id == jira_user_id).options(selectinload(User.org_units), joinedload(User.jira_user))
+    )
+    created_user = result.scalar_one()
+    return _serialize_user(created_user, temporary_password=temp_password)
 
 
 @router.post("/change-password")
@@ -451,6 +473,11 @@ async def update_user(
 
     db.add(user)
     await db.commit()
-    await db.refresh(user)
+    
+    # Re-fetch with options to avoid lazy loading in _serialize_user
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(selectinload(User.org_units), joinedload(User.jira_user))
+    )
+    user = result.scalar_one()
 
     return _serialize_user(user)

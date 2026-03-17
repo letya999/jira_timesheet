@@ -1,26 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Org Structure page', () => {
-  test('renders page heading and three tabs for admin', async ({ context, page }) => {
-    // Auth setup
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'admin@example.com', role: 'Admin' },
-            permissions: ['admin'],
-          },
-        }),
-      );
-    });
-
+  test('renders page heading and three tabs for admin', async ({ page }) => {
     // Mock API responses
     await page.route('**/api/v1/org/units**', route => route.fulfill({ json: [] }));
     await page.route('**/api/v1/org/roles**', route => route.fulfill({ json: [] }));
-    await page.route('**/api/v1/users/me**', route => route.fulfill({ json: { id: 1, email: 'admin@example.com', role: 'Admin' } }));
 
     await page.goto('/app/org');
 
@@ -56,23 +40,9 @@ test.describe('Org Structure page', () => {
     expect(page.url()).not.toContain('/app/org');
   });
 
-  test('shows unit creation form for admin', async ({ context, page }) => {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'auth_store',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            token: 'fake-token',
-            user: { id: 1, email: 'admin@example.com', role: 'Admin' },
-            permissions: ['admin'],
-          },
-        }),
-      );
-    });
+  test('shows unit creation form for admin', async ({ page }) => {
     await page.route('**/api/v1/org/units**', route => route.fulfill({ json: [] }));
     await page.route('**/api/v1/org/roles**', route => route.fulfill({ json: [] }));
-    await page.route('**/api/v1/users/me**', route => route.fulfill({ json: { id: 1, email: 'admin@example.com', role: 'Admin' } }));
 
     await page.goto('/app/org');
     await page.getByRole('tab', { name: /manage structure & roles/i }).click();

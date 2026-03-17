@@ -46,9 +46,9 @@ export default function ApprovalsPage() {
     }
   }
 
-  const handleReject = async (id: number) => {
+  const handleReject = async (id: number, comment?: string) => {
     try {
-      await rejectMutation.mutateAsync({ periodId: id })
+      await rejectMutation.mutateAsync({ periodId: id, comment })
       toast.success(t('web.approvals.period_rejected'))
     } catch {
       toast.error(t('web.approvals.reject_failed'))

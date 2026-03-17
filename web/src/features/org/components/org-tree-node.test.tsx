@@ -16,7 +16,7 @@ describe('OrgTreeNode', () => {
       </Accordion>
     );
     expect(screen.getByText('Root Unit')).toBeDefined();
-    expect(screen.getByText('weekly')).toBeDefined();
+    expect(screen.getByText('Weekly')).toBeDefined();
   });
 
   it('renders child units recursively', () => {
@@ -26,15 +26,16 @@ describe('OrgTreeNode', () => {
       </Accordion>
     );
     expect(screen.getByText('Child Unit')).toBeDefined();
-    expect(screen.getByText('monthly')).toBeDefined();
+    expect(screen.getByText('Monthly')).toBeDefined();
   });
 
-  it('shows "No sub-units" when no children exist', () => {
+  it('renders leaf node without children', () => {
     render(
       <Accordion type="multiple" defaultValue={['unit-2']}>
         <OrgTreeNode unit={mockAllUnits[1]} allUnits={mockAllUnits} />
       </Accordion>
     );
-    expect(screen.getByText('No sub-units')).toBeDefined();
+    expect(screen.getByText('Child Unit')).toBeDefined();
+    expect(screen.queryByText('Root Unit')).toBeNull();
   });
 });

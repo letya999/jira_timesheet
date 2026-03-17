@@ -35,6 +35,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    email: EmailStr | None = None
     full_name: str | None = None
     role: str | None = None
     is_active: bool | None = None

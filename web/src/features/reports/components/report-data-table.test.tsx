@@ -14,7 +14,7 @@ describe('ReportDataTable', () => {
         dateGranularity="week"
       />
     );
-    expect(screen.getByText(/no results/i)).toBeDefined();
+    expect(screen.getByText(/not found/i)).toBeDefined();
   });
 
   it('renders only selected row dimension headers', () => {

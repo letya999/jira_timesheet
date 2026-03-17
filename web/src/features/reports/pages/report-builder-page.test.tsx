@@ -66,19 +66,17 @@ describe('ReportBuilderPage', () => {
   it('does NOT render metrics or table initially (before Run is clicked)', () => {
     vi.mocked(hooks.useCustomReport).mockReturnValue({ data: null, isFetching: false, isError: false } as any);
     render(<ReportBuilderPage />);
-    expect(screen.queryByText('Grand total')).toBeNull();
-    expect(screen.queryByText('Data table')).toBeNull();
+    expect(screen.queryByText('Grand Total')).toBeNull();
+    expect(screen.queryByText('Data Table')).toBeNull();
   });
 
   it('shows loading state after Run is clicked while fetching', async () => {
     vi.mocked(hooks.useCustomReport).mockReturnValue({ data: null, isFetching: true, isError: false } as any);
     render(<ReportBuilderPage />);
-    
+
     fireEvent.click(screen.getByText('Run report'));
-    
-    // Skeleton should be visible (using a class check or just assuming it renders when isFetching is true)
-    // In our component, we render skeletons when isFetching is true
-    expect(screen.queryByText('Grand total')).toBeNull();
+
+    expect(screen.queryByText('Grand Total')).toBeNull();
   });
 
   it('renders results after data loads', async () => {
@@ -94,9 +92,9 @@ describe('ReportBuilderPage', () => {
     fireEvent.click(screen.getByText('Run report'));
 
     await waitFor(() => {
-      expect(screen.getByText('Grand total')).toBeDefined();
-      expect(screen.getByText('Data table')).toBeDefined();
-      expect(screen.getByText('Chart')).toBeDefined();
+      expect(screen.getByText('Grand Total')).toBeDefined();
+      expect(screen.getByText('Data Table')).toBeDefined();
+      expect(screen.getByText('Chart Type')).toBeDefined();
     });
   });
 
@@ -113,6 +111,6 @@ describe('ReportBuilderPage', () => {
     // Need reportBody to be non-null to show empty state
     fireEvent.click(screen.getByText('Run report'));
     
-    expect(screen.getByText(/no data found for the selected filters/i)).toBeDefined();
+    expect(screen.getByText(/no data available/i)).toBeDefined();
   });
 });
