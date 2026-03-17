@@ -22,7 +22,6 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
   const PIVOT_DIMENSIONS = [
     { label: t('common.user'), value: 'user' },
     { label: t('common.project'), value: 'project' },
-    { label: t('common.task'), value: 'task' },
     { label: t('common.release'), value: 'release' },
     { label: t('common.sprint'), value: 'sprint' },
     { label: t('common.team'), value: 'team' },

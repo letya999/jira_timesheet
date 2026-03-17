@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime
 from typing import Any
 
@@ -7,11 +8,30 @@ from core.config import settings
 from crud.settings import system_settings
 from dateutil import parser
 from models import Issue, IssueType, JiraUser, Project, Release, Sprint, User, Worklog, WorklogCategory
-from models.project import issue_releases
+from models.project import issue_releases, issue_sprints
 from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_jira_sprints(sprints_data: Any) -> list[dict[str, str]]:
+    """Parse sprint data from Jira, handling both dict and string formats."""
+    if not sprints_data or not isinstance(sprints_data, list):
+        return []
+
+    parsed = []
+    for s in sprints_data:
+        if isinstance(s, dict):
+            if "id" in s and "name" in s:
+                parsed.append({"id": str(s["id"]), "name": s["name"]})
+        elif isinstance(s, str):
+            # Sprint string format: "com.atlassian.greenhopper.service.sprint.Sprint@...[id=1,name=Sprint 1,...]"
+            id_match = re.search(r"id=(\d+)", s)
+            name_match = re.search(r"name=([^,\]]+)", s)
+            if id_match and name_match:
+                parsed.append({"id": id_match.group(1), "name": name_match.group(1)})
+    return parsed
 
 
 async def fetch_issue_details(issue_ids: list[str]):
@@ -34,7 +54,16 @@ async def fetch_issue_details(issue_ids: list[str]):
 
                 payload = {
                     "jql": jql,
-                    "fields": ["key", "project", "fixVersions", "status", "issuetype", "summary", "parent"],
+                    "fields": [
+                        "key",
+                        "project",
+                        "fixVersions",
+                        "status",
+                        "issuetype",
+                        "summary",
+                        "parent",
+                        "customfield_10020",
+                    ],
                     "maxResults": batch_size,
                 }
 
@@ -45,6 +74,7 @@ async def fetch_issue_details(issue_ids: list[str]):
                 for issue in data.get("issues", []):
                     fields = issue.get("fields", {})
                     versions = fields.get("fixVersions", [])
+                    sprints_raw = fields.get("customfield_10020")
 
                     mapping[issue["id"]] = {
                         "jira_id": issue["id"],
@@ -60,6 +90,7 @@ async def fetch_issue_details(issue_ids: list[str]):
                         "issue_type_subtask": fields.get("issuetype", {}).get("subtask", False),
                         "parent_id": fields.get("parent", {}).get("id"),
                         "releases": [{"id": v["id"], "name": v["name"]} for v in versions],
+                        "sprints": _parse_jira_sprints(sprints_raw),
                     }
         return mapping
     except Exception as e:
@@ -189,6 +220,24 @@ async def _update_issue_releases(db: AsyncSession, db_issue: Issue, db_project: 
             await db.execute(insert(issue_releases), [{"issue_id": db_issue.id, "release_id": rid} for rid in rel_ids])
 
 
+async def _update_issue_sprints(db: AsyncSession, db_issue: Issue, iss_data: dict):
+    """Updates sprint mappings for an issue."""
+    if "sprints" in iss_data and iss_data["sprints"]:
+        await db.execute(delete(issue_sprints).where(issue_sprints.c.issue_id == db_issue.id))
+        sprint_ids = []
+        for s_info in iss_data["sprints"]:
+            sj_id = str(s_info["id"])
+            s_res = await db.execute(select(Sprint).where(Sprint.jira_id == sj_id))
+            db_sprint = s_res.scalar_one_or_none()
+            if not db_sprint:
+                db_sprint = Sprint(jira_id=sj_id, name=s_info["name"])
+                db.add(db_sprint)
+                await db.flush()
+            sprint_ids.append(db_sprint.id)
+        if sprint_ids:
+            await db.execute(insert(issue_sprints), [{"issue_id": db_issue.id, "sprint_id": sid} for sid in sprint_ids])
+
+
 async def sync_specific_worklogs(db: AsyncSession, worklog_ids: list[str]):
     """Sync specific worklogs by their Jira IDs."""
     if not worklog_ids:
@@ -218,6 +267,7 @@ async def sync_specific_worklogs(db: AsyncSession, worklog_ids: list[str]):
 
                 db_j_user, db_proj, db_iss = await _ensure_entities_exist(db, item, iss_data)
                 await _update_issue_releases(db, db_iss, db_proj, iss_data)
+                await _update_issue_sprints(db, db_iss, iss_data)
 
                 jw_id = str(item.get("id"))
                 hours = item.get("timeSpentSeconds", 0) / 3600.0
@@ -300,6 +350,7 @@ async def sync_jira_worklogs(db: AsyncSession, since: int | None = None, project
 
                 db_j_user, db_proj, db_iss = await _ensure_entities_exist(db, item, iss_data)
                 await _update_issue_releases(db, db_iss, db_proj, iss_data)
+                await _update_issue_sprints(db, db_iss, iss_data)
 
                 jw_id = str(item.get("id"))
                 hours = item.get("timeSpentSeconds", 0) / 3600.0
