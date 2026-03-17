@@ -1,7 +1,7 @@
 import { createClient } from '@hey-api/client-fetch';
 import { client as generatedClient } from './generated/client.gen';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 const TOKEN_KEY = 'auth_token';
 
 export function getStoredToken(): string | null {
