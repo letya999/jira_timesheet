@@ -76,6 +76,7 @@ type DashboardRow = {
   User: string
   'User ID': number | null
   OrgUnit: string
+  'OrgUnit ID': number | null
   Task: string
   'Issue Key': string
   Description: string
@@ -99,6 +100,7 @@ type EmployeeSummary = {
   userId: number | null
   name: string
   team: string
+  teamId: number | null
   status: string
   periodId: number | null
   periodComment: string | null
@@ -169,6 +171,10 @@ function ControlSheet() {
   const [statusDraft, setStatusDraft] = useState<string>('APPROVED')
   const [statusComment, setStatusComment] = useState<string>('')
 
+  // Pagination state for Employee Summary
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+
   const role = String((currentUser as { role?: string } | undefined)?.role ?? '').toLowerCase()
   const isAdminRole = role === 'admin' || role === 'ceo'
   const isManagerRole = role === 'pm' || role === 'manager'
@@ -194,6 +200,10 @@ function ControlSheet() {
 
   const startDate = format(weekStart, 'yyyy-MM-dd')
   const endDate = format(weekEnd, 'yyyy-MM-dd')
+
+  useEffect(() => {
+    setPage(1)
+  }, [selectedTeam, weekAnchor])
 
   const teamsQuery = useQuery({
     queryKey: ['control-sheet', 'teams', role],
@@ -360,6 +370,7 @@ function ControlSheet() {
         }
         if (existing.team === t('common.na') && team !== t('common.na')) {
           existing.team = team
+          existing.teamId = employee.org_unit_id
         }
         if (period && existing.periodId === null) {
           existing.periodId = period.id
@@ -372,6 +383,7 @@ function ControlSheet() {
           userId,
           name: employee.display_name,
           team,
+          teamId: employee.org_unit_id,
           status: normalizeStatus(period?.status ?? 'OPEN'),
           periodId: period?.id ?? null,
           periodComment: period?.comment ?? null,
@@ -386,17 +398,24 @@ function ControlSheet() {
     }
 
     for (const row of logs) {
+      // Secondary filter to ensure team membership if a specific team is selected
+      if (selectedTeam !== 'all' && row['OrgUnit ID'] !== null && row['OrgUnit ID'] !== Number(selectedTeam)) {
+        continue
+      }
+
       const userId = typeof row['User ID'] === 'number' ? row['User ID'] : null
       const key = resolveKey(userId, row.User)
       const period = typeof userId === 'number' ? periodByUserId.get(userId) : undefined
 
       let summary = summaryMap.get(key)
       if (!summary) {
+        // Only add from logs if we are in "all" mode OR the log matches the team
         summary = {
           key,
           userId,
           name: row.User,
           team: row.OrgUnit || t('common.na'),
+          teamId: row['OrgUnit ID'],
           status: normalizeStatus(period?.status ?? 'OPEN'),
           periodId: period?.id ?? null,
           periodComment: period?.comment ?? null,
@@ -412,6 +431,7 @@ function ControlSheet() {
         }
         if (summary.team === t('common.na') && row.OrgUnit) {
           summary.team = row.OrgUnit
+          summary.teamId = row['OrgUnit ID']
         }
         if (period && summary.periodId === null) {
           summary.periodId = period.id
@@ -453,7 +473,12 @@ function ControlSheet() {
         tasks: Array.from(summary.taskMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [dashboardQuery.data, periodsQuery.data, employeesQuery.data, weekColumns, teamNameById, t])
+  }, [dashboardQuery.data, periodsQuery.data, employeesQuery.data, weekColumns, teamNameById, t, selectedTeam])
+
+  const paginatedSummaries = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return summaries.slice(start, start + pageSize)
+  }, [summaries, page, pageSize])
 
   const isLoading =
     isUserLoading || teamsQuery.isLoading || dashboardQuery.isLoading || periodsQuery.isLoading || employeesQuery.isLoading
@@ -609,7 +634,7 @@ function ControlSheet() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserRound className="size-5" />
-                {t('web.control_sheet.employee_summary')}
+                {t('web.control_sheet.employee_summary')} ({summaries.length})
               </CardTitle>
               <CardDescription>
                 {t('web.control_sheet.employee_summary_desc')}
@@ -617,8 +642,13 @@ function ControlSheet() {
             </CardHeader>
             <CardContent>
               <CardList
-                items={summaries}
-                showPagination={false}
+                items={paginatedSummaries}
+                showPagination={true}
+                total={summaries.length}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                itemLabel={t('common.employees').toLowerCase()}
                 renderItem={(employee) => (
                   <CollapsibleBlock
                     key={employee.key}

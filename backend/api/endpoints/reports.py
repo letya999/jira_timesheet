@@ -64,6 +64,11 @@ async def get_dashboard_data(
     )
 
     if org_unit_id:
+        if current_user.role == "PM":
+            res = await db.execute(select(OrgUnit.id).join(UserOrgRole).where(UserOrgRole.user_id == current_user.id))
+            my_unit_ids = [row[0] for row in res.all()]
+            if org_unit_id not in my_unit_ids:
+                return {"data": []}
         query = query.join(JiraUser, Worklog.jira_user_id == JiraUser.id).where(JiraUser.org_unit_id == org_unit_id)
     elif current_user.role == "PM":
         query = (
@@ -82,6 +87,7 @@ async def get_dashboard_data(
         releases = ", ".join([r.name for r in w.issue.releases]) if w.issue and w.issue.releases else "N/A"
         user_id = w.jira_user.user.id if w.jira_user and w.jira_user.user else None
         unit_name = w.jira_user.org_unit.name if w.jira_user and w.jira_user.org_unit else "N/A"
+        unit_id = w.jira_user.org_unit_id if w.jira_user else None
 
         parent_name = "N/A"
         if w.jira_user and w.jira_user.org_unit and w.jira_user.org_unit.parent:
@@ -100,6 +106,7 @@ async def get_dashboard_data(
             "Category": w.category.name if w.category else "Jira Work",
             "Description": w.description or "",
             "OrgUnit": unit_name,
+            "OrgUnit ID": unit_id,
             "ParentUnit": parent_name,
             "Month": month_name,
         }
