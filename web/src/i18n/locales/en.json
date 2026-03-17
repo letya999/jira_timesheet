@@ -151,17 +151,7 @@
         "ai_chat_desc": "Ask questions about your data using natural language.",
         "open_btn": "Open {{title}}"
     },
-        "journal": {
-            "showing_logs": "Showing {{count}} of {{total}} logs"
-        },
-        "sort": {
-            "asc": "Oldest first",
-            "desc": "Newest first"
-        },
-        "report": {
-            "total_logged": "Total logged"
-        },
-        "sync": {
+    "journal": {
         "title": "Journal",
         "add_worklog": "Add Worklog",
         "logging_for": "Logging for: {{name}}",
@@ -756,7 +746,25 @@
             "log_time": "Log Time",
             "week_of": "Week of {{week}}",
             "previous_week": "Previous week",
-            "next_week": "Next week"
+            "next_week": "Next week",
+            "current_week_only": "Current week only",
+            "select_employee": "Select employee",
+            "search_employee": "Search by name or email...",
+            "issue_search_min": "Enter at least 2 characters",
+            "task_search_placeholder": "Issue key, title or Jira URL",
+            "start_time_optional": "Start time (optional)",
+            "select_category": "Select category",
+            "worklog_title": "Title",
+            "worklog_title_placeholder": "What did you do?",
+            "open_full_page": "Open full page",
+            "go_to_app": "Open app",
+            "jira_category": "Category",
+            "jira_category_value": "Jira Task",
+            "employee_required": "Please select an employee.",
+            "date_required": "Please select a date.",
+            "hours_validation": "Hours must be between 0 and 24.",
+            "title_required": "Please enter a title.",
+            "category_required": "Please select a category."
         },
         "notifications": {
             "show_all": "Show all",

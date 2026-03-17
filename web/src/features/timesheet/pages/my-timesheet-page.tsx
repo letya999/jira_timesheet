@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   addDays,
   startOfWeek,
@@ -13,6 +13,7 @@ import { dateUtils } from '@/lib/date-utils'
 import { useTimezone } from '@/hooks/use-timezone'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { LogTimeDialog } from '@/features/timesheet/components/log-time-dialog'
 
 const FMT = 'yyyy-MM-dd'
 
@@ -58,6 +59,7 @@ function buildMyTimesheetModel(
 export default function MyTimesheetPage() {
   const { t } = useTranslation()
   const { timezone } = useTimezone()
+  const [isLogTimeDialogOpen, setIsLogTimeDialogOpen] = useState(false)
 
   const weekStart = useMemo(() => {
     const today = dateUtils.now()
@@ -81,9 +83,14 @@ export default function MyTimesheetPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('timesheet.title')}</h1>
-        <Button variant="outline" disabled>
-          {t('web.timesheet.current_week_only', { defaultValue: 'Current week only' })}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setIsLogTimeDialogOpen(true)}>
+            {t('web.timesheet.log_time')}
+          </Button>
+          <Button variant="outline" disabled>
+            {t('web.timesheet.current_week_only', { defaultValue: 'Current week only' })}
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -120,6 +127,8 @@ export default function MyTimesheetPage() {
           editable={false}
         />
       )}
+
+      <LogTimeDialog open={isLogTimeDialogOpen} onOpenChange={setIsLogTimeDialogOpen} />
     </div>
   )
 }

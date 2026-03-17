@@ -5,6 +5,7 @@ import { notFoundRoute } from './routes/not-found.tsx'
 import { badGatewayRoute } from './routes/bad-gateway.tsx'
 import { authLayoutRoute } from './routes/_auth.tsx'
 import { loginRoute } from './routes/_auth.login.tsx'
+import { logTimeRoute } from './routes/log-time.tsx'
 import { appLayoutRoute } from './routes/_app.tsx'
 import { dashboardRoute } from './routes/_app.dashboard.tsx'
 import { journalRoute } from './routes/_app.journal.tsx'
@@ -29,6 +30,7 @@ const routeTree = rootRoute.addChildren([
   notFoundRoute,
   badGatewayRoute,
   authLayoutRoute.addChildren([loginRoute]),
+  logTimeRoute,
   appLayoutRoute.addChildren([
     dashboardRoute,
     journalRoute,

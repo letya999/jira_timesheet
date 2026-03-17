@@ -4,6 +4,7 @@ import { Search } from 'lucide-react'
 import { dateUtils } from '@/lib/date-utils'
 import type { WorklogResponse } from '@/api/generated/types.gen'
 import { JournalWorklogCard } from '@/components/time/journal-worklog-card'
+import { Button } from '@/components/ui/button'
 import { CardList } from '@/components/shared/card-list'
 import { SortOrderControl, type SortOrder } from '@/components/shared/sort-order-control'
 import { Input } from '@/components/ui/input'
@@ -29,6 +30,7 @@ import { useTranslation } from 'react-i18next'
 import { getMyTeamsApiV1OrgMyTeamsGet } from '@/api/generated/sdk.gen'
 import { isAdminRole } from '@/lib/rbac'
 import { useQuery } from '@tanstack/react-query'
+import { LogTimeDialog } from '@/features/timesheet/components/log-time-dialog'
 
 const FMT = 'yyyy-MM-dd'
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const
@@ -50,6 +52,7 @@ export default function JournalPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(25)
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
+  const [isLogTimeDialogOpen, setIsLogTimeDialogOpen] = useState(false)
 
   const { data: categories } = useReportCategories()
   const { data: allTeams = [] } = useReportOrgUnits({ enabled: isAdmin })
@@ -110,12 +113,17 @@ export default function JournalPage() {
               disabled
             />
           </div>
-          <FilterToggleButton
-            isOpen={isFiltersOpen}
-            showLabel={t('employees.show_filters', 'Show Filters')}
-            hideLabel={t('employees.hide_filters', 'Hide Filters')}
-            onClick={() => setIsFiltersOpen((prev) => !prev)}
-          />
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setIsLogTimeDialogOpen(true)}>
+              {t('web.timesheet.log_time')}
+            </Button>
+            <FilterToggleButton
+              isOpen={isFiltersOpen}
+              showLabel={t('employees.show_filters', 'Show Filters')}
+              hideLabel={t('employees.hide_filters', 'Hide Filters')}
+              onClick={() => setIsFiltersOpen((prev) => !prev)}
+            />
+          </div>
         </div>
         <CollapsibleContent className="space-y-4 rounded-md border p-4 bg-muted/20">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -240,6 +248,8 @@ export default function JournalPage() {
         loadingMessage={t('journal.loading_logs')}
         emptyMessage={t('journal.no_logs_found')}
       />
+
+      <LogTimeDialog open={isLogTimeDialogOpen} onOpenChange={setIsLogTimeDialogOpen} />
     </div>
   )
 }
