@@ -1,6 +1,10 @@
 .git
 .venv
 venv
+node_modules
+dist
+coverage
+storybook-static
 __pycache__
 *.pyc
 *.pyo
@@ -13,3 +17,6 @@ test.db
 .env
 .env.*
 !.env.example
+.cursor
+.agents
+.gemini

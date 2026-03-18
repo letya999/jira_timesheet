@@ -104,6 +104,10 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-}
+        - VITE_APP_NAME=${VITE_APP_NAME:-Jira Timesheet}
+        - VITE_JIRA_URL=${VITE_JIRA_URL:-https://neuralab.atlassian.net}
     container_name: jira_timesheet_web_prod
     networks:
       - app_network
