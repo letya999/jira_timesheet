@@ -1,22 +1,35 @@
-FROM oven/bun:1
+# Stage 1: Build
+FROM node:20-slim AS build
+
+# Install pnpm or use npm (node-slim doesn't have bun)
+RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy dependency files first for better layer caching
-COPY package.json bun.lock* ./
+# Copy dependency files
+COPY package.json pnpm-lock.yaml* bun.lock* ./
 
-RUN bun install --frozen-lockfile
+# Install dependencies
+# We use bun.lock if it exists, otherwise pnpm/npm
+RUN npm install
 
 # Copy the rest of the application
 COPY . .
 
-# Add build arguments for Vite environment variables
-ARG VITE_API_URL
-ARG VITE_APP_NAME
-ARG VITE_JIRA_URL
+# Set memory limit for Node.js build process (3GB)
+ENV NODE_OPTIONS="--max-old-space-size=3072"
 
-# Build the application
-RUN bun run build
+# Build the application with debug info
+RUN npm run build -- --debug
+
+# Stage 2: Production
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Copy only the built assets and necessary files for preview
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
 
 # Vite preview runs on 8501 to match old streamlit port
 EXPOSE 8501
