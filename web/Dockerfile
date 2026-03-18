@@ -1,13 +1,13 @@
 # Stage 1: Build
-FROM node:20-slim AS build
+FROM oven/bun:1 AS build
 
 WORKDIR /app
 
 # Copy dependency files
 COPY package.json bun.lock* ./
 
-# Install dependencies using npm (stable for large vite builds)
-RUN npm install
+# Install dependencies
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the application
 COPY . .
@@ -26,7 +26,7 @@ ENV VITE_JIRA_URL=$VITE_JIRA_URL
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Production
 FROM oven/bun:1
