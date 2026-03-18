@@ -6,14 +6,23 @@
 
 # Frontend (React App)
 http://timesheet-app.{$DOMAIN_IP}.nip.io:8080 {
-    # Basic Auth для защиты входа
+    # Basic Auth для защиты UI (не применяется к /api/*)
     # Username: jira_timesheet
     # Password: twinby_jira_timesheet_20_26
-    basicauth * {
+    @notApi not path /api/*
+    basicauth @notApi {
         jira_timesheet $2a$14$tAgYwaLPJ/sHVKvoSaD8ceoxj.q0jXIyoZVyL1ZM6Rn38Fe5IMYRq
     }
 
-    reverse_proxy web:8501
+    # API запросы проксируются напрямую к backend (JWT auth на стороне FastAPI)
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Всё остальное - React SPA
+    handle {
+        reverse_proxy web:8501
+    }
 
     header {
         X-Content-Type-Options "nosniff"
