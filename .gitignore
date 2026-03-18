@@ -123,7 +123,6 @@ cython_debug/
 .vscode/
 
 # Project specific
-backend/alembic/versions/*.py
 !backend/alembic/versions/.gitkeep
 *.db
 *.xlsx
