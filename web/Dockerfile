@@ -33,16 +33,21 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Build via node directly (not bun run) - ensures V8 runtime for vite/rollup
 RUN node node_modules/.bin/vite build
 
-# Stage 2: Production
-FROM oven/bun:1
+# Stage 2: Production - nginx serves static assets (~5MB image vs ~800MB bun)
+FROM nginx:alpine
 
-WORKDIR /app
+# SPA routing: all paths fall back to index.html for client-side router
+RUN printf 'server {\n\
+    listen 8501;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    location / {\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+}\n' > /etc/nginx/conf.d/default.conf
 
-# Copy only the built assets and necessary files for preview
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# Vite preview runs on 8501 to match old streamlit port
 EXPOSE 8501
 
-CMD ["bun", "run", "preview", "--host", "0.0.0.0", "--port", "8501"]
+CMD ["nginx", "-g", "daemon off;"]
