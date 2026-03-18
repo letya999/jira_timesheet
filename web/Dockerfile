@@ -1,12 +1,17 @@
 # Stage 1: Build
-FROM oven/bun:1 AS build
+# node:20-slim provides Node.js (V8) so NODE_OPTIONS and vite work reliably.
+# Bun is installed only for package management (correct lock file resolution).
+FROM node:20-slim AS build
 
 WORKDIR /app
+
+# Install bun for package management (avoids npm peer-dep conflicts)
+RUN npm install -g bun@1.3.9
 
 # Copy dependency files
 COPY package.json bun.lock* ./
 
-# Install dependencies
+# Install dependencies via bun (respects bun.lock, resolves all platform binaries)
 RUN bun install --frozen-lockfile
 
 # Copy the rest of the application
@@ -22,11 +27,11 @@ ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_APP_NAME=$VITE_APP_NAME
 ENV VITE_JIRA_URL=$VITE_JIRA_URL
 
-# Allocate 4GB to Node.js to handle the large number of modules (2000+)
+# Allocate 4GB to Node.js - works because vite now runs under V8, not JavaScriptCore
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Build the application
-RUN bun run build
+# Build via node directly (not bun run) - ensures V8 runtime for vite/rollup
+RUN node node_modules/.bin/vite build
 
 # Stage 2: Production
 FROM oven/bun:1
