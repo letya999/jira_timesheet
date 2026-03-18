@@ -8,7 +8,7 @@
 http://timesheet-app.{$DOMAIN_IP}.nip.io:8080 {
     # Basic Auth для защиты входа
     # Username: jira_timesheet
-    # Password: twinby_jira_timesheet_20_206
+    # Password: twinby_jira_timesheet_20_26
     basicauth * {
         jira_timesheet $2a$14$tAgYwaLPJ/sHVKvoSaD8ceoxj.q0jXIyoZVyL1ZM6Rn38Fe5IMYRq
     }
