@@ -37,11 +37,17 @@ async def task_sync_specific_worklogs(ctx, *, worklog_ids: list[str]):
 
 
 async def task_sync_all_projects(ctx):
-    """Background task to sync all ACTIVE projects metadata and trigger worklog syncs."""
-    logger.info("Starting global projects sync (metadata) and enqueuing project-specific worklog syncs")
+    """Background task to sync all ACTIVE projects metadata and worklogs.
+
+    Makes a single pass through Jira /worklog/updated, filtered to active projects only.
+    This is O(1) Jira API calls regardless of how many active projects there are —
+    scaling correctly to 10, 100, or more projects without redundant HTTP requests.
+    """
+    logger.info("Starting global projects sync")
     async with async_session() as db:
         from models.project import Project
-        # 0. Fetch active projects
+        from services.jira import sync_jira_worklogs
+
         res = await db.execute(select(Project).where(Project.is_active))
         active_projects = res.scalars().all()
 
@@ -50,17 +56,17 @@ async def task_sync_all_projects(ctx):
             return {"status": "success", "synced": 0, "message": "No active projects"}
 
         active_keys = [p.key for p in active_projects]
+        allowed_jira_ids = {str(p.jira_id) for p in active_projects}
 
-        # 1. Sync metadata ONLY for active projects (already sequential inside)
+        # 1. Refresh project metadata (names, releases, sprints) for active projects
         await sync_jira_projects_to_db(db, only_keys=active_keys)
 
-        # 2. Enqueue worklog syncs for each project with explicit timeout and retries
-        child_job_ids = []
-        for p in active_projects:
-            job = await queue.enqueue("task_sync_project", project_id=p.id, timeout=1800, retries=2)
-            child_job_ids.append(job.id)
+        # 2. Single-pass worklog sync filtered to active projects — O(1) Jira API calls
+        result = await sync_jira_worklogs(db, allowed_project_jira_ids=allowed_jira_ids)
 
-        return {"status": "project_syncs_enqueued", "count": len(active_projects), "child_job_ids": child_job_ids}
+        synced = result.get("synced", 0)
+        logger.info(f"Global sync complete: {synced} worklogs synced across {len(active_projects)} projects")
+        return {"status": "success", "synced": synced, "projects": len(active_projects)}
 
 
 async def task_sync_project(ctx, *, project_id: int):
@@ -91,9 +97,9 @@ async def run_worker():
         queue,
         functions=[task_sync_user_worklogs, task_sync_all_projects, task_sync_project, task_sync_specific_worklogs],
         cron_jobs=cron_jobs,
-        concurrency=3,
+        concurrency=5,
     )
-    logger.info("Worker started with periodic task (every hour), concurrency=3")
+    logger.info("Worker started with periodic task (every hour), concurrency=5")
     await worker.start()
 
 

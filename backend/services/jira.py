@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from datetime import datetime
 from typing import Any
 
@@ -313,17 +314,21 @@ async def sync_jira_worklogs(
 ):
     """Sync worklogs from Jira Cloud API with filtering to active projects only.
 
-    The Jira /worklog/updated endpoint returns all worklogs instance-wide (no per-project
-    filter available in the API). Filtering is done post-fetch against the allowed set.
+    The Jira /worklog/updated endpoint returns all worklogs instance-wide — there is no
+    per-project filter in the API. Filtering is done post-fetch against the allowed set.
+
+    Pagination: /worklog/updated returns up to 1000 IDs per page. We iterate until
+    lastPage=true, processing each page and committing progress so a mid-run failure
+    does not reprocess previously synced worklogs.
 
     Args:
-        project_id: Jira project ID string — restricts sync to this single project.
-        allowed_project_jira_ids: explicit whitelist of Jira project IDs to sync.
-            If neither project_id nor allowed_project_jira_ids is given, all active
-            projects from DB are used as the whitelist.
+        project_id: Jira project jira_id string — restricts sync to this single project.
+        allowed_project_jira_ids: explicit set of Jira project IDs to include.
+            If neither argument is given, all is_active=True projects are used.
     """
+    sync_key = "last_jira_worklog_sync" if project_id is None else f"last_jira_worklog_sync_proj_{project_id}"
+
     if since is None:
-        sync_key = "last_jira_worklog_sync" if project_id is None else f"last_jira_worklog_sync_proj_{project_id}"
         last_sync_obj = await system_settings.get(db, sync_key)
         if last_sync_obj:
             since = last_sync_obj.value.get("timestamp", 0)
@@ -341,79 +346,105 @@ async def sync_jira_worklogs(
         active_jira_ids = {str(x) for x in allowed_project_jira_ids}
     else:
         # Fallback: load all is_active=True projects from DB
-        from models.project import Project as ProjectModel
-        res_active = await db.execute(select(ProjectModel).where(ProjectModel.is_active == True))
+        res_active = await db.execute(select(Project).where(Project.is_active == True))
         active_jira_ids = {str(p.jira_id) for p in res_active.scalars().all()}
+
+    if not active_jira_ids:
+        logger.info("sync_jira_worklogs: no active projects in whitelist, skipping")
+        return {"status": "success", "synced": 0}
 
     url_updated = f"{settings.JIRA_URL}/rest/api/3/worklog/updated"
     url_list = f"{settings.JIRA_URL}/rest/api/3/worklog/list"
     auth = (settings.JIRA_EMAIL, settings.JIRA_API_TOKEN)
 
+    total_synced = 0
+    current_since = since
+
     try:
-        async with httpx.AsyncClient(auth=auth) as client:
-            resp = await client.get(url_updated, params={"since": since})
-            resp.raise_for_status()
-            worklog_ids = [item["worklogId"] for item in resp.json().get("values", [])]
-            if not worklog_ids:
-                return {"status": "success", "synced": 0}
+        default_cat_id = await get_default_category_id(db)
 
-            resp_details = await client.post(url_list, json={"ids": worklog_ids[:1000]})
-            resp_details.raise_for_status()
-            worklogs_data = resp_details.json()
+        async with httpx.AsyncClient(auth=auth, timeout=60.0) as client:
+            # Paginate through /worklog/updated (up to 1000 IDs per page)
+            while True:
+                resp = await client.get(url_updated, params={"since": current_since})
+                resp.raise_for_status()
+                page_data = resp.json()
 
-            issue_ids = list(set([it.get("issueId") for it in worklogs_data if it.get("issueId")]))
-            issue_mapping = await fetch_issue_details(issue_ids)
-            default_cat_id = await get_default_category_id(db)
+                worklog_ids = [item["worklogId"] for item in page_data.get("values", [])]
+                page_until: int = page_data.get("until", int(time.time() * 1000))
+                is_last_page: bool = page_data.get("lastPage", True)
 
-            synced_count = 0
-            for item in worklogs_data:
-                if not item.get("author", {}).get("accountId") or not item.get("issueId"):
-                    continue
-                iss_data = issue_mapping.get(item.get("issueId"))
-                if not iss_data:
-                    continue
+                if not worklog_ids:
+                    # No worklogs on this page — save timestamp and stop
+                    await system_settings.set(db, sync_key, {"timestamp": page_until})
+                    await db.commit()
+                    break
 
-                # Post-filter: skip worklogs belonging to projects outside the whitelist
-                if str(iss_data["project_id"]) not in active_jira_ids:
-                    continue
+                # Fetch full worklog details for this page (max 1000 per request)
+                resp_details = await client.post(url_list, json={"ids": worklog_ids})
+                resp_details.raise_for_status()
+                worklogs_data = resp_details.json()
 
-                entities = await _ensure_entities_exist(db, item, iss_data)
-                if entities is None:
-                    # Project not found in DB — was never refreshed or is inactive
-                    continue
-                db_j_user, db_proj, db_iss = entities
-                await _update_issue_releases(db, db_iss, db_proj, iss_data)
-                await _update_issue_sprints(db, db_iss, iss_data)
+                issue_ids = list({it.get("issueId") for it in worklogs_data if it.get("issueId")})
+                issue_mapping = await fetch_issue_details(issue_ids)
 
-                jw_id = str(item.get("id"))
-                hours = item.get("timeSpentSeconds", 0) / 3600.0
-                l_date = parser.isoparse(item.get("started")).date()
-                s_created = parser.isoparse(item.get("created")).replace(tzinfo=None)
-                desc = _extract_jira_comment(item.get("comment", {}))
+                page_synced = 0
+                for item in worklogs_data:
+                    if not item.get("author", {}).get("accountId") or not item.get("issueId"):
+                        continue
+                    iss_data = issue_mapping.get(item.get("issueId"))
+                    if not iss_data:
+                        continue
 
-                res = await db.execute(select(Worklog).where(Worklog.jira_id == jw_id))
-                db_w = res.scalar_one_or_none()
-                if db_w:
-                    db_w.hours, db_w.date, db_w.description = hours, l_date, desc[:1024] if desc else None
-                    db_w.source_created_at, db_w.category_id = s_created, default_cat_id
-                else:
-                    db.add(
-                        Worklog(
-                            jira_id=jw_id,
-                            type="JIRA",
-                            category_id=default_cat_id,
-                            date=l_date,
-                            hours=hours,
-                            description=desc[:1024] if desc else None,
-                            jira_user_id=db_j_user.id,
-                            issue_id=db_iss.id,
-                            source_created_at=s_created,
+                    # Post-filter: skip worklogs from projects outside the whitelist
+                    if str(iss_data["project_id"]) not in active_jira_ids:
+                        continue
+
+                    entities = await _ensure_entities_exist(db, item, iss_data)
+                    if entities is None:
+                        continue
+                    db_j_user, db_proj, db_iss = entities
+                    await _update_issue_releases(db, db_iss, db_proj, iss_data)
+                    await _update_issue_sprints(db, db_iss, iss_data)
+
+                    jw_id = str(item.get("id"))
+                    hours = item.get("timeSpentSeconds", 0) / 3600.0
+                    l_date = parser.isoparse(item.get("started")).date()
+                    s_created = parser.isoparse(item.get("created")).replace(tzinfo=None)
+                    desc = _extract_jira_comment(item.get("comment", {}))
+
+                    res = await db.execute(select(Worklog).where(Worklog.jira_id == jw_id))
+                    db_w = res.scalar_one_or_none()
+                    if db_w:
+                        db_w.hours, db_w.date, db_w.description = hours, l_date, desc[:1024] if desc else None
+                        db_w.source_created_at, db_w.category_id = s_created, default_cat_id
+                    else:
+                        db.add(
+                            Worklog(
+                                jira_id=jw_id,
+                                type="JIRA",
+                                category_id=default_cat_id,
+                                date=l_date,
+                                hours=hours,
+                                description=desc[:1024] if desc else None,
+                                jira_user_id=db_j_user.id,
+                                issue_id=db_iss.id,
+                                source_created_at=s_created,
+                            )
                         )
-                    )
-                synced_count += 1
+                    page_synced += 1
 
-            await db.commit()
-            return {"status": "success", "synced": synced_count}
+                # Save progress after each page so a crash doesn't reprocess it
+                await system_settings.set(db, sync_key, {"timestamp": page_until})
+                await db.commit()
+                total_synced += page_synced
+                logger.info(f"sync_jira_worklogs: page synced={page_synced}, total={total_synced}, until={page_until}")
+
+                if is_last_page:
+                    break
+                current_since = page_until
+
+        return {"status": "success", "synced": total_synced}
     except Exception as e:
         logger.error(f"Failed to sync worklogs: {e}")
         return {"status": "error", "detail": str(e)}

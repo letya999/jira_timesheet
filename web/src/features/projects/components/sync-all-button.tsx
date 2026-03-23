@@ -23,13 +23,14 @@ export function SyncAllButton() {
     });
   };
 
-  // Toast on completion — note: parent job completes after enqueuing child tasks,
-  // not after all worklogs are synced. Show "queued" message, not "complete".
+  // task_sync_all_projects now does a direct single-pass sync and returns
+  // {"status": "success", "synced": N, "projects": M} when complete.
   React.useEffect(() => {
     if (jobStatus?.status === 'complete') {
-      const result = jobStatus.result as { count?: number } | undefined;
-      const count = result?.count ?? '?';
-      toast.success(t('web.projects.full_sync_queued', { count }));
+      const result = jobStatus.result as { synced?: number; projects?: number } | undefined;
+      const synced = result?.synced ?? 0;
+      const projects = result?.projects ?? '?';
+      toast.success(t('web.projects.full_sync_queued', { count: projects, synced }));
       setSyncJobId(null);
     } else if (jobStatus?.status === 'failed') {
       toast.error(`${t('web.projects.full_sync_failed')}: ${jobStatus.error || t('web.projects.unknown_error')}`);
@@ -37,14 +38,15 @@ export function SyncAllButton() {
     }
   }, [jobStatus?.status, jobStatus?.error, t]);
 
-  const isSyncing = syncMutation.isPending || (jobStatus && jobStatus.status !== 'complete' && jobStatus.status !== 'failed');
+  const isJobRunning = !!jobStatus && jobStatus.status !== 'complete' && jobStatus.status !== 'failed';
+  const isSyncing = syncMutation.isPending || isJobRunning;
 
   return (
     <div className="flex items-center gap-2">
-      {isSyncing && (
+      {isJobRunning && (
          <Badge variant="outline" className="animate-pulse bg-primary/5 text-primary border-primary/20 gap-2 px-3 py-1 h-8">
            <Loader2 className="h-4 w-4 animate-spin" />
-           {t('web.projects.syncing_all')} {jobStatus?.progress ? `${Math.round(jobStatus.progress * 100)}%` : ''}
+           {t('web.projects.syncing_all')}
          </Badge>
       )}
       <Button
