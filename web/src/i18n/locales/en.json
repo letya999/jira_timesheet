@@ -675,6 +675,7 @@
             "syncing_all": "Syncing all projects",
             "full_sync_started": "Full sync started.",
             "full_sync_success": "Full sync completed.",
+            "full_sync_queued": "Sync queued for {{count}} projects. Running in background.",
             "full_sync_failed": "Full sync failed",
             "full_sync_start_failed": "Failed to start full sync.",
             "unknown_error": "Unknown error",

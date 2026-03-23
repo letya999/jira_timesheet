@@ -23,10 +23,13 @@ export function SyncAllButton() {
     });
   };
 
-  // Toast on completion
+  // Toast on completion — note: parent job completes after enqueuing child tasks,
+  // not after all worklogs are synced. Show "queued" message, not "complete".
   React.useEffect(() => {
     if (jobStatus?.status === 'complete') {
-      toast.success(t('web.projects.full_sync_success'));
+      const result = jobStatus.result as { count?: number } | undefined;
+      const count = result?.count ?? '?';
+      toast.success(t('web.projects.full_sync_queued', { count }));
       setSyncJobId(null);
     } else if (jobStatus?.status === 'failed') {
       toast.error(`${t('web.projects.full_sync_failed')}: ${jobStatus.error || t('web.projects.unknown_error')}`);

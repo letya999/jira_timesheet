@@ -133,7 +133,11 @@ def _extract_jira_comment(raw_comment: Any) -> str:
 
 
 async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
-    """Ensures JiraUser, Project, and Issue exist in DB."""
+    """Ensures JiraUser, Project, and Issue exist in DB.
+
+    Returns None if the project is not found in DB (caller must skip the worklog).
+    Projects are never auto-created here — they must exist via sync_jira_projects_to_db.
+    """
     author_id = item.get("author", {}).get("accountId")
     issue_id_jira = item.get("issueId")
 
@@ -147,15 +151,12 @@ async def _ensure_entities_exist(db: AsyncSession, item: dict, iss_data: dict):
         db.add(db_jira_user)
         await db.flush()
 
-    # Project
+    # Project — never auto-create; if not in DB, caller skips the worklog
     res_p = await db.execute(select(Project).where(Project.jira_id == str(iss_data["project_id"])))
     db_project = res_p.scalar_one_or_none()
     if not db_project:
-        db_project = Project(
-            jira_id=str(iss_data["project_id"]), key=iss_data["project_key"], name=iss_data["project_name"]
-        )
-        db.add(db_project)
-        await db.flush()
+        logger.debug(f"Project jira_id={iss_data['project_id']} not in DB, skipping worklog")
+        return None
 
     # IssueType
     db_issue_type = None
@@ -304,21 +305,45 @@ async def sync_specific_worklogs(db: AsyncSession, worklog_ids: list[str]):
         return {"status": "error", "detail": str(e)}
 
 
-async def sync_jira_worklogs(db: AsyncSession, since: int | None = None, project_id: int | None = None):
-    """Sync worklogs from Jira Cloud API. Can filter by project_id locally after fetching updates."""
+async def sync_jira_worklogs(
+    db: AsyncSession,
+    since: int | None = None,
+    project_id: str | None = None,
+    allowed_project_jira_ids: set[str] | None = None,
+):
+    """Sync worklogs from Jira Cloud API with filtering to active projects only.
+
+    The Jira /worklog/updated endpoint returns all worklogs instance-wide (no per-project
+    filter available in the API). Filtering is done post-fetch against the allowed set.
+
+    Args:
+        project_id: Jira project ID string — restricts sync to this single project.
+        allowed_project_jira_ids: explicit whitelist of Jira project IDs to sync.
+            If neither project_id nor allowed_project_jira_ids is given, all active
+            projects from DB are used as the whitelist.
+    """
     if since is None:
-        # Get last sync timestamp from DB
         sync_key = "last_jira_worklog_sync" if project_id is None else f"last_jira_worklog_sync_proj_{project_id}"
         last_sync_obj = await system_settings.get(db, sync_key)
         if last_sync_obj:
             since = last_sync_obj.value.get("timestamp", 0)
         else:
-            # If no project-specific sync, maybe use global as fallback?
             if project_id is not None:
                 global_sync = await system_settings.get(db, "last_jira_worklog_sync")
                 since = global_sync.value.get("timestamp", 0) if global_sync else 0
             else:
                 since = 0
+
+    # Build the whitelist of Jira project IDs allowed to be synced
+    if project_id is not None:
+        active_jira_ids: set[str] = {str(project_id)}
+    elif allowed_project_jira_ids is not None:
+        active_jira_ids = {str(x) for x in allowed_project_jira_ids}
+    else:
+        # Fallback: load all is_active=True projects from DB
+        from models.project import Project as ProjectModel
+        res_active = await db.execute(select(ProjectModel).where(ProjectModel.is_active == True))
+        active_jira_ids = {str(p.jira_id) for p in res_active.scalars().all()}
 
     url_updated = f"{settings.JIRA_URL}/rest/api/3/worklog/updated"
     url_list = f"{settings.JIRA_URL}/rest/api/3/worklog/list"
@@ -348,7 +373,15 @@ async def sync_jira_worklogs(db: AsyncSession, since: int | None = None, project
                 if not iss_data:
                     continue
 
-                db_j_user, db_proj, db_iss = await _ensure_entities_exist(db, item, iss_data)
+                # Post-filter: skip worklogs belonging to projects outside the whitelist
+                if str(iss_data["project_id"]) not in active_jira_ids:
+                    continue
+
+                entities = await _ensure_entities_exist(db, item, iss_data)
+                if entities is None:
+                    # Project not found in DB — was never refreshed or is inactive
+                    continue
+                db_j_user, db_proj, db_iss = entities
                 await _update_issue_releases(db, db_iss, db_proj, iss_data)
                 await _update_issue_sprints(db, db_iss, iss_data)
 
@@ -505,15 +538,25 @@ async def sync_jira_projects_to_db(db: AsyncSession, only_keys: list[str] = None
 
 
 async def sync_jira_worklogs_for_projects(db: AsyncSession, project_keys: list[str] = None, since: int = 0):
-    """Sync worklogs for projects. If project_keys given, we could try JQL, but worklog/updated is more reliable."""
-    # For now, we'll just use the global sync if multiple keys, or project-specific if one key
+    """Sync worklogs filtered to the given project keys (or all active projects if none given).
+
+    Jira /worklog/updated has no per-project filter — we post-filter by project after fetching.
+    """
     if project_keys and len(project_keys) == 1:
-        # Find project_id by key
         res = await db.execute(select(Project).where(Project.key == project_keys[0]))
         p = res.scalar_one_or_none()
         if p:
             return await sync_jira_worklogs(db, project_id=p.jira_id)
+        return {"status": "error", "message": f"Project key {project_keys[0]} not found in DB"}
 
+    if project_keys:
+        # Multiple explicit keys — build whitelist from DB
+        res = await db.execute(select(Project).where(Project.key.in_(project_keys)))
+        projects = res.scalars().all()
+        allowed_ids = {str(p.jira_id) for p in projects}
+        return await sync_jira_worklogs(db, since=since, allowed_project_jira_ids=allowed_ids)
+
+    # No keys — sync all active projects (whitelist built inside sync_jira_worklogs)
     return await sync_jira_worklogs(db, since=since)
 
 

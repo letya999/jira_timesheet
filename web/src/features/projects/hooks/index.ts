@@ -117,7 +117,7 @@ export function useProjectSyncStatus(jobId: string | null) {
         throwOnError: true,
         path: { job_id: jobId! },
       });
-      return res.data as { status: string; progress?: number; error?: string };
+      return res.data as { status: string; progress?: number; error?: string; result?: unknown };
     },
     enabled: !!jobId,
     // Poll every 3s while job is running; component should set enabled=false once done

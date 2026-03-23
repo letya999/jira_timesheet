@@ -54,13 +54,13 @@ async def task_sync_all_projects(ctx):
         # 1. Sync metadata ONLY for active projects (already sequential inside)
         await sync_jira_projects_to_db(db, only_keys=active_keys)
 
-        # 2. Enqueue sequential worklog syncs for each project
-        # This spreads the load if the worker handles them one by one
+        # 2. Enqueue worklog syncs for each project with explicit timeout and retries
+        child_job_ids = []
         for p in active_projects:
-            # We add a small delay between enqueues to spread it out slightly, or just let SAQ handle it
-            await queue.enqueue("task_sync_project", project_id=p.id)
+            job = await queue.enqueue("task_sync_project", project_id=p.id, timeout=1800, retries=2)
+            child_job_ids.append(job.id)
 
-        return {"status": "project_syncs_enqueued", "count": len(active_projects)}
+        return {"status": "project_syncs_enqueued", "count": len(active_projects), "child_job_ids": child_job_ids}
 
 
 async def task_sync_project(ctx, *, project_id: int):
@@ -85,14 +85,15 @@ async def run_worker():
 
     # Define periodic cron jobs
     # Sync all projects and worklogs every hour
-    cron_jobs = [CronJob(task_sync_all_projects, cron="0 * * * *")]
+    cron_jobs = [CronJob(task_sync_all_projects, cron="0 * * * *", timeout=3600)]
 
     worker = Worker(
         queue,
         functions=[task_sync_user_worklogs, task_sync_all_projects, task_sync_project, task_sync_specific_worklogs],
         cron_jobs=cron_jobs,
+        concurrency=3,
     )
-    logger.info("Worker started with periodic task (every hour)")
+    logger.info("Worker started with periodic task (every hour), concurrency=3")
     await worker.start()
 
 

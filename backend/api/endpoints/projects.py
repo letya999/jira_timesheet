@@ -28,7 +28,6 @@ async def refresh_projects(db: AsyncSession = Depends(get_db), current_user=Depe
 @router.post("/sync-all")
 async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))):
     """Sync worklogs for all active projects via background queue."""
-    # Fetch active projects just to count them or show they exist if needed
     result = await db.execute(select(Project).where(Project.is_active))
     active_projects = result.scalars().all()
 
@@ -36,19 +35,6 @@ async def sync_all_active_projects(db: AsyncSession = Depends(get_db), current_u
         return {"status": "success", "synced": 0, "message": "No active projects to sync"}
 
     job = await queue.enqueue("task_sync_all_projects", retries=3, timeout=3600)
-    return {"status": "success", "message": "Sync enqueued in background", "job_id": job.id}
-
-
-@router.post("/{project_id}/sync")
-async def sync_single_project(
-    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
-):
-    """Sync worklogs for a specific project via background queue."""
-    project = await crud_project.get(db, id=project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    job = await queue.enqueue("task_sync_project", project_id=project.id, retries=3, timeout=1800)
     return {"status": "success", "message": "Sync enqueued in background", "job_id": job.id}
 
 
@@ -67,6 +53,34 @@ async def get_projects(
     pages = math.ceil(total / size) if size > 0 else 1
 
     return {"items": items, "total": total, "page": page, "size": size, "pages": pages}
+
+
+# Literal sub-paths must be declared before /{project_id} to avoid FastAPI capturing them as path params
+@router.get("/issues")
+async def search_project_issues(
+    search: str, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
+):
+    """Search for issues by key or summary."""
+    from models.project import Issue
+    from sqlalchemy import or_
+
+    result = await db.execute(
+        select(Issue).where(or_(Issue.key.ilike(f"%{search}%"), Issue.summary.ilike(f"%{search}%"))).limit(20)
+    )
+    return result.scalars().all()
+
+
+@router.post("/{project_id}/sync")
+async def sync_single_project(
+    project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
+):
+    """Sync worklogs for a specific project via background queue."""
+    project = await crud_project.get(db, id=project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    job = await queue.enqueue("task_sync_project", project_id=project.id, retries=3, timeout=1800)
+    return {"status": "success", "message": "Sync enqueued in background", "job_id": job.id}
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -88,9 +102,6 @@ async def get_project_sprints(
     project_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
 ):
     """Get sprints for a specific project (via issues)."""
-    # Note: In our model, sprints are linked to issues.
-    # For simplicity, we can fetch all sprints or filter them if we had a direct link.
-    # Here we'll return all for now as a placeholder or implement specific logic.
     return await crud_sprint.get_multi(db)
 
 
@@ -100,17 +111,3 @@ async def get_project_releases(
 ):
     """Get releases for a specific project."""
     return await crud_release.get_multi_by_project(db, project_id=project_id)
-
-
-@router.get("/issues")
-async def search_project_issues(
-    search: str, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin", "CEO", "PM"]))
-):
-    """Search for issues by key or summary."""
-    from models.project import Issue
-    from sqlalchemy import or_
-
-    result = await db.execute(
-        select(Issue).where(or_(Issue.key.ilike(f"%{search}%"), Issue.summary.ilike(f"%{search}%"))).limit(20)
-    )
-    return result.scalars().all()
