@@ -1,66 +1,62 @@
-# Jira Timesheet 🦥
+# Jira Timesheet
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Система управления рабочим временем с глубокой интеграцией в Jira. Решение для команд, которым нужна прозрачность в учете трудозатрат, планировании отпусков и формировании отчетности.
+Jira Timesheet is a production-grade enterprise system for Time Tracking, Resource Management, and Financial Analytics (CapEx/OpEx). It bridges the gap in Jira Cloud's reporting capabilities by providing deep organizational hierarchy tracking, automated Jira worklog synchronization, and manual entry management for non-project activities (vacations, sick leaves, etc.).
 
-![Logo](logo.png)
+## 🌟 Core Features
 
-## 🌟 Основные функции
+*   **Jira Synchronization**: Automated import of worklogs, issues, and releases.
+*   **Time Tracking (Journal)**: User-friendly interface for daily timesheet completion.
+*   **Gantt Chart (Leave Requests)**: Visual planning of employee absences with conflict checking.
+*   **Analytics & Dashboards**: Clear visualizations of team workload and project execution.
+*   **Report Builder**: Data export organized by departments, divisions, and individual employees.
+*   **Notifications**: Flexible alert system for timesheet completion and leave approvals.
+*   **HR Module**: Management of organizational structure, roles, and access permissions.
 
-*   **Синхронизация с Jira**: Автоматический импорт ворклогов, задач и релизов.
-*   **Учет времени (Journal)**: Удобный интерфейс для ежедневного заполнения таймшитов.
-*   **Гант-диаграмма (Leave Requests)**: Визуальное планирование отсутствий сотрудников с проверкой пересечений.
-*   **Аналитика и дашборды**: Наглядные графики по загрузке команд и выполнению проектов.
-*   **Конструктор отчетов**: Экспорт данных по департаментам, отделам и сотрудникам.
-*   **Уведомления**: Гибкая система оповещений о необходимости заполнить время или утвердить отпуск.
-*   **HR-модуль**: Управление структурой организации, должностями и доступами.
+## 🛠 Tech Stack
 
-## 🛠 Технологический стек
+*   **Backend**: Python, FastAPI, SQLAlchemy, Alembic, PostgreSQL
+*   **Frontend**: React, TypeScript, Tailwind CSS (Migrating from Streamlit)
+*   **Infrastructure**: Docker, Docker Compose, Caddy
 
-*   **Backend**: Python, FastAPI, SQLAlchemy, Alembic, PostgreSQL.
-*   **Frontend**: Streamlit, Custom Components.
-*   **Infrastructure**: Docker, Docker Compose, Caddy (как обратный прокси).
+## 🚀 Quick Start
 
-## 🚀 Быстрый старт
-
-### Требования
+### Prerequisites
 *   Docker & Docker Compose
 
-### Запуск в режиме разработки
+### Development Mode (Docker)
 ```bash
 docker-compose -f docker-compose.dev.yml up --build
 ```
-Приложение будет доступно по адресу: `http://localhost:8501` (frontend) и `http://localhost:8000/docs` (API Swagger).
+The application will be accessible at:
+- Frontend: `http://localhost:8501`
+- API (Swagger): `http://localhost:8000/docs`
 
-### Запуск в продакшене
-1. Настройте файл `.env.prod`.
-2. Запустите:
+### Production Mode
+1. Configure the `.env.prod` file.
+2. Run the application:
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 🛠️ Локальная разработка (без Docker)
+## 🛠️ Local Development (Without Docker)
 
-Для локального запуска рекомендуется использовать [**uv**](https://docs.astral.sh/uv/) — сверхбыстрый менеджер зависимостей.
+It is recommended to use [**uv**](https://docs.astral.sh/uv/), an extremely fast Python package and project manager.
 
-1.  **Установка зависимостей:**
+1.  **Install dependencies:**
     ```bash
     uv sync
     ```
-2.  **Проверка линтером (Ruff):**
+2.  **Linting (Ruff):**
     ```bash
     uv run ruff check .
     ```
-3.  **Запуск тестов:**
+3.  **Run tests:**
     ```bash
     uv run pytest backend/tests
     ```
 
-## 🦥 Наш маскот
+## 📄 License
 
-Знакомьтесь, это наш ленивец. Он немного на кофеине, как и все мы перед дедлайнами, но он всегда следит за тем, чтобы каждая минута в Jira была учтена. Мы выбрали его как символ того, что даже самые медленные процессы можно автоматизировать и сделать приятными.
-
-## 📄 Лицензия
-
-Этот проект распространяется под лицензией MIT. Подробности см. в файле [LICENSE](LICENSE).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
