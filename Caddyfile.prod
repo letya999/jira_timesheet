@@ -1,19 +1,11 @@
 # =============================================================================
 # Caddy Configuration for Jira Timesheet (Production)
-# Frontend: http://timesheet-app.{$DOMAIN_IP}.nip.io:8080
-# Backend:  http://timesheet-api.{$DOMAIN_IP}.nip.io:8080
+# Frontend: http://{$APP_DOMAIN}:8080
+# Backend:  http://{$API_DOMAIN}:8080
 # =============================================================================
 
 # Frontend (React App)
-http://timesheet-app.{$DOMAIN_IP}.nip.io:8080 {
-    # Basic Auth для защиты UI (не применяется к /api/*)
-    # Username: jira_timesheet
-    # Password: twinby_jira_timesheet_20_26
-    @notApi not path /api/*
-    basicauth @notApi {
-        jira_timesheet $2a$14$tAgYwaLPJ/sHVKvoSaD8ceoxj.q0jXIyoZVyL1ZM6Rn38Fe5IMYRq
-    }
-
+http://{$APP_DOMAIN}:8080 {
     # API запросы проксируются напрямую к backend (JWT auth на стороне FastAPI)
     handle /api/* {
         reverse_proxy backend:8000
@@ -32,7 +24,7 @@ http://timesheet-app.{$DOMAIN_IP}.nip.io:8080 {
 }
 
 # Backend (FastAPI API)
-http://timesheet-api.{$DOMAIN_IP}.nip.io:8080 {
+http://{$API_DOMAIN}:8080 {
     reverse_proxy backend:8000
 
     header {

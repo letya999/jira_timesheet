@@ -127,7 +127,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DOMAIN_IP=${DOMAIN_IP}
+      - APP_DOMAIN=${APP_DOMAIN}
+      - API_DOMAIN=${API_DOMAIN}
     volumes:
       - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data_prod:/data
