@@ -21,6 +21,7 @@ import {
   useCurrentUser,
   useLogin,
   useLogout,
+  useGoogleLogin,
   useSsoLogin,
   usePermissions,
   useInactivityTimer,
@@ -164,6 +165,13 @@ describe('useSsoLogin', () => {
     expect(typeof result.current).toBe('function');
 
     hrefSpy.mockRestore();
+  });
+});
+
+describe('useGoogleLogin', () => {
+  it('returns a callable login redirect function', () => {
+    const { result } = renderHook(() => useGoogleLogin());
+    expect(typeof result.current).toBe('function');
   });
 });
 

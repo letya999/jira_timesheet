@@ -131,9 +131,17 @@ import type {
   GetUnitRolesApiV1OrgUnitsUnitIdRolesGetData,
   GetUnitRolesApiV1OrgUnitsUnitIdRolesGetErrors,
   GetUnitRolesApiV1OrgUnitsUnitIdRolesGetResponses,
+  GetUserApiV1UsersUserIdGetData,
+  GetUserApiV1UsersUserIdGetErrors,
+  GetUserApiV1UsersUserIdGetResponses,
   GetUsersApiV1UsersGetData,
   GetUsersApiV1UsersGetErrors,
   GetUsersApiV1UsersGetResponses,
+  GoogleSsoCallbackApiV1AuthSsoGoogleCallbackGetData,
+  GoogleSsoCallbackApiV1AuthSsoGoogleCallbackGetResponses,
+  GoogleSsoLoginApiV1AuthSsoGoogleLoginGetData,
+  GoogleSsoLoginApiV1AuthSsoGoogleLoginGetErrors,
+  GoogleSsoLoginApiV1AuthSsoGoogleLoginGetResponses,
   HealthApiV1AiHealthGetData,
   HealthApiV1AiHealthGetResponses,
   HealthCheckHealthGetData,
@@ -150,6 +158,9 @@ import type {
   MergeUsersApiV1UsersMergePostResponses,
   MetricsMetricsGetData,
   MetricsMetricsGetResponses,
+  PromoteBulkUsersApiV1UsersPromoteBulkPostData,
+  PromoteBulkUsersApiV1UsersPromoteBulkPostErrors,
+  PromoteBulkUsersApiV1UsersPromoteBulkPostResponses,
   PromoteToSystemUserApiV1UsersPromoteJiraUserIdPostData,
   PromoteToSystemUserApiV1UsersPromoteJiraUserIdPostErrors,
   PromoteToSystemUserApiV1UsersPromoteJiraUserIdPostResponses,
@@ -302,9 +313,44 @@ export const ssoCallbackApiV1AuthSsoCallbackGet = <
   >({ url: "/api/v1/auth/sso/callback", ...options });
 
 /**
+ * Google Sso Login
+ *
+ * Redirect to Google OAuth login page.
+ */
+export const googleSsoLoginApiV1AuthSsoGoogleLoginGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GoogleSsoLoginApiV1AuthSsoGoogleLoginGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GoogleSsoLoginApiV1AuthSsoGoogleLoginGetResponses,
+    GoogleSsoLoginApiV1AuthSsoGoogleLoginGetErrors,
+    ThrowOnError
+  >({ url: "/api/v1/auth/sso/google/login", ...options });
+
+/**
+ * Google Sso Callback
+ *
+ * Handle Google OAuth callback and authenticate/register user.
+ */
+export const googleSsoCallbackApiV1AuthSsoGoogleCallbackGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<
+    GoogleSsoCallbackApiV1AuthSsoGoogleCallbackGetData,
+    ThrowOnError
+  >,
+) =>
+  (options?.client ?? client).get<
+    GoogleSsoCallbackApiV1AuthSsoGoogleCallbackGetResponses,
+    unknown,
+    ThrowOnError
+  >({ url: "/api/v1/auth/sso/google/callback", ...options });
+
+/**
  * Get Users
  *
- * Fetch all users (system and import) with advanced filtering.
+ * Fetch all users (system and import) with advanced filtering and SQL pagination.
  */
 export const getUsersApiV1UsersGet = <ThrowOnError extends boolean = false>(
   options?: Options<GetUsersApiV1UsersGetData, ThrowOnError>,
@@ -320,7 +366,93 @@ export const getUsersApiV1UsersGet = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Read Users Me
+ *
+ * Fetch current logged in user profile with jira info.
+ */
+export const readUsersMeApiV1UsersMeGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ReadUsersMeApiV1UsersMeGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ReadUsersMeApiV1UsersMeGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/me",
+    ...options,
+  });
+
+/**
+ * Delete User
+ *
+ * Delete user with self-deletion and last-admin protection.
+ */
+export const deleteUserApiV1UsersUserIdDelete = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeleteUserApiV1UsersUserIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteUserApiV1UsersUserIdDeleteResponses,
+    DeleteUserApiV1UsersUserIdDeleteErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/{user_id}",
+    ...options,
+  });
+
+/**
+ * Get User
+ *
+ * Fetch a single user by ID (either system or import).
+ */
+export const getUserApiV1UsersUserIdGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetUserApiV1UsersUserIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetUserApiV1UsersUserIdGetResponses,
+    GetUserApiV1UsersUserIdGetErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/{user_id}",
+    ...options,
+  });
+
+/**
+ * Update User
+ *
+ * Update system user details with proper M2M handling.
+ */
+export const updateUserApiV1UsersUserIdPatch = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<UpdateUserApiV1UsersUserIdPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateUserApiV1UsersUserIdPatchResponses,
+    UpdateUserApiV1UsersUserIdPatchErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/users/{user_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
  * Bulk Update Users
+ *
+ * Bulk update users with restricted fields and proper error handling.
  */
 export const bulkUpdateUsersApiV1UsersBulkUpdatePost = <
   ThrowOnError extends boolean = false,
@@ -364,6 +496,8 @@ export const resetUserPasswordApiV1UsersResetPasswordUserIdPost = <
 
 /**
  * Merge Users
+ *
+ * Link JiraUser to system User and clean up.
  */
 export const mergeUsersApiV1UsersMergePost = <
   ThrowOnError extends boolean = false,
@@ -381,65 +515,27 @@ export const mergeUsersApiV1UsersMergePost = <
   });
 
 /**
- * Delete User
- */
-export const deleteUserApiV1UsersUserIdDelete = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<DeleteUserApiV1UsersUserIdDeleteData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteUserApiV1UsersUserIdDeleteResponses,
-    DeleteUserApiV1UsersUserIdDeleteErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/users/{user_id}",
-    ...options,
-  });
-
-/**
- * Update User
+ * Promote Bulk Users
  *
- * Update system user details (Admin only).
+ * Bulk promote Jira users to system users.
  */
-export const updateUserApiV1UsersUserIdPatch = <
+export const promoteBulkUsersApiV1UsersPromoteBulkPost = <
   ThrowOnError extends boolean = false,
 >(
-  options: Options<UpdateUserApiV1UsersUserIdPatchData, ThrowOnError>,
+  options: Options<PromoteBulkUsersApiV1UsersPromoteBulkPostData, ThrowOnError>,
 ) =>
-  (options.client ?? client).patch<
-    UpdateUserApiV1UsersUserIdPatchResponses,
-    UpdateUserApiV1UsersUserIdPatchErrors,
+  (options.client ?? client).post<
+    PromoteBulkUsersApiV1UsersPromoteBulkPostResponses,
+    PromoteBulkUsersApiV1UsersPromoteBulkPostErrors,
     ThrowOnError
   >({
     security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/users/{user_id}",
+    url: "/api/v1/users/promote-bulk",
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
-  });
-
-/**
- * Read Users Me
- *
- * Fetch current logged in user profile with jira info.
- */
-export const readUsersMeApiV1UsersMeGet = <
-  ThrowOnError extends boolean = false,
->(
-  options?: Options<ReadUsersMeApiV1UsersMeGetData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ReadUsersMeApiV1UsersMeGetResponses,
-    unknown,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/users/me",
-    ...options,
   });
 
 /**
@@ -1180,6 +1276,46 @@ export const syncAllActiveProjectsApiV1ProjectsSyncAllPost = <
   });
 
 /**
+ * Get Projects
+ *
+ * Get all projects with pagination.
+ */
+export const getProjectsApiV1ProjectsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetProjectsApiV1ProjectsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetProjectsApiV1ProjectsGetResponses,
+    GetProjectsApiV1ProjectsGetErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/projects/",
+    ...options,
+  });
+
+/**
+ * Search Project Issues
+ *
+ * Search for issues by key or summary.
+ */
+export const searchProjectIssuesApiV1ProjectsIssuesGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<SearchProjectIssuesApiV1ProjectsIssuesGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    SearchProjectIssuesApiV1ProjectsIssuesGetResponses,
+    SearchProjectIssuesApiV1ProjectsIssuesGetErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/projects/issues",
+    ...options,
+  });
+
+/**
  * Sync Single Project
  *
  * Sync worklogs for a specific project via background queue.
@@ -1199,26 +1335,6 @@ export const syncSingleProjectApiV1ProjectsProjectIdSyncPost = <
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/projects/{project_id}/sync",
-    ...options,
-  });
-
-/**
- * Get Projects
- *
- * Get all projects with pagination.
- */
-export const getProjectsApiV1ProjectsGet = <
-  ThrowOnError extends boolean = false,
->(
-  options?: Options<GetProjectsApiV1ProjectsGetData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetProjectsApiV1ProjectsGetResponses,
-    GetProjectsApiV1ProjectsGetErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/projects/",
     ...options,
   });
 
@@ -1289,26 +1405,6 @@ export const getProjectReleasesApiV1ProjectsProjectIdReleasesGet = <
   >({
     security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/projects/{project_id}/releases",
-    ...options,
-  });
-
-/**
- * Search Project Issues
- *
- * Search for issues by key or summary.
- */
-export const searchProjectIssuesApiV1ProjectsIssuesGet = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<SearchProjectIssuesApiV1ProjectsIssuesGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SearchProjectIssuesApiV1ProjectsIssuesGetResponses,
-    SearchProjectIssuesApiV1ProjectsIssuesGetErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: "bearer", type: "http" }],
-    url: "/api/v1/projects/issues",
     ...options,
   });
 

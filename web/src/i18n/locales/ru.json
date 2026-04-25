@@ -569,7 +569,8 @@
             "remember_me": "Запомнить меня",
             "signing_in": "Вход...",
             "or": "или",
-            "sign_in_with_sso": "Войти через SSO"
+            "sign_in_with_sso": "Войти через SSO",
+            "sign_in_with_google": "Войти через Google"
         },
         "app": {
             "inactivity_warning": "Вы будете автоматически разлогинены через 5 минут из-за неактивности."

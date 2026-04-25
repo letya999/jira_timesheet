@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     AUTHENTIK_OIDC_URL: str | None = None  # e.g., https://auth.example.com/application/o/jira-timesheet/
     AUTHENTIK_REDIRECT_URI: str | None = None  # e.g., http://localhost:8000/api/v1/auth/sso/callback
 
+    # Google OAuth (third-party, independent from Authentik)
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    GOOGLE_REDIRECT_URI: str | None = None  # e.g., http://localhost:8000/api/v1/auth/sso/google/callback
+    GOOGLE_LOGIN_SUCCESS_REDIRECT: str | None = None  # e.g., http://localhost:8501/login
+    GOOGLE_AUTO_PROVISION_USERS: bool = False
+
     # Slack Integration
     SLACK_BOT_TOKEN: str | None = None
     SLACK_SIGNING_SECRET: str | None = None

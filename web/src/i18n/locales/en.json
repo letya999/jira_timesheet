@@ -566,7 +566,8 @@
             "remember_me": "Remember me",
             "signing_in": "Signing in...",
             "or": "or",
-            "sign_in_with_sso": "Sign in with SSO"
+            "sign_in_with_sso": "Sign in with SSO",
+            "sign_in_with_google": "Sign in with Google"
         },
         "app": {
             "inactivity_warning": "You will be logged out in 5 minutes due to inactivity."

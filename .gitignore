@@ -159,3 +159,4 @@ web/.env.*.local
 bun.lockb
 .bun-cache/
 plans/
+Caddyfile.prod

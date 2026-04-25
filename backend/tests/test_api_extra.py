@@ -56,3 +56,9 @@ async def test_sso_login_not_configured(client: AsyncClient):
     response = await client.get("/api/v1/auth/sso/login")
     # If not configured, it returns 501 Not Implemented
     assert response.status_code == 501
+
+
+@pytest.mark.asyncio
+async def test_google_sso_login_not_configured(client: AsyncClient):
+    response = await client.get("/api/v1/auth/sso/google/login")
+    assert response.status_code == 501

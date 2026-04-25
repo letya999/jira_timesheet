@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FormField } from '@/components/shared/form-field'
 import { LanguageSwitcher } from '@/components/shared/language-switcher'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { useLogin, useSsoLogin } from '@/features/auth/hooks'
+import { useGoogleLogin, useLogin, useSsoLogin } from '@/features/auth/hooks'
 import { useTranslation } from 'react-i18next'
 
 const loginSchema = z.object({
@@ -30,6 +30,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const { t } = useTranslation()
   const { mutateAsync: login, isPending, error } = useLogin()
   const ssoLogin = useSsoLogin()
+  const googleLogin = useGoogleLogin()
 
   const {
     register,
@@ -127,15 +128,27 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={ssoLogin}
-        data-testid="sso-button"
-      >
-        {t('web.auth.sign_in_with_sso')}
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={googleLogin}
+          data-testid="google-button"
+        >
+          {t('web.auth.sign_in_with_google')}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={ssoLogin}
+          data-testid="sso-button"
+        >
+          {t('web.auth.sign_in_with_sso')}
+        </Button>
+      </div>
     </div>
   )
 }

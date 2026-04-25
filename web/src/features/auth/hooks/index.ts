@@ -92,6 +92,12 @@ export function useSsoLogin() {
   }, []);
 }
 
+export function useGoogleLogin() {
+  return useCallback(() => {
+    window.location.href = '/api/v1/auth/sso/google/login?next=/app/dashboard';
+  }, []);
+}
+
 // ---------------------------------------------------------------------------
 // usePermissions — RBAC check derived from auth store
 // ---------------------------------------------------------------------------
