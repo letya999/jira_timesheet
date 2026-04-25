@@ -13,6 +13,7 @@ const defaultFilters: ReportFilters = {
   sprint_ids: [],
   worklog_types: [],
   category_ids: [],
+  labels: [],
   group_by_rows: ['user', 'project'],
   group_by_cols: ['date'],
   group_horizontally_by: null,

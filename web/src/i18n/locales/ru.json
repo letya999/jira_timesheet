@@ -661,7 +661,8 @@
                 "type": "Тип",
                 "issue_link": "Ссылка на задачу",
                 "issue_name": "Название задачи",
-                "issue_type": "Тип задачи"
+                "issue_type": "Тип задачи",
+                "labels": "Лейблы"
             }
         },
         "projects": {

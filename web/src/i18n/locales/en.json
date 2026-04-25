@@ -668,7 +668,8 @@
                 "type": "Type",
                 "issue_link": "Issue Link",
                 "issue_name": "Issue Name",
-                "issue_type": "Issue Type"
+                "issue_type": "Issue Type",
+                "labels": "Labels"
             }
         },
         "projects": {

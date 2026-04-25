@@ -33,7 +33,9 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
     { label: t('web.reports.dimensions.issue_link'), value: 'issue_link' },
     { label: t('web.reports.dimensions.issue_name'), value: 'issue_name' },
     { label: t('web.reports.dimensions.issue_type'), value: 'issue_type' },
+    { label: t('web.reports.dimensions.labels'), value: 'labels' },
   ];
+  const GROUP_DIMENSIONS = PIVOT_DIMENSIONS.filter((d) => d.value !== 'labels');
 
   const GRANULARITY_OPTIONS: { label: string; value: DateGranularity }[] = [
     { label: t('org.period_day'), value: 'day' },
@@ -55,7 +57,7 @@ export function PivotConfigPanel({ filters, onFilter, onRun, isLoading }: PivotC
 
   const rowOptions = PIVOT_DIMENSIONS.filter((d) => !filters.group_by_cols.includes(d.value));
   const colOptions = PIVOT_DIMENSIONS.filter((d) => !filters.group_by_rows.includes(d.value));
-  const horizontalOptions = PIVOT_DIMENSIONS;
+  const horizontalOptions = GROUP_DIMENSIONS;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
