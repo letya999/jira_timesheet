@@ -64,17 +64,17 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <ThemeToggle />
       </div>
       <div className="text-center">
-        <h2 className="text-lg font-semibold">{t('web.auth.sign_in')}</h2>
+        <h2 className="text-lg font-semibold" data-testid="login-title">{t('web.auth.sign_in')}</h2>
         <p className="text-sm text-muted-foreground">{t('web.auth.to_your_account')}</p>
       </div>
 
       {errorMessage && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="login-error">
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate data-testid="login-form">
         <FormField
           label={t('web.auth.username')}
           error={errors.username?.message ? t(errors.username.message) : undefined}
@@ -85,12 +85,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             autoComplete="username"
             placeholder={t('web.auth.username_placeholder')}
             aria-invalid={!!errors.username}
+            data-testid="username-input"
             {...register('username')}
           />
         </FormField>
 
         <FormField
-          label={t('auth.password')}
+          label={t('web.auth.password')}
           error={errors.password?.message ? t(errors.password.message) : undefined}
           required
         >
@@ -98,6 +99,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             autoComplete="current-password"
             placeholder={t('web.auth.password_placeholder')}
             aria-invalid={!!errors.password}
+            data-testid="password-input"
             {...register('password')}
           />
         </FormField>
@@ -113,13 +115,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </Label>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button type="submit" className="w-full" disabled={isPending} data-testid="login-submit">
           {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
           {isPending ? t('web.auth.signing_in') : t('web.auth.sign_in')}
         </Button>
       </form>
 
-      <div className="relative">
+      <div className="relative" data-testid="login-divider">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
@@ -132,10 +134,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="w-full relative"
           onClick={googleLogin}
           data-testid="google-button"
         >
+          <svg className="mr-2 size-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+            <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+          </svg>
           {t('web.auth.sign_in_with_google')}
         </Button>
 
