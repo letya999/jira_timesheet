@@ -91,6 +91,8 @@ venv.bak/
 .env.dev
 .env.prod
 .env.production
+!.env.dev.example
+!.env.production.example
 
 # Spyder project settings
 .spyderproject
