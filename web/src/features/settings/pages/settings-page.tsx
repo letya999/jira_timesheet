@@ -75,7 +75,7 @@ const USER_PAGE_SIZE = 20
 
 const ACCESS_MATRIX = [
   { page: '/app/dashboard', admin: true, manager: true, employee: false },
-  { page: '/app/journal', admin: true, manager: true, employee: false },
+  { page: '/app/journal', admin: true, manager: true, employee: true },
   { page: '/app/my-timesheet', admin: true, manager: true, employee: true },
   { page: '/app/employees', admin: true, manager: true, employee: true },
   { page: '/app/projects', admin: true, manager: true, employee: false },

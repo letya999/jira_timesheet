@@ -29,7 +29,7 @@ import { canAccessManagerPages } from '@/lib/rbac'
 
 const NAV_ITEMS = [
   { to: '/app/dashboard', icon: LayoutDashboard, labelKey: 'common.dashboard', managerOnly: true },
-  { to: '/app/journal', icon: BookOpen, labelKey: 'common.journal', managerOnly: true },
+  { to: '/app/journal', icon: BookOpen, labelKey: 'common.journal' },
   { to: '/app/my-timesheet', icon: Clock, labelKey: 'common.my_timesheet' },
   { to: '/app/org', icon: Building2, labelKey: 'common.org_structure' },
   { to: '/app/employees', icon: Users, labelKey: 'common.employees' },
