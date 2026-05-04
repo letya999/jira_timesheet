@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import JournalPage from './journal-page'
+import { getMyTeamsApiV1OrgMyTeamsGet } from '@/api/generated/sdk.gen'
+import { useCurrentUser } from '@/features/auth/hooks'
 
 vi.mock('@/features/auth/hooks', () => ({
   useCurrentUser: vi.fn(() => ({ data: { role: 'Admin' } })),
@@ -20,6 +22,10 @@ vi.mock('@/features/timesheet/hooks', () => ({
     isLoading: false,
     isFetching: false,
   })),
+}))
+
+vi.mock('@/api/generated/sdk.gen', () => ({
+  getMyTeamsApiV1OrgMyTeamsGet: vi.fn(async () => ({ data: [] })),
 }))
 
 vi.mock('@/components/shared/card-list', () => ({
@@ -49,6 +55,7 @@ function renderPage() {
 describe('JournalPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(useCurrentUser).mockReturnValue({ data: { role: 'Admin' } } as never)
   })
 
   it('opens log-time dialog when log-time button is clicked', async () => {
@@ -57,5 +64,13 @@ describe('JournalPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Log Time' }))
     expect(screen.getByTestId('log-time-dialog')).toBeInTheDocument()
+  })
+
+  it('hides team filter and skips my-teams request for employee', () => {
+    vi.mocked(useCurrentUser).mockReturnValue({ data: { role: 'Employee' } } as never)
+    renderPage()
+
+    expect(screen.queryByText('Team')).not.toBeInTheDocument()
+    expect(getMyTeamsApiV1OrgMyTeamsGet).not.toHaveBeenCalled()
   })
 })

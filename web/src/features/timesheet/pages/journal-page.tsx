@@ -28,7 +28,7 @@ import { useTimesheetEntries } from '@/features/timesheet/hooks'
 import { useCurrentUser } from '@/features/auth/hooks'
 import { useTranslation } from 'react-i18next'
 import { getMyTeamsApiV1OrgMyTeamsGet } from '@/api/generated/sdk.gen'
-import { isAdminRole } from '@/lib/rbac'
+import { isAdminRole, normalizeAppRole } from '@/lib/rbac'
 import { useQuery } from '@tanstack/react-query'
 import { LogTimeDialog } from '@/features/timesheet/components/log-time-dialog'
 
@@ -42,6 +42,7 @@ export default function JournalPage() {
   const { data: currentUser } = useCurrentUser()
   const role = (currentUser as { role?: string } | undefined)?.role
   const isAdmin = isAdminRole(role)
+  const isEmployee = normalizeAppRole(role) === 'employee'
 
   const [startDate, setStartDate] = useState(dateUtils.formatPlain(ninetyDaysAgo, FMT))
   const [endDate, setEndDate] = useState(dateUtils.formatPlain(today, FMT))
@@ -58,7 +59,7 @@ export default function JournalPage() {
   const { data: allTeams = [] } = useReportOrgUnits({ enabled: isAdmin })
   const myTeamsQuery = useQuery({
     queryKey: ['journal', 'my-teams'],
-    enabled: !isAdmin,
+    enabled: !isAdmin && !isEmployee,
     queryFn: async () => {
       const res = await getMyTeamsApiV1OrgMyTeamsGet({ throwOnError: true })
       return Array.isArray(res.data) ? res.data : []
@@ -89,11 +90,11 @@ export default function JournalPage() {
       page,
       size: pageSize,
       sort_order: sortOrder,
-      org_unit_id: teamId !== 'all' ? Number(teamId) : undefined,
+      org_unit_id: !isEmployee && teamId !== 'all' ? Number(teamId) : undefined,
       project_id: projectId !== 'all' ? Number(projectId) : undefined,
       category: category !== 'all' ? category : undefined,
     }),
-    [startDate, endDate, page, pageSize, sortOrder, teamId, projectId, category],
+    [startDate, endDate, page, pageSize, sortOrder, teamId, projectId, category, isEmployee],
   )
 
   const { data, isLoading, isFetching } = useTimesheetEntries(queryParams)
@@ -171,24 +172,26 @@ export default function JournalPage() {
             </div>
 
             <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <Label>{t('common.team')}</Label>
-                <Select value={teamId} onValueChange={setTeamId}>
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue placeholder={t('journal.all_teams')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
-                      {(teams ?? []).map((team) => (
-                        <SelectItem key={team.id} value={String(team.id)}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isEmployee ? (
+                <div className="flex flex-col gap-2">
+                  <Label>{t('common.team')}</Label>
+                  <Select value={teamId} onValueChange={setTeamId}>
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder={t('journal.all_teams')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="all">{t('journal.all_teams')}</SelectItem>
+                        {(teams ?? []).map((team) => (
+                          <SelectItem key={team.id} value={String(team.id)}>
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
 
               <div className="flex flex-col gap-2">
                 <Label>{t('common.category')}</Label>

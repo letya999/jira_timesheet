@@ -5,21 +5,12 @@ import { timesheetKeys } from '@/features/timesheet/hooks'
 import { getAllWorklogsApiV1TimesheetGet } from '@/api/generated/sdk.gen'
 import { subDays } from 'date-fns'
 import { dateUtils } from '@/lib/date-utils'
-import { useAuthStore } from '@/stores/auth-store'
-import { canAccessManagerPages } from '@/lib/rbac'
-import { redirect } from '@tanstack/react-router'
 
 const FMT = 'yyyy-MM-dd'
 
 export const journalRoute = createRoute({
   path: 'journal',
   getParentRoute: () => appLayoutRoute,
-  beforeLoad: () => {
-    const role = (useAuthStore.getState().user as { role?: string } | null)?.role
-    if (!canAccessManagerPages(role)) {
-      throw redirect({ to: '/app/my-timesheet' })
-    }
-  },
   loader: () => {
     const today = dateUtils.now()
     const ninetyDaysAgo = subDays(today, 90)

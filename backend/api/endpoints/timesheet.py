@@ -69,6 +69,8 @@ async def get_all_worklogs(
     org_unit_ids: list[int] | None = None
     if deps.normalize_role_name(current_user.role) == "employee":
         # Regular users can only see their own logs
+        if current_user.jira_user_id is None:
+            return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
         user_id = current_user.jira_user_id
     elif deps.is_admin_role(current_user):
         # Admins and CEOs see all logs by default if no filters are provided

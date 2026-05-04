@@ -755,6 +755,18 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
     db.add(ju)
     await db.flush()
     user.jira_user_id = ju.id
+
+    other_ju = JiraUser(jira_account_id="ju-other", display_name="Other", org_unit_id=None)
+    db.add(other_ju)
+    await db.flush()
+
+    cat = WorklogCategory(name="Stealth Category")
+    db.add(cat)
+    await db.flush()
+    own_worklog = Worklog(date=date.today(), hours=1.0, jira_user_id=ju.id, category_id=cat.id, type="JIRA")
+    other_worklog = Worklog(date=date.today(), hours=2.0, jira_user_id=other_ju.id, category_id=cat.id, type="JIRA")
+    db.add(own_worklog)
+    db.add(other_worklog)
     await db.commit()
 
     login_res = await client.post("/api/v1/auth/login", data={"username": "emp_stealth@ex.com", "password": "pw"})
@@ -762,6 +774,10 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
 
     resp = await client.get("/api/v1/timesheet/", headers=headers)
     assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["total"] == 1
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["user_name"] == "Stealth"
 
     # 2. My worklogs
     resp = await client.get(
@@ -782,6 +798,25 @@ async def test_timesheet_extended(client: AsyncClient, auth_headers: dict, db: A
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "APPROVED"
+
+    # 4. Employee without jira_user_id gets empty list
+    no_jira_user = User(
+        email=f"emp_nojira_{uuid.uuid4()}@ex.com",
+        full_name="No Jira User",
+        hashed_password=get_password_hash("pw"),
+        role="Employee",
+        is_active=True,
+        jira_user_id=None,
+    )
+    db.add(no_jira_user)
+    await db.commit()
+    no_jira_login = await client.post("/api/v1/auth/login", data={"username": no_jira_user.email, "password": "pw"})
+    no_jira_headers = {"Authorization": f"Bearer {no_jira_login.json()['access_token']}"}
+    no_jira_resp = await client.get("/api/v1/timesheet/", headers=no_jira_headers)
+    assert no_jira_resp.status_code == 200
+    no_jira_payload = no_jira_resp.json()
+    assert no_jira_payload["total"] == 0
+    assert no_jira_payload["items"] == []
     # 1. Refresh
     with patch("api.endpoints.projects.sync_jira_projects_to_db", return_value=5):
         resp = await client.post("/api/v1/projects/refresh", headers=auth_headers)
