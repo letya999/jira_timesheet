@@ -50,6 +50,7 @@ export function EmployeesPage() {
   // Dialog states
   const [tempCredentials, setTempCredentials] = React.useState<UserPromoteResponse | null>(null);
   const [editingUser, setEditingUser] = React.useState<UnifiedUser | null>(null);
+  const [createSystemUserOpen, setCreateSystemUserOpen] = React.useState(false);
   const [mergingUser, setMergingUser] = React.useState<UnifiedUser | null>(null);
   const [bulkMode, setBulkMode] = React.useState<'role' | 'org_unit' | 'promote' | null>(null);
 
@@ -86,7 +87,13 @@ export function EmployeesPage() {
     if (window.confirm(t('messages.confirm_delete', 'Are you sure you want to delete this user?'))) {
       deleteMutation.mutate(id, {
         onSuccess: () => toast.success(t('messages.user_deleted', 'User deleted')),
-        onError: () => toast.error(t('messages.delete_failed', 'Failed to delete user')),
+        onError: (error: unknown) => {
+          const message =
+            (error as { body?: { detail?: string }; message?: string })?.body?.detail ||
+            (error as { message?: string })?.message ||
+            t('messages.delete_failed', 'Failed to delete user');
+          toast.error(message);
+        },
       });
     }
   }, [deleteMutation, t]);
@@ -169,6 +176,12 @@ export function EmployeesPage() {
             </div>
           )}
           {isAdmin && (
+            <Button variant="secondary" onClick={() => setCreateSystemUserOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              {t('create_system_user')}
+            </Button>
+          )}
+          {isAdmin && (
             <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} variant="outline">
               <RefreshCw className={`mr-2 h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
               {t('sync_jira', 'Sync from Jira')}
@@ -246,9 +259,18 @@ export function EmployeesPage() {
 
       <UserEditDialog
         isOpen={!!editingUser}
-        user={editingUser as UserResponse}
+        user={editingUser}
         orgUnits={orgUnits as any}
         onClose={() => setEditingUser(null)}
+        onPromoteSuccess={(creds) => setTempCredentials(creds)}
+      />
+
+      <UserEditDialog
+        isOpen={createSystemUserOpen}
+        user={null}
+        createMode
+        orgUnits={orgUnits as any}
+        onClose={() => setCreateSystemUserOpen(false)}
         onPromoteSuccess={(creds) => setTempCredentials(creds)}
       />
 

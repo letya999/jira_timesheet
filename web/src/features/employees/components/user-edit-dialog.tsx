@@ -30,8 +30,30 @@ import {
 import { MultiSelect } from '@/components/ui/multi-select';
 import type { OrgUnitResponse, UserResponse } from '@/api/generated/types.gen';
 import { UnifiedUser } from '@/features/employees/components/employee-columns';
-import { useUpdateUser, usePromoteUser } from '@/features/users/hooks';
+import { useCreateSystemUser, useUpdateUser, usePromoteUser } from '@/features/users/hooks';
 import { toast } from '@/lib/toast';
+
+interface UserEditDialogProps {
+  user: UnifiedUser | null;
+  orgUnits: OrgUnitResponse[];
+  isOpen: boolean;
+  onClose: () => void;
+  onPromoteSuccess?: (creds: UserResponse) => void;
+  createMode?: boolean;
+}
+
+type FormData = {
+  full_name: string;
+  email: string;
+  role: string;
+  org_unit_ids?: number[];
+};
+
+function getApiErrorMessage(error: unknown): string | null {
+  if (typeof error !== 'object' || !error) return null;
+  const maybe = error as { body?: { detail?: string }; message?: string };
+  return maybe.body?.detail ?? maybe.message ?? null;
+}
 
 export function UserEditDialog({
   user,
@@ -39,21 +61,27 @@ export function UserEditDialog({
   isOpen,
   onClose,
   onPromoteSuccess,
+  createMode = false,
 }: UserEditDialogProps) {
   const { t } = useTranslation('employees');
 
-  const userSchema = React.useMemo(() => z.object({
-    full_name: z.string().min(2, t('validation.name_short', 'Name too short')),
-    email: z.string().email(t('validation.invalid_email', 'Invalid email')),
-    role: z.string(),
-    org_unit_ids: z.array(z.number()).optional(),
-  }), [t]);
+  const userSchema = React.useMemo(
+    () =>
+      z.object({
+        full_name: z.string().min(2, t('validation.name_short', 'Name too short')),
+        email: z.string().email(t('validation.invalid_email', 'Invalid email')),
+        role: z.string(),
+        org_unit_ids: z.array(z.number()).optional(),
+      }),
+    [t]
+  );
 
-  const isImport = user?.type === 'import';
+  const isImport = !createMode && user?.type === 'import';
   const updateMutation = useUpdateUser();
   const promoteMutation = usePromoteUser();
+  const createMutation = useCreateSystemUser();
 
-  const form = useForm<z.infer<typeof userSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       full_name: '',
@@ -64,6 +92,15 @@ export function UserEditDialog({
   });
 
   React.useEffect(() => {
+    if (createMode) {
+      form.reset({
+        full_name: '',
+        email: '',
+        role: 'Employee',
+        org_unit_ids: [],
+      });
+      return;
+    }
     if (user) {
       form.reset({
         full_name: user.full_name || user.display_name || '',
@@ -72,17 +109,48 @@ export function UserEditDialog({
         org_unit_ids: user.org_unit_ids || (user.org_unit_id ? [user.org_unit_id] : []),
       });
     }
-  }, [user, form]);
+  }, [user, createMode, form]);
 
-  const onSubmit = (data: z.infer<typeof userSchema>) => {
-    if (isImport) {
-      promoteMutation.mutate(user.id, {
-        onSuccess: (res) => {
-          onPromoteSuccess?.(res as UserResponse);
-          onClose();
+  const onSubmit = (data: FormData) => {
+    if (createMode) {
+      createMutation.mutate(
+        {
+          email: data.email,
+          full_name: data.full_name,
+          role: data.role,
+          org_unit_ids: data.org_unit_ids,
         },
-        onError: () => toast.error(t('promote_error')),
-      });
+        {
+          onSuccess: (res) => {
+            onPromoteSuccess?.(res as UserResponse);
+            toast.success(t('create_success', 'System user created'));
+            onClose();
+          },
+          onError: (err) => toast.error(getApiErrorMessage(err) ?? t('create_error', 'Failed to create user')),
+        }
+      );
+      return;
+    }
+
+    if (!user) return;
+
+    if (isImport) {
+      promoteMutation.mutate(
+        {
+          jiraUserId: user.id,
+          payload: {
+            email_override: data.email,
+            full_name_override: data.full_name,
+          },
+        },
+        {
+          onSuccess: (res) => {
+            onPromoteSuccess?.(res as UserResponse);
+            onClose();
+          },
+          onError: (err) => toast.error(getApiErrorMessage(err) ?? t('promote_error')),
+        }
+      );
     } else {
       updateMutation.mutate(
         { id: user.id, data },
@@ -91,18 +159,20 @@ export function UserEditDialog({
             toast.success(t('update_success_single'));
             onClose();
           },
-          onError: () => toast.error(t('update_error')),
+          onError: (err) => toast.error(getApiErrorMessage(err) ?? t('update_error')),
         }
       );
     }
   };
+
+  const loading = updateMutation.isPending || promoteMutation.isPending || createMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isImport ? t('create_system_user') : t('edit_user')}
+            {createMode ? t('create_system_user') : isImport ? t('create_system_user') : t('edit_user')}
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
@@ -114,7 +184,7 @@ export function UserEditDialog({
                 <FormItem>
                   <FormLabel>{t('full_name')}</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isImport} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,13 +197,13 @@ export function UserEditDialog({
                 <FormItem>
                   <FormLabel>{t('email')}</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isImport} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {!isImport && (
+            {(!isImport || createMode) && (
               <>
                 <FormField
                   control={form.control}
@@ -171,9 +241,7 @@ export function UserEditDialog({
                             value: u.id.toString(),
                           }))}
                           selected={field.value?.map((v) => v.toString()) ?? []}
-                          onChange={(vals) =>
-                            field.onChange(vals.map(Number))
-                          }
+                          onChange={(vals) => field.onChange(vals.map(Number))}
                           placeholder={t('select_units')}
                         />
                       </FormControl>
@@ -187,11 +255,8 @@ export function UserEditDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 {t('cancel')}
               </Button>
-              <Button
-                type="submit"
-                loading={updateMutation.isPending || promoteMutation.isPending}
-              >
-                {isImport ? t('create_get_password') : t('save_changes')}
+              <Button type="submit" loading={loading}>
+                {createMode || isImport ? t('create_get_password') : t('save_changes')}
               </Button>
             </DialogFooter>
           </form>

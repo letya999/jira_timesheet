@@ -1,9 +1,11 @@
 import pytest
+from datetime import date
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from models.user import User, JiraUser
+from models.timesheet import Worklog
 from schemas.user import UserType
 from models.org import OrgUnit
 from core.security import get_password_hash
@@ -318,6 +320,107 @@ async def test_promote_to_system_user_success_and_copies_org_unit(
     assert payload["jira_user_id"] == jira_user.id
     assert "temporary_password" in payload
     assert unit.id in payload["org_unit_ids"]
+
+
+@pytest.mark.asyncio
+async def test_promote_to_system_user_requires_email_or_override(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    jira_user = JiraUser(
+        jira_account_id="jira_no_email",
+        display_name="No Email User",
+        email=None,
+    )
+    db.add(jira_user)
+    await db.commit()
+    await db.refresh(jira_user)
+
+    response = await client.post(f"/api/v1/users/promote/{jira_user.id}", headers=auth_headers)
+    assert response.status_code == 400
+    assert "Email is required" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_promote_to_system_user_with_overrides(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    jira_user = JiraUser(
+        jira_account_id="jira_override",
+        display_name="Legacy Name",
+        email=None,
+    )
+    db.add(jira_user)
+    await db.commit()
+    await db.refresh(jira_user)
+
+    payload = {"email_override": "override@example.com", "full_name_override": "Override User"}
+    response = await client.post(f"/api/v1/users/promote/{jira_user.id}", json=payload, headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["email"] == "override@example.com"
+    assert body["full_name"] == "Override User"
+
+
+@pytest.mark.asyncio
+async def test_create_system_user_endpoint(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    unit = OrgUnit(name="Manual Create Unit")
+    db.add(unit)
+    await db.commit()
+    await db.refresh(unit)
+
+    payload = {
+        "email": "manual.create@example.com",
+        "full_name": "Manual Create",
+        "role": "Employee",
+        "org_unit_ids": [unit.id],
+    }
+    response = await client.post("/api/v1/users/", json=payload, headers=auth_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["email"] == payload["email"]
+    assert body["full_name"] == payload["full_name"]
+    assert unit.id in body["org_unit_ids"]
+    assert "temporary_password" in body
+
+
+@pytest.mark.asyncio
+async def test_delete_jira_user_with_worklogs_returns_409(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession
+):
+    # Create a seed Jira user so the tested Jira user ID won't collide with admin user ID=1.
+    seed = JiraUser(
+        jira_account_id="jira_seed",
+        display_name="Seed",
+        email="seed@example.com",
+    )
+    db.add(seed)
+    await db.commit()
+
+    jira_user = JiraUser(
+        jira_account_id="jira_delete_blocked",
+        display_name="Delete Blocked",
+        email="delete.blocked@example.com",
+    )
+    db.add(jira_user)
+    await db.commit()
+    await db.refresh(jira_user)
+
+    wl = Worklog(
+        jira_id="WL-1",
+        type="JIRA",
+        date=date(2026, 1, 1),
+        hours=2.0,
+        jira_user_id=jira_user.id,
+        status="APPROVED",
+    )
+    db.add(wl)
+    await db.commit()
+
+    response = await client.delete(f"/api/v1/users/{jira_user.id}", headers=auth_headers)
+    assert response.status_code == 409
+    assert "worklogs are linked" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

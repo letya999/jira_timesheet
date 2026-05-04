@@ -72,6 +72,37 @@ async def test_sync_jira_users_updates_existing(db: AsyncSession):
         await db.refresh(existing_user)
         assert existing_user.display_name == "New Name"
 
+
+@pytest.mark.asyncio
+async def test_sync_jira_users_does_not_overwrite_email_with_empty(db: AsyncSession):
+    existing_user = JiraUser(
+        jira_account_id="acc_keep_email",
+        display_name="Old Name",
+        email="keep@example.com",
+        is_active=True,
+    )
+    db.add(existing_user)
+    await db.commit()
+
+    mock_users = [
+        {
+            "accountId": "acc_keep_email",
+            "displayName": "New Name",
+            "emailAddress": None,
+            "accountType": "atlassian",
+            "active": True,
+            "avatarUrls": {"48x48": "http://avatar1"},
+        }
+    ]
+
+    with patch("services.jira.fetch_jira_users", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = mock_users
+        await sync_jira_users_to_db(db)
+
+    await db.refresh(existing_user)
+    assert existing_user.display_name == "New Name"
+    assert existing_user.email == "keep@example.com"
+
 @pytest.mark.asyncio
 async def test_sync_jira_users_links_system_user(db: AsyncSession):
     # Pre-create system user without jira link

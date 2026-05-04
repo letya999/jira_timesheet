@@ -22,6 +22,21 @@ class PromoteBulkPayload(BaseModel):
     user_ids: list[int] = Field(..., min_length=1)
 
 
+class PromoteUserPayload(BaseModel):
+    email_override: EmailStr | None = None
+    full_name_override: str | None = None
+
+
+class SystemUserCreatePayload(BaseModel):
+    email: EmailStr
+    full_name: str
+    role: str = "Employee"
+    timezone: str = "UTC"
+    password: str | None = None
+    jira_user_id: int | None = None
+    org_unit_ids: list[int] | None = None
+
+
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str | None = "Jira User"

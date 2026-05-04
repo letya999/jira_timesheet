@@ -93,12 +93,13 @@ describe('users hooks', () => {
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
       await act(async () => {
-        await result.current.mutateAsync(123);
+        await result.current.mutateAsync({ jiraUserId: 123 });
       });
 
       expect(promoteToSystemUserApiV1UsersPromoteJiraUserIdPost).toHaveBeenCalledWith({
         throwOnError: true,
         path: { jira_user_id: 123 },
+        body: undefined,
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: usersKeys.employees() });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: usersKeys.all() });

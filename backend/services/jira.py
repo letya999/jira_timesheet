@@ -628,7 +628,9 @@ async def sync_jira_users_to_db(db: AsyncSession):
         db_ju = res.scalar_one_or_none()
         if db_ju:
             db_ju.display_name = d_name
-            db_ju.email = email
+            # Never overwrite an existing non-empty email with an empty Jira value.
+            if email:
+                db_ju.email = email
             db_ju.avatar_url = avatar
             db_ju.is_active = active
         else:

@@ -12,6 +12,7 @@ import {
   deleteUserApiV1UsersUserIdDelete,
 } from '../../../api/generated/sdk.gen';
 import type { UserType } from '@/api/generated/types.gen';
+import { client } from '@/api/client';
 
 export const usersKeys = {
   all: () => ['users'] as const,
@@ -114,6 +115,37 @@ export function useDeleteUser() {
   });
 }
 
+export interface CreateSystemUserPayload {
+  email: string;
+  full_name: string;
+  role?: string;
+  timezone?: string;
+  password?: string;
+  jira_user_id?: number;
+  org_unit_ids?: number[];
+}
+
+export function useCreateSystemUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateSystemUserPayload) => {
+      const res = await client.post({
+        throwOnError: true,
+        url: '/api/v1/users/',
+        body: payload,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usersKeys.employees() });
+      queryClient.invalidateQueries({ queryKey: usersKeys.all() });
+    },
+  });
+}
+
 export function useUser(id: number) {
   return useQuery({
     queryKey: usersKeys.detail(id),
@@ -207,10 +239,17 @@ export function usePromoteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (jiraUserId: number) => {
+    mutationFn: async ({
+      jiraUserId,
+      payload,
+    }: {
+      jiraUserId: number;
+      payload?: { email_override?: string; full_name_override?: string };
+    }) => {
       const res = await promoteToSystemUserApiV1UsersPromoteJiraUserIdPost({
         throwOnError: true,
         path: { jira_user_id: jiraUserId },
+        body: payload as any,
       });
       return res.data;
     },

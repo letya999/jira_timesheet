@@ -14,6 +14,8 @@ from schemas.user import (
     JiraUserResponse,
     PasswordChangeRequest,
     PromoteBulkPayload,
+    PromoteUserPayload,
+    SystemUserCreatePayload,
     UserPromoteResponse,
     UserResponse,
     UserType,
@@ -27,6 +29,11 @@ from sqlalchemy.orm import joinedload, selectinload
 from api import deps
 
 router = APIRouter()
+
+
+def _generate_temp_password(length: int = 10) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def _serialize_user(user: User | JiraUser, **extra: Any) -> dict:
@@ -210,6 +217,58 @@ async def bulk_update_users(
         raise HTTPException(status_code=500, detail="Bulk update failed, changes rolled back")
 
 
+@router.post("/", response_model=UserPromoteResponse)
+async def create_system_user(
+    payload: SystemUserCreatePayload,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(deps.require_role(["Admin"])),
+):
+    """Create a system user manually with optional Jira user linkage."""
+    existing_email = await db.execute(select(User).where(User.email == payload.email))
+    if existing_email.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="User with this email already exists")
+
+    linked_jira_user = None
+    if payload.jira_user_id is not None:
+        jira_res = await db.execute(select(JiraUser).where(JiraUser.id == payload.jira_user_id))
+        linked_jira_user = jira_res.scalar_one_or_none()
+        if not linked_jira_user:
+            raise HTTPException(status_code=404, detail="Jira user not found")
+        already_linked = await db.execute(select(User).where(User.jira_user_id == payload.jira_user_id))
+        if already_linked.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Jira user already linked to a system user")
+
+    temp_password = payload.password or _generate_temp_password()
+    new_user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(temp_password),
+        full_name=payload.full_name,
+        role=payload.role,
+        is_active=True,
+        needs_password_change=payload.password is None,
+        jira_user_id=payload.jira_user_id,
+        timezone=payload.timezone,
+    )
+
+    if payload.org_unit_ids:
+        units_result = await db.execute(select(OrgUnit).where(OrgUnit.id.in_(payload.org_unit_ids)))
+        new_user.org_units = list(units_result.scalars().all())
+    elif linked_jira_user and linked_jira_user.org_unit_id:
+        unit_result = await db.execute(select(OrgUnit).where(OrgUnit.id == linked_jira_user.org_unit_id))
+        unit = unit_result.scalar_one_or_none()
+        if unit:
+            new_user.org_units = [unit]
+
+    db.add(new_user)
+    await db.commit()
+
+    result = await db.execute(
+        select(User).where(User.email == payload.email).options(selectinload(User.org_units), joinedload(User.jira_user))
+    )
+    created_user = result.scalar_one()
+    return _serialize_user(created_user, temporary_password=temp_password)
+
+
 @router.post("/reset-password/{user_id}", response_model=UserPromoteResponse)
 async def reset_user_password(
     user_id: int,
@@ -320,6 +379,22 @@ async def delete_user(
     res_jira = await db.execute(select(JiraUser).where(JiraUser.id == user_id))
     jira_user = res_jira.scalar_one_or_none()
     if jira_user:
+        from models.timesheet import Worklog
+
+        linked_system_user = await db.execute(select(User).where(User.jira_user_id == jira_user.id))
+        if linked_system_user.scalar_one_or_none():
+            raise HTTPException(
+                status_code=409, detail="Cannot delete Jira user: linked to a system user. Unlink or merge first"
+            )
+
+        worklog_count_res = await db.execute(select(func.count(Worklog.id)).where(Worklog.jira_user_id == jira_user.id))
+        worklog_count = worklog_count_res.scalar() or 0
+        if worklog_count > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot delete Jira user: {worklog_count} worklogs are linked. Use merge or deactivate",
+            )
+
         await db.delete(jira_user)
         await db.commit()
         return {"status": "success"}
@@ -349,8 +424,7 @@ async def promote_bulk_users(
                 continue
 
             # Generate random password
-            alphabet = string.ascii_letters + string.digits
-            temp_password = "".join(secrets.choice(alphabet) for i in range(10))
+            temp_password = _generate_temp_password()
 
             new_user = User(
                 email=jira_user.email if jira_user.email else f"user_{jid}@local.internal",
@@ -378,7 +452,10 @@ async def promote_bulk_users(
 
 @router.post("/promote/{jira_user_id}", response_model=UserPromoteResponse)
 async def promote_to_system_user(
-    jira_user_id: int, db: AsyncSession = Depends(get_db), current_user=Depends(deps.require_role(["Admin"]))
+    jira_user_id: int,
+    payload: PromoteUserPayload | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(deps.require_role(["Admin"])),
 ):
     """Convert a Jira employee into a system user with a random password."""
     # Check if JiraUser exists
@@ -393,14 +470,26 @@ async def promote_to_system_user(
     if existing_user:
         raise HTTPException(status_code=400, detail="User already has system access")
 
+    payload = payload or PromoteUserPayload()
+    final_email = (payload.email_override or jira_user.email or "").strip()
+    final_name = (payload.full_name_override or jira_user.display_name or "").strip()
+
+    if not final_email:
+        raise HTTPException(status_code=400, detail="Email is required to create a system user")
+    if not final_name:
+        raise HTTPException(status_code=400, detail="Full name is required to create a system user")
+
+    email_conflict = await db.execute(select(User).where(User.email == final_email))
+    if email_conflict.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="User with this email already exists")
+
     # Generate random password
-    alphabet = string.ascii_letters + string.digits
-    temp_password = "".join(secrets.choice(alphabet) for i in range(10))
+    temp_password = _generate_temp_password()
 
     new_user = User(
-        email=jira_user.email if jira_user.email else f"user_{jira_user_id}@local.internal",
+        email=final_email,
         hashed_password=get_password_hash(temp_password),
-        full_name=jira_user.display_name,
+        full_name=final_name,
         role="Employee",
         is_active=True,
         needs_password_change=True,

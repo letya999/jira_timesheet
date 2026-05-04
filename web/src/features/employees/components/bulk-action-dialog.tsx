@@ -48,7 +48,7 @@ export function BulkActionDialog({
       let successCount = 0;
       for (const id of userIds) {
         try {
-          await promoteMutation.mutateAsync(id);
+          await promoteMutation.mutateAsync({ jiraUserId: id });
           successCount++;
         } catch {
           // continue promoting remaining users
